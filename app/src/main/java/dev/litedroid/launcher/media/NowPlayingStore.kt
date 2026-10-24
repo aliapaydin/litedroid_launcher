@@ -79,6 +79,7 @@ object NowPlayingStore {
         "tunein.player",
         "com.google.android.apps.podcasts",
         "com.pocketcasts.android",
+        "com.qobuz.music",
     )
 
     fun isAudioApp(context: Context, pkg: String): Boolean {

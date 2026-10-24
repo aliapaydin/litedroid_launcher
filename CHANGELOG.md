@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+- **Now playing for every music app:** YouTube Music, Apple Music, TIDAL, Qobuz, Deezer, fizy and the rest show title, artist, artwork and progress on the screensaver, floating menu and quick panel, just like Spotify.
+  - Media notifications are read too: their session is tracked and their title/text/large icon fill gaps when an app leaves them out of the session.
+  - Artwork given only as a URI (`content://` or `https://`) is loaded in the background.
+  - Players that close drop off; with several apps playing, the most recently changed one wins.
+- Modern layout: the black bottom status bar (hint, Wi-Fi, weather, location) is removed.
+- **Settings → More → Release notes:** every version since 0.1, browsable with the remote.
+
 ## 1.1.2
 - Floating score strip: the overlay window is now fully hidden (`View.GONE`) when there is nothing to show, so no empty frame lingers at the screen edge on the home screen or screensaver.
 - README redesigned from scratch in Turkish (`README.md`) with new screenshots and a new hero image; English version moved to `README.en.md`.

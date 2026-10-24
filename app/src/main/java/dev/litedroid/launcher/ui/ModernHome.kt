@@ -56,7 +56,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -102,13 +101,11 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import dev.litedroid.launcher.I18n
 import dev.litedroid.launcher.LauncherViewModel
-import dev.litedroid.launcher.NetState
 import dev.litedroid.launcher.R
 import dev.litedroid.launcher.Recommendation
 import dev.litedroid.launcher.tx
 import dev.litedroid.launcher.data.LauncherApp
 import dev.litedroid.launcher.data.StoreApp
-import dev.litedroid.launcher.data.Weather
 import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 
@@ -320,12 +317,6 @@ fun ModernHome(
                 }
             }
         }
-
-        BottomStatusBar(
-            network = vm.network,
-            weather = if (settings.weatherEnabled) vm.weather else null,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
     }
 }
 
@@ -649,7 +640,7 @@ private fun HomeTab(
 
     LazyColumn(
         state = listState,
-        contentPadding = PaddingValues(top = 2.dp, bottom = 44.dp),
+        contentPadding = PaddingValues(top = 2.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -1473,7 +1464,7 @@ private fun AppGridTab(
         )
         LazyVerticalGrid(
             columns = GridCells.Fixed(6),
-            contentPadding = PaddingValues(start = 28.dp, end = 28.dp, top = 10.dp, bottom = 44.dp),
+            contentPadding = PaddingValues(start = 28.dp, end = 28.dp, top = 10.dp, bottom = 28.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.fillMaxSize(),
@@ -1529,7 +1520,7 @@ private fun GamesTab(
     onFindGames: () -> Unit,
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(top = 4.dp, bottom = 44.dp),
+        contentPadding = PaddingValues(top = 4.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -1699,85 +1690,6 @@ private fun EmptyGames(fm: FocusMemory, enabled: Boolean, onFindGames: () -> Uni
 }
 
 // ------------------------------------------------------------------
-// Alt durum çubuğu: ipucu · bağlantı · hava durumu · konum
-// ------------------------------------------------------------------
-
-
-@Composable
-private fun BottomStatusBar(network: NetState, weather: Weather?, modifier: Modifier = Modifier) {
-    var hint by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(8_000)
-            hint = (hint + 1) % 4
-        }
-    }
-    val hints = listOf(
-        tx("Bir uygulamaya basılı tut: favorilere ekle, gizle, kaldır", "Hold an app: add to favorites, hide, uninstall"),
-        tx("Ara'yı seçip uygulama adını yaz", "Select Search and type an app name"),
-        tx("Profil resmine basarak tüm ayarları aç", "Press your profile picture to open all settings"),
-        tx("Tema, ses ve ekran koruyucu: Ayarlar", "Theme, sounds and screensaver: Settings"),
-    )
-    // İnce, koyulaştırılmış bar: tek düz renk, üstte çok ince ayırıcı çizgi
-    Column(modifier.fillMaxWidth()) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.White.copy(alpha = 0.07f))
-        )
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .height(28.dp)
-                .background(Color(0xFF06070D).copy(alpha = 0.9f))
-                .padding(horizontal = 30.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Image(painterResource(R.drawable.logo_mark), contentDescription = null, modifier = Modifier.size(14.dp))
-            Spacer(Modifier.width(10.dp))
-            Text(
-                hints[hint],
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 11.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            WifiGlyph(Color.White.copy(alpha = 0.85f), network.connected, 13.dp)
-            Spacer(Modifier.width(6.dp))
-            Text(network.label, color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
-            if (weather != null) {
-                StatusDivider()
-                WeatherGlyph(weather.code, weather.isDay, 15.dp)
-                Spacer(Modifier.width(6.dp))
-                Text("${weather.temperature}°C", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.width(5.dp))
-                Text(weather.description, color = Color.White.copy(alpha = 0.65f), fontSize = 11.sp)
-                if (weather.city.isNotBlank()) {
-                    StatusDivider()
-                    Icon(Icons.Filled.Place, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(weather.city, color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatusDivider() {
-    Spacer(Modifier.width(12.dp))
-    Box(
-        Modifier
-            .width(1.dp)
-            .height(12.dp)
-            .background(Color.White.copy(alpha = 0.18f))
-    )
-    Spacer(Modifier.width(12.dp))
-}
-
-// ------------------------------------------------------------------
 // Arama
 // ------------------------------------------------------------------
 
@@ -1859,7 +1771,7 @@ fun SearchScreen(
         )
         LazyVerticalGrid(
             columns = GridCells.Fixed(6),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 44.dp),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 28.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.fillMaxSize(),

@@ -101,7 +101,13 @@ private fun sectionsOf(entries: List<SettingsEntry>): List<SettingsSection> {
  * altta odaktaki satırın açıklaması. Değerli satırlar seçildikçe bir sonraki seçeneğe geçer.
  */
 @Composable
-fun SettingsScreen(entries: List<SettingsEntry>, enabled: Boolean, modifier: Modifier = Modifier) {
+fun SettingsScreen(
+    entries: List<SettingsEntry>,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    /** Üstte açılan bir pencere (ör. sürüm notları) kapanınca artırılır: odak seçili sekmeye döner. */
+    refocusSignal: Int = 0,
+) {
     val sections = remember(entries) { sectionsOf(entries) }
     var selected by rememberSaveable { mutableIntStateOf(0) }
     val current = sections.getOrNull(selected.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
@@ -109,6 +115,11 @@ fun SettingsScreen(entries: List<SettingsEntry>, enabled: Boolean, modifier: Mod
     val firstRow = remember { FocusRequester() }
     var hint by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
+        delay(60)
+        runCatching { tabRequesters.getOrNull(selected)?.requestFocus() }
+    }
+    LaunchedEffect(refocusSignal) {
+        if (refocusSignal == 0) return@LaunchedEffect
         delay(60)
         runCatching { tabRequesters.getOrNull(selected)?.requestFocus() }
     }

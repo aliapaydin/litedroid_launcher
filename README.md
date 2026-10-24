@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.1.2-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.2.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -37,7 +37,7 @@ Standart ana ekranın yerine buzlu cam menüler, uygulamalar arası çalışan b
 <p align="center"><img src="docs/screenshots/modern-home.png" alt="Modern ana ekran" width="100%"></p>
 
 - **Ana sayfa · Uygulamalar · Oyunlar · Mağaza** sekmeleri, uygulamalarını dönerek tanıtan bir vitrin ve geniş kart satırları.
-- Üst barda Claude düğmesi, arama, bildirimler, hızlı panel, profil ve büyük saat. Altta Wi-Fi, hava durumu ve konum.
+- Üst barda Claude düğmesi, arama, bildirimler, hızlı panel, profil ve büyük saat. Alt kısımda bar yok, ekran tamamen içeriğe ayrılmış. Bağlantı ve hava durumu hızlı panelde.
 - Bir uygulamaya basılı tutunca favorilere ekle, gizle ya da taşı.
 
 | Uygulamalar | Klasik ("Casual") arayüz |
@@ -103,7 +103,7 @@ Android'deki gibi sağdan kayarak açılan widget tarzı bir panel:
 
 - Tamamen kodla çizilmiş dört sahne: **Sinema gecesi, Maç günü, Oyun zamanı** (synthwave) ve **Sakin gece** (kuzey ışıkları).
 - Cam bir saat kartı ve süzülen ışık tozları.
-- **Şimdi çalıyor** kartı: Spotify dahil çalan her şeyin kapağı, adı, sanatçısı ve canlı ilerleme çubuğu.
+- **Şimdi çalıyor** kartı: Spotify, YouTube Music, Apple Music, TIDAL, Qobuz, Deezer, fizy… çalan her şeyin kapağı, adı, sanatçısı ve canlı ilerleme çubuğu. Aynı kart hızlı panelde ve yüzen menüde de var.
 - **Canlı skor kartı:** Bugünün maçlarını ve gol bildirimlerini gösterir. Ekranı korumak için yavaşça yer değiştirir.
 - İstersen sistem ekran koruyucusu olarak da ayarlayabilirsin.
 
@@ -128,7 +128,7 @@ Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
 
 <p align="center"><img src="docs/screenshots/settings.png" alt="Ayarlar" width="100%"></p>
 
-Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses, Ekran koruyucu, Canlı skorlar, Claude'a sor, İçerik ve gizlilik** ve **Diğer**. Odaktaki satırın açıklaması altta görünür, kumandayla aradığını bulmak kolaydır.
+Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses, Ekran koruyucu, Canlı skorlar, Claude'a sor, İçerik ve gizlilik** ve **Diğer**. Odaktaki satırın açıklaması altta görünür, kumandayla aradığını bulmak kolaydır. **Diğer → Sürüm notları**'nda ilk sürümden bugüne tüm yenilikler sürüm sürüm listelenir.
 
 ### Ve diğerleri
 

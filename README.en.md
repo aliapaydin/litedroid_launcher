@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.2-ff5c8a?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -47,7 +47,7 @@ LiteDroid started as a weekend question — *"can my Chromecast with Google TV f
 ## ✨ Features
 
 ### Two layouts, one launcher
-- **Modern** — tabbed navigation (Home · Apps · Games · Store), a rotating featured hero for your apps, wide card rows, search, a bell, quick settings, profile and a big clock. A slim status bar shows Wi-Fi/Ethernet, weather and location.
+- **Modern** — tabbed navigation (Home · Apps · Games · Store), a rotating featured hero for your apps, wide card rows, search, a bell, quick settings, profile and a big clock. No bottom bar: the screen is all content; connection and weather live in the quick panel.
 - **Casual** — a floating glass top bar with your favorite apps docked in the middle, a cinematic showcase that recolors itself after the focused app, and big bouncy tiles. Three showcase styles: *Cinematic*, *Card*, *Minimal*.
 - Switch instantly in **Settings → Appearance → Layout**.
 
@@ -91,10 +91,10 @@ Installed games from Google Play get their own row underneath.
 - Slides in from the right like Android's: now-playing card with controls, clock, weather, network, one-press tiles (layout, sounds, weather, animation, showcase) and shortcuts to all settings, the Store, Android settings and About. Scrolls when it gets long.
 
 ### ⚙️ Tabbed settings
-- Settings are split into tabs on the left (Appearance, Profile, Weather, Sound, Screensaver, Live scores, Ask Claude, Content and privacy, More), with a hint for the focused row underneath.
+- Settings are split into tabs on the left (Appearance, Profile, Weather, Sound, Screensaver, Live scores, Ask Claude, Content and privacy, More), with a hint for the focused row underneath. **More → Release notes** lists every version since the first one.
 
 ### 🎧 Screensaver widgets
-- **Now playing**: artwork, title, artist and a live progress bar for whatever is playing (Spotify included).
+- **Now playing**: artwork, title, artist and a live progress bar for whatever is playing: Spotify, YouTube Music, Apple Music, TIDAL, Qobuz, Deezer, fizy… The same card is in the quick panel and floating menu.
 - **Scores card** with today's matches and goal alerts, drifting slowly to protect the screen.
 
 ### And the rest
