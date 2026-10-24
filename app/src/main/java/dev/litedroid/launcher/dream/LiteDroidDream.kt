@@ -43,7 +43,15 @@ class LiteDroidDream : DreamService(), LifecycleOwner, SavedStateRegistryOwner {
             setViewTreeLifecycleOwner(this@LiteDroidDream)
             setViewTreeSavedStateRegistryOwner(this@LiteDroidDream)
             setContent {
-                LiteDroidTheme { ScreensaverContent(settings.saverScene, settings.userName) }
+                LiteDroidTheme {
+                    ScreensaverContent(
+                        settings.saverScene,
+                        settings.userName,
+                        showNowPlaying = settings.saverNowPlaying,
+                        showScores = settings.saverScores,
+                        leagues = settings.scoreLeagues,
+                    )
+                }
             }
         }
         setContentView(view)

@@ -1,5 +1,11 @@
 package dev.litedroid.launcher.ui
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import dev.litedroid.launcher.data.MatchState
+import dev.litedroid.launcher.data.ScoresHub
+import dev.litedroid.launcher.media.LiveMediaHub
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.border
@@ -83,7 +89,14 @@ private fun infoFor(scene: SaverScene) = when (scene) {
  * Ekran yanmasını önlemek için saat bloğu yavaşça yer değiştirir.
  */
 @Composable
-fun ScreensaverContent(scene: SaverScene, userName: String?, modifier: Modifier = Modifier) {
+fun ScreensaverContent(
+    scene: SaverScene,
+    userName: String?,
+    modifier: Modifier = Modifier,
+    showNowPlaying: Boolean = true,
+    showScores: Boolean = true,
+    leagues: Set<String>? = null,
+) {
     var current by remember { mutableStateOf(if (scene == SaverScene.MIXED) SaverScene.CINEMA else scene) }
     LaunchedEffect(scene) {
         if (scene == SaverScene.MIXED) {
@@ -165,6 +178,51 @@ fun ScreensaverContent(scene: SaverScene, userName: String?, modifier: Modifier 
             vignette(0.55f)
         }
         SaverClock(current, userName, time, if (scene == SaverScene.MIXED) sceneProgress.asState() else null)
+        SaverWidgets(time, showNowPlaying, showScores, leagues)
+    }
+}
+
+/**
+ * Sağ üstte "Şimdi çalıyor" ve canlı skor kartları, en üstte gol bildirimi.
+ * Kartlar saat kartının tersi yönde çok yavaş gezinir (ekran yanmasına karşı).
+ */
+@Composable
+private fun SaverWidgets(time: State<Float>, showNowPlaying: Boolean, showScores: Boolean, leagues: Set<String>?) {
+    val context = LocalContext.current
+    val media by LiveMediaHub.current.collectAsState()
+    val matches by ScoresHub.matches.collectAsState()
+    if (showScores) {
+        DisposableEffect(Unit) {
+            leagues?.let { ScoresHub.leagues = it }
+            ScoresHub.acquire(context, "saver")
+            onDispose { ScoresHub.release("saver") }
+        }
+    }
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 40.dp, end = 48.dp)
+                .graphicsLayer {
+                    val t = time.value
+                    translationX = -sin(TWO_PI * t * 2) * 14.dp.toPx()
+                    translationY = abs(cos(TWO_PI * t * 2)) * 12.dp.toPx()
+                },
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            val m = media
+            if (showNowPlaying && m != null) NowPlayingCard(m)
+            val visible = matches.filter { it.state != MatchState.DONE || System.currentTimeMillis() - it.start.toEpochMilli() < 4 * 3_600_000 }
+            if (showScores && visible.isNotEmpty()) ScoresCard(visible, max = if (showNowPlaying && m != null) 4 else 6)
+        }
+        if (showScores) {
+            GoalBanner(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 24.dp)
+            )
+        }
     }
 }
 

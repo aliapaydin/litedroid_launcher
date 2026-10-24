@@ -1,5 +1,12 @@
 package dev.litedroid.launcher
 
+import androidx.compose.runtime.mutableStateListOf
+import dev.litedroid.launcher.data.Speaker
+import dev.litedroid.launcher.data.ClaudeExchange
+import dev.litedroid.launcher.data.ClaudeEvent
+import dev.litedroid.launcher.data.ClaudeClient
+import dev.litedroid.launcher.overlay.ScoreOverlay
+import dev.litedroid.launcher.data.ScoresHub
 import android.app.Application
 import android.net.ConnectivityManager
 import android.net.Network
@@ -170,11 +177,141 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             NotificationsHub.items.collect { notifications = it }
         }
+        ScoresHub.leagues = settings.scoreLeagues
+        ScoreOverlay.sync(app, settings)
     }
 
     override fun onCleared() {
         runCatching { connectivity?.unregisterNetworkCallback(networkCallback) }
+        speaker.shutdown()
         super.onCleared()
+    }
+
+    /** Uygulamaya dönülünce (ör. izin yeni verildiyse) yüzen skor şeridini ayarlara göre aç/kapat. */
+    fun syncOverlay() = ScoreOverlay.sync(app, settings)
+
+    fun overlayAllowed(): Boolean = ScoreOverlay.canDraw(app)
+
+    // ---------------- Claude'a sor ----------------
+
+    enum class ClaudeStatus { IDLE, THINKING, SEARCHING, ANSWERING }
+
+    data class ClaudeTurn(
+        val question: String,
+        val answer: String = "",
+        val sources: List<ClaudeEvent.Source> = emptyList(),
+        val error: String? = null,
+        val authProblem: Boolean = false,
+    )
+
+    val claudeTurns = mutableStateListOf<ClaudeTurn>()
+    var claudeStatus by mutableStateOf(ClaudeStatus.IDLE)
+        private set
+    private var claudeJob: Job? = null
+    private val speaker = Speaker(app)
+
+    private fun claudeSystemPrompt(): String {
+        val now = java.time.ZonedDateTime.now()
+        val date = now.format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy EEEE, HH:mm", I18n.locale))
+        val place = weather?.city?.takeIf { it.isNotBlank() } ?: settings.weatherCity
+        return tx(
+            "Sen LiteDroid Launcher'ın içindeki asistansın. Kullanıcı televizyonun karşısında, sorusunu sesle ya da " +
+                "kumandayla soruyor. Cevabın TV ekranında büyük yazıyla gösterilecek ve sesli okunacak. Bu yüzden kısa, " +
+                "net ve sohbet havasında cevap ver: genellikle 2-5 cümle, gerekirse en fazla birkaç kısa paragraf. " +
+                "Markdown, başlık, madde işareti, tablo ya da emoji kullanma; düz cümlelerle yaz. Güncel bilgi gerektiren " +
+                "sorularda (haberler, maç sonuçları, hava, fiyatlar, yayın tarihleri) web aramasını kullan. Soru hangi " +
+                "dildeyse o dilde cevap ver. Şu an: $date. Kullanıcının konumu: ${place.ifBlank { "Türkiye" }}.",
+            "You are the assistant inside LiteDroid Launcher. The user is sitting in front of their TV and asks by voice " +
+                "or with the remote. Your answer is shown in large text on the TV and read aloud, so keep it short, clear " +
+                "and conversational: usually 2-5 sentences, at most a few short paragraphs. Don't use markdown, headings, " +
+                "bullet points, tables or emoji; write plain sentences. Use web search for anything current (news, match " +
+                "results, weather, prices, release dates). Answer in the language of the question. Now: $date. " +
+                "User's location: ${place.ifBlank { "Turkey" }}.",
+        )
+    }
+
+    /** Soruyu Claude'a gönderir; cevap akış halinde gelir, bitince istenirse sesli okunur. */
+    fun askClaude(question: String) {
+        val q = question.trim()
+        if (q.isEmpty()) return
+        claudeJob?.cancel()
+        speaker.stop()
+        val key = settings.claudeKey.trim()
+        if (key.isEmpty()) {
+            claudeTurns += ClaudeTurn(
+                q,
+                error = tx("Önce Ayarlar → Claude'a sor → API anahtarı'nı gir.", "Add your API key first: Settings → Ask Claude → API key."),
+                authProblem = true,
+            )
+            return
+        }
+        val history = claudeTurns.filter { it.error == null && it.answer.isNotBlank() }.map { ClaudeExchange(it.question, it.answer) }
+        claudeTurns += ClaudeTurn(q)
+        val index = claudeTurns.lastIndex
+        claudeStatus = ClaudeStatus.THINKING
+        claudeJob = viewModelScope.launch {
+            val text = StringBuilder()
+            val sources = LinkedHashMap<String, ClaudeEvent.Source>()
+            try {
+                ClaudeClient.ask(
+                    apiKey = key,
+                    model = settings.claudeModel.id,
+                    system = claudeSystemPrompt(),
+                    history = history,
+                    question = q,
+                    webSearch = settings.claudeWebSearch,
+                    timezone = java.time.ZoneId.systemDefault().id,
+                    city = weather?.city ?: settings.weatherCity,
+                ).collect { e ->
+                    when (e) {
+                        is ClaudeEvent.Text -> {
+                            text.append(e.delta)
+                            claudeStatus = ClaudeStatus.ANSWERING
+                            claudeTurns[index] = claudeTurns[index].copy(answer = text.toString())
+                        }
+                        is ClaudeEvent.Searching -> {
+                            claudeStatus = ClaudeStatus.SEARCHING
+                            // Aramadan önce yazılan "bakayım" cümlesi cevaptan çıkarılır
+                            text.clear()
+                            claudeTurns[index] = claudeTurns[index].copy(answer = "")
+                        }
+                        is ClaudeEvent.Source -> {
+                            sources.putIfAbsent(e.url, e)
+                            claudeTurns[index] = claudeTurns[index].copy(sources = sources.values.toList())
+                        }
+                        is ClaudeEvent.Failed -> {
+                            claudeTurns[index] = claudeTurns[index].copy(error = e.message, authProblem = e.authProblem)
+                        }
+                        is ClaudeEvent.Done -> Unit
+                    }
+                }
+                val answer = text.toString().trim()
+                if (answer.isNotEmpty() && settings.claudeSpeak) speaker.speak(answer, I18n.locale)
+            } catch (c: kotlinx.coroutines.CancellationException) {
+                throw c
+            } catch (t: Throwable) {
+                claudeTurns[index] = claudeTurns[index].copy(
+                    error = tx("Bağlantı kurulamadı: ", "Couldn't connect: ") + (t.message ?: t.javaClass.simpleName),
+                )
+            } finally {
+                claudeStatus = ClaudeStatus.IDLE
+            }
+        }
+    }
+
+    fun stopClaude() {
+        claudeJob?.cancel()
+        speaker.stop()
+        claudeStatus = ClaudeStatus.IDLE
+    }
+
+    fun clearClaude() {
+        stopClaude()
+        claudeTurns.clear()
+    }
+
+    fun speakLastAnswer() {
+        claudeTurns.lastOrNull { it.answer.isNotBlank() }?.let { speaker.speak(it.answer, I18n.locale) }
     }
 
     private fun describe(caps: NetworkCapabilities): NetState {
@@ -381,6 +518,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val old = settings
         settings = transform(settings)
         settingsRepo.save(settings)
+        if (old.scoreLeagues != settings.scoreLeagues) ScoresHub.leagues = settings.scoreLeagues
+        if (old.floatingScores != settings.floatingScores || old.floatingOnlyLive != settings.floatingOnlyLive) {
+            ScoreOverlay.restart(app, settings)
+        }
+        if (!settings.claudeSpeak && old.claudeSpeak) speaker.stop()
         if (old.language != settings.language) {
             I18n.lang = settings.language
             publishRecommendations()

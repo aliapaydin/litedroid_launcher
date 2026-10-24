@@ -33,6 +33,14 @@ enum class SaverScene(private val tr: String, private val en: String) {
     val label: String get() = tx(tr, en)
 }
 
+/** Claude'a sor için model seçimi. */
+enum class ClaudeModel(val id: String, private val tr: String, private val en: String) {
+    SONNET("claude-sonnet-5-5", "Sonnet · dengeli", "Sonnet · balanced"),
+    HAIKU("claude-haiku-5-5", "Haiku · en hızlı", "Haiku · fastest");
+
+    val label: String get() = tx(tr, en)
+}
+
 /** LiteDroid'in kullanıcı tarafından değiştirilebilen tüm ayarları. */
 data class LauncherSettings(
     val language: AppLanguage = AppLanguage.TR,
@@ -53,6 +61,19 @@ data class LauncherSettings(
     val saverScene: SaverScene = SaverScene.MIXED,
     val favorites: List<String> = emptyList(),
     val favoritesInitialized: Boolean = false,
+    /** Ekran koruyucuda "Şimdi çalıyor" ve skor kartları. */
+    val saverNowPlaying: Boolean = true,
+    val saverScores: Boolean = true,
+    /** Takip edilen ligler (ESPN kodları). Varsayılan: Türkiye, İtalya, İngiltere, İspanya, Almanya, Fransa. */
+    val scoreLeagues: Set<String> = League.entries.map { it.code }.toSet(),
+    /** Başka bir uygulama açıkken ekranın köşesinde yüzen skor şeridi. */
+    val floatingScores: Boolean = false,
+    val floatingOnlyLive: Boolean = true,
+    /** Claude'a sor: kullanıcının kendi Anthropic API anahtarı. */
+    val claudeKey: String = "",
+    val claudeModel: ClaudeModel = ClaudeModel.SONNET,
+    val claudeSpeak: Boolean = true,
+    val claudeWebSearch: Boolean = true,
 ) {
     companion object {
         val SAVER_OPTIONS = listOf(0, 1, 2, 5, 10, 15, 30)
@@ -80,6 +101,15 @@ class SettingsRepository(context: Context) {
         saverScene = enumOr(prefs.getString(K_SAVER_SCENE, null), SaverScene.MIXED),
         favorites = prefs.getString(K_FAVORITES, "").orEmpty().split(',').filter { it.isNotBlank() },
         favoritesInitialized = prefs.getBoolean(K_FAV_INIT, false),
+        saverNowPlaying = prefs.getBoolean(K_SAVER_NP, true),
+        saverScores = prefs.getBoolean(K_SAVER_SCORES, true),
+        scoreLeagues = prefs.getStringSet(K_LEAGUES, null)?.toSet() ?: League.entries.map { it.code }.toSet(),
+        floatingScores = prefs.getBoolean(K_FLOAT, false),
+        floatingOnlyLive = prefs.getBoolean(K_FLOAT_LIVE, true),
+        claudeKey = prefs.getString(K_CLAUDE_KEY, "").orEmpty(),
+        claudeModel = enumOr(prefs.getString(K_CLAUDE_MODEL, null), ClaudeModel.SONNET),
+        claudeSpeak = prefs.getBoolean(K_CLAUDE_SPEAK, true),
+        claudeWebSearch = prefs.getBoolean(K_CLAUDE_WEB, true),
     )
 
     fun save(s: LauncherSettings) {
@@ -99,6 +129,15 @@ class SettingsRepository(context: Context) {
             .putString(K_SAVER_SCENE, s.saverScene.name)
             .putString(K_FAVORITES, s.favorites.joinToString(","))
             .putBoolean(K_FAV_INIT, s.favoritesInitialized)
+            .putBoolean(K_SAVER_NP, s.saverNowPlaying)
+            .putBoolean(K_SAVER_SCORES, s.saverScores)
+            .putStringSet(K_LEAGUES, s.scoreLeagues)
+            .putBoolean(K_FLOAT, s.floatingScores)
+            .putBoolean(K_FLOAT_LIVE, s.floatingOnlyLive)
+            .putString(K_CLAUDE_KEY, s.claudeKey)
+            .putString(K_CLAUDE_MODEL, s.claudeModel.name)
+            .putBoolean(K_CLAUDE_SPEAK, s.claudeSpeak)
+            .putBoolean(K_CLAUDE_WEB, s.claudeWebSearch)
             .apply()
     }
 
@@ -121,5 +160,14 @@ class SettingsRepository(context: Context) {
         const val K_SAVER_SCENE = "saver_scene"
         const val K_FAVORITES = "favorites"
         const val K_FAV_INIT = "favorites_initialized"
+        const val K_SAVER_NP = "saver_now_playing"
+        const val K_SAVER_SCORES = "saver_scores"
+        const val K_LEAGUES = "score_leagues"
+        const val K_FLOAT = "floating_scores"
+        const val K_FLOAT_LIVE = "floating_only_live"
+        const val K_CLAUDE_KEY = "claude_key"
+        const val K_CLAUDE_MODEL = "claude_model"
+        const val K_CLAUDE_SPEAK = "claude_speak"
+        const val K_CLAUDE_WEB = "claude_web_search"
     }
 }

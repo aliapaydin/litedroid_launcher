@@ -237,6 +237,7 @@ fun ModernHome(
     onNotifications: () -> Unit,
     onQuickSettings: () -> Unit,
     onProfile: () -> Unit,
+    onAskClaude: () -> Unit,
 ) {
     val fm = remember { FocusMemory() }
     var tab by remember { mutableStateOf(ModernTab.HOME) }
@@ -280,6 +281,7 @@ fun ModernHome(
                 onNotifications = onNotifications,
                 onSettings = onQuickSettings,
                 onProfile = onProfile,
+                onAskClaude = onAskClaude,
             )
             Box(
                 Modifier
@@ -344,6 +346,7 @@ private fun ModernTopBar(
     onNotifications: () -> Unit,
     onSettings: () -> Unit,
     onProfile: () -> Unit,
+    onAskClaude: () -> Unit,
 ) {
     val now = rememberNow()
     Row(
@@ -382,6 +385,7 @@ private fun ModernTopBar(
         }
         Spacer(Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconCircle(fm, "top_claude", enabled, Icons.Filled.Search, tx("Claude'a sor", "Ask Claude"), badge = false, onSelect = onAskClaude, accent = true)
             IconCircle(fm, "top_search", enabled, Icons.Filled.Search, tx("Ara", "Search"), badge = false, onSelect = onSearch)
             IconCircle(fm, "top_bell", enabled, Icons.Filled.Notifications, tx("Bildirimler", "Notifications"), badge = notificationCount > 0, onSelect = onNotifications)
             IconCircle(fm, "top_gear", enabled, Icons.Filled.Settings, tx("Hızlı ayarlar", "Quick settings"), badge = false, onSelect = onSettings)
@@ -433,16 +437,19 @@ private fun TabPill(fm: FocusMemory, tab: ModernTab, selected: Boolean, enabled:
             }
             .onRemoteSelect(onSelect)
             .focusable(enabled = enabled)
-            .padding(horizontal = 15.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        when (tab) {
-            ModernTab.HOME -> Icon(Icons.Filled.Home, null, tint = textColor, modifier = Modifier.size(17.dp))
-            ModernTab.APPS -> GridGlyph(textColor, 15.dp)
-            ModernTab.GAMES -> GamepadGlyph(textColor, 18.dp)
-            ModernTab.STORE -> Icon(Icons.Filled.ShoppingCart, null, tint = textColor, modifier = Modifier.size(17.dp))
+        // Simge yalnızca seçili sekmede: bar daha sade, saate yer kalır
+        if (selected) {
+            when (tab) {
+                ModernTab.HOME -> Icon(Icons.Filled.Home, null, tint = textColor, modifier = Modifier.size(16.dp))
+                ModernTab.APPS -> GridGlyph(textColor, 14.dp)
+                ModernTab.GAMES -> GamepadGlyph(textColor, 17.dp)
+                ModernTab.STORE -> Icon(Icons.Filled.ShoppingCart, null, tint = textColor, modifier = Modifier.size(16.dp))
+            }
+            Spacer(Modifier.width(7.dp))
         }
-        Spacer(Modifier.width(7.dp))
         Text(
             tab.label,
             color = textColor,
@@ -462,6 +469,7 @@ private fun IconCircle(
     description: String,
     badge: Boolean,
     onSelect: () -> Unit,
+    accent: Boolean = false,
 ) {
     RegisterKey(fm, key)
     val motion = LocalMotion.current
@@ -489,7 +497,12 @@ private fun IconCircle(
                 .focusable(enabled = enabled),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, description, tint = if (focused) Color(0xFF0E1222) else Color.White, modifier = Modifier.size(20.dp))
+            if (accent) {
+                // Claude'a sor: sıcak renkli ışıltı simgesi
+                SparkleGlyph(if (focused) Color(0xFFC8553D) else Color(0xFFF2A07B), 20.dp)
+            } else {
+                Icon(icon, description, tint = if (focused) Color(0xFF0E1222) else Color.White, modifier = Modifier.size(20.dp))
+            }
         }
         if (badge) {
             Box(
@@ -531,7 +544,7 @@ private fun ProfilePill(fm: FocusMemory, enabled: Boolean, name: String, greetin
             }
             .onRemoteSelect(onSelect)
             .focusable(enabled = enabled)
-            .padding(start = 3.dp, end = 12.dp, top = 3.dp, bottom = 3.dp),
+            .padding(start = 3.dp, end = if (focused) 12.dp else 3.dp, top = 3.dp, bottom = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -544,8 +557,9 @@ private fun ProfilePill(fm: FocusMemory, enabled: Boolean, name: String, greetin
         ) {
             Text(name.take(1).uppercase(I18n.locale), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
         }
-        Spacer(Modifier.width(8.dp))
-        Column {
+        // Ad ve selamlama odaklanınca açılır; bar daralır, saat her zaman sığar
+        if (focused) Spacer(Modifier.width(8.dp))
+        if (focused) Column {
             if (greeting != null) {
                 Text(
                     greeting.uppercase(I18n.locale),
