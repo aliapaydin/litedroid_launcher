@@ -1,5 +1,14 @@
 package dev.litedroid.launcher.ui
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -43,7 +52,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import dev.litedroid.launcher.data.GoalEvent
+import dev.litedroid.launcher.data.MatchEvent
 import dev.litedroid.launcher.data.Match
 import dev.litedroid.launcher.data.MatchState
 import dev.litedroid.launcher.data.ScoresHub
@@ -189,26 +198,30 @@ fun TeamLogo(team: TeamScore, size: Dp) {
 }
 
 @Composable
-private fun StatusChip(m: Match) {
+private fun StatusChip(m: Match, tiny: Boolean = false) {
     val live = m.state == MatchState.LIVE
     Text(
         m.status,
         color = if (live) Color.White else Color.White.copy(alpha = 0.7f),
-        fontSize = 10.sp,
+        fontSize = if (tiny) 8.sp else 10.sp,
         fontWeight = FontWeight.ExtraBold,
         textAlign = TextAlign.Center,
         maxLines = 1,
         modifier = Modifier
-            .width(44.dp)
+            .width(if (tiny) 32.dp else 44.dp)
             .clip(RoundedCornerShape(50))
             .background(if (live) LIVE_RED else Color.White.copy(alpha = 0.08f))
             .padding(vertical = 2.dp),
     )
 }
 
-/** Tek maç satırı: logo · kısa ad · skor · kısa ad · logo · durum. */
+/** Tek maç satırı: logo · kısa ad · skor · kısa ad · logo · durum. [tiny]: yüzen şerit için en küçük hali. */
 @Composable
-fun MatchRow(m: Match, compact: Boolean = false) {
+fun MatchRow(m: Match, compact: Boolean = false, tiny: Boolean = false) {
+    if (tiny) {
+        TinyMatchRow(m)
+        return
+    }
     val logo = if (compact) 20.dp else 24.dp
     val nameSize = if (compact) 11.sp else 13.sp
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -291,45 +304,170 @@ fun ScoresCard(matches: List<Match>, modifier: Modifier = Modifier, max: Int = 5
     }
 }
 
-/** Gol olunca beliren kısa bildirim (8 sn). */
+@Composable
+private fun TinyMatchRow(m: Match) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TeamLogo(m.home, 16.dp)
+        Spacer(Modifier.width(4.dp))
+        Text(m.home.abbr, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.width(30.dp))
+        RedCards(m.home.redCards)
+        Text(
+            if (m.state == MatchState.PRE) "–" else "${m.home.score ?: 0}-${m.away.score ?: 0}",
+            color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black,
+            textAlign = TextAlign.Center, modifier = Modifier.width(34.dp),
+        )
+        RedCards(m.away.redCards)
+        Text(m.away.abbr, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, textAlign = TextAlign.End, modifier = Modifier.width(30.dp))
+        Spacer(Modifier.width(4.dp))
+        TeamLogo(m.away, 16.dp)
+        Spacer(Modifier.width(6.dp))
+        StatusChip(m, tiny = true)
+    }
+}
+
+/** Takımın kırmızı kartları: küçük kırmızı dikdörtgenler. */
+@Composable
+private fun RedCards(n: Int) {
+    if (n <= 0) {
+        Spacer(Modifier.width(5.dp))
+        return
+    }
+    Row(Modifier.padding(horizontal = 1.dp)) {
+        repeat(n.coerceAtMost(2)) {
+            Box(
+                Modifier
+                    .padding(horizontal = 0.5.dp)
+                    .width(3.dp)
+                    .height(9.dp)
+                    .clip(RoundedCornerShape(1.dp))
+                    .background(LIVE_RED)
+            )
+        }
+    }
+}
+
+/**
+ * Maç olayı kartı (gol, kırmızı kart, maç sonu): kısa giriş animasyonu ve nabız gibi atan başlık.
+ * Yüzen şeritte ve ekran koruyucuda kullanılır.
+ */
+@Composable
+fun MatchEventCard(event: MatchEvent, compact: Boolean = false) {
+    val pulse = rememberInfiniteTransition(label = "eventPulse")
+    val scale by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(tween(420, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "eventScale",
+    )
+    val enter = remember { Animatable(0f) }
+    LaunchedEffect(event) {
+        enter.snapTo(0f)
+        enter.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 300f))
+    }
+    val m = event.match
+    val (title, color) = when (event) {
+        is MatchEvent.Goal -> tx("GOL!", "GOAL!") to Color(0xFF3DDC84)
+        is MatchEvent.RedCard -> tx("KIRMIZI KART", "RED CARD") to LIVE_RED
+        is MatchEvent.FullTime -> tx("MAÇ SONU", "FULL TIME") to Color(0xFF9DB8FF)
+    }
+    val detail: String? = when (event) {
+        is MatchEvent.Goal -> event.moment?.let { mo ->
+            listOfNotNull(mo.player, mo.minute, if (mo.penalty) tx("penaltı", "pen") else null, if (mo.ownGoal) tx("kendi kalesine", "own goal") else null)
+                .joinToString(" · ").ifBlank { null }
+        } ?: (if (event.home) m.home.short else m.away.short)
+        is MatchEvent.RedCard -> event.moment?.let { mo -> listOfNotNull(mo.player, mo.minute).joinToString(" · ").ifBlank { null } }
+            ?: (if (event.home) m.home.short else m.away.short)
+        is MatchEvent.FullTime -> m.league.label
+    }
+    val focusHome = when (event) {
+        is MatchEvent.Goal -> event.home
+        is MatchEvent.RedCard -> event.home
+        is MatchEvent.FullTime -> null
+    }
+    Column(
+        Modifier.graphicsLayer {
+            alpha = enter.value.coerceIn(0f, 1f)
+            translationY = (1f - enter.value) * 24.dp.toPx()
+        },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (event is MatchEvent.Goal) Text("⚽", fontSize = if (compact) 13.sp else 18.sp)
+            if (event is MatchEvent.RedCard) {
+                Box(
+                    Modifier
+                        .graphicsLayer { rotationZ = -12f * scale }
+                        .width(if (compact) 9.dp else 12.dp)
+                        .height(if (compact) 13.dp else 17.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(LIVE_RED)
+                )
+            }
+            Spacer(Modifier.width(6.dp))
+            Text(
+                title,
+                color = color,
+                fontSize = if (compact) 15.sp else 20.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.5.sp,
+                modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale },
+            )
+        }
+        Spacer(Modifier.height(if (compact) 4.dp else 6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val bounceHome = if (focusHome == true) scale else 1f
+            val bounceAway = if (focusHome == false) scale else 1f
+            Box(Modifier.graphicsLayer { scaleX = bounceHome; scaleY = bounceHome }) { TeamLogo(m.home, if (compact) 20.dp else 28.dp) }
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "${m.home.abbr}  ${m.home.score ?: 0} - ${m.away.score ?: 0}  ${m.away.abbr}",
+                color = Color.White,
+                fontSize = if (compact) 13.sp else 17.sp,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+            )
+            Spacer(Modifier.width(6.dp))
+            Box(Modifier.graphicsLayer { scaleX = bounceAway; scaleY = bounceAway }) { TeamLogo(m.away, if (compact) 20.dp else 28.dp) }
+        }
+        if (detail != null) {
+            Spacer(Modifier.height(3.dp))
+            Text(
+                detail,
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = if (compact) 10.sp else 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Ekran koruyucuda olay olunca üstte beliren kart (7 sn), sonra kaybolur. Olaylar sırayla gösterilir. */
 @Composable
 fun GoalBanner(modifier: Modifier = Modifier) {
-    var goal by remember { mutableStateOf<GoalEvent?>(null) }
+    var event by remember { mutableStateOf<MatchEvent?>(null) }
     LaunchedEffect(Unit) {
-        ScoresHub.goals.collect { g ->
-            goal = g
-            delay(8_000)
-            if (goal == g) goal = null
+        ScoresHub.events.collect { e ->
+            event = e
+            delay(7_000)
+            event = null
+            delay(400)
         }
     }
     AnimatedVisibility(
-        visible = goal != null,
+        visible = event != null,
         enter = fadeIn() + slideInVertically { -it },
         exit = fadeOut() + slideOutVertically { -it },
         modifier = modifier,
     ) {
-        val g = goal ?: return@AnimatedVisibility
-        val team = if (g.homeScored) g.match.home else g.match.away
-        Row(
+        val e = event ?: return@AnimatedVisibility
+        Box(
             Modifier
-                .widthIn(max = 460.dp)
-                .widgetGlass(RoundedCornerShape(50), alpha = 0.85f)
-                .border(2.dp, LIVE_RED, RoundedCornerShape(50))
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("⚽", fontSize = 18.sp)
-            Spacer(Modifier.width(8.dp))
-            Text(tx("GOL!", "GOAL!"), color = LIVE_RED, fontSize = 15.sp, fontWeight = FontWeight.Black)
-            Spacer(Modifier.width(10.dp))
-            TeamLogo(team, 24.dp)
-            Spacer(Modifier.width(8.dp))
-            Text(
-                "${g.match.home.abbr} ${g.match.home.score ?: 0} - ${g.match.away.score ?: 0} ${g.match.away.abbr}",
-                color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(g.match.status, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
-        }
+                .widthIn(min = 300.dp, max = 520.dp)
+                .widgetGlass(RoundedCornerShape(24.dp), alpha = 0.88f)
+                .border(2.dp, if (e is MatchEvent.RedCard) LIVE_RED else Color(0xFF3DDC84).copy(alpha = 0.7f), RoundedCornerShape(24.dp))
+                .padding(horizontal = 22.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) { MatchEventCard(e) }
     }
 }

@@ -41,7 +41,18 @@ enum class League(val code: String, private val tr: String, private val en: Stri
     }
 }
 
-data class TeamScore(val name: String, val short: String, val abbr: String, val logo: String?, val score: Int?)
+data class TeamScore(
+    val name: String,
+    val short: String,
+    val abbr: String,
+    val logo: String?,
+    val score: Int?,
+    val id: String = "",
+    val redCards: Int = 0,
+)
+
+/** Maçtaki son gol ya da kırmızı kart: oyuncu, dakika, hangi takım. */
+data class MatchMoment(val player: String?, val minute: String?, val home: Boolean, val ownGoal: Boolean = false, val penalty: Boolean = false)
 
 enum class MatchState { PRE, LIVE, DONE }
 
@@ -54,10 +65,19 @@ data class Match(
     /** Canlıyken dakika ("67'"), bittiyse "MS"/"FT", başlamadıysa saat. */
     val status: String,
     val start: Instant,
+    val lastGoal: MatchMoment? = null,
+    val lastRedCard: MatchMoment? = null,
 )
 
-/** Gol anı: hangi maçta, hangi taraf attı. */
-data class GoalEvent(val match: Match, val homeScored: Boolean, val at: Long = System.currentTimeMillis())
+/** Şeritte ve ekran koruyucuda kısa animasyonla gösterilen maç olayları. */
+sealed interface MatchEvent {
+    val match: Match
+    val at: Long
+
+    data class Goal(override val match: Match, val home: Boolean, val moment: MatchMoment?, override val at: Long = System.currentTimeMillis()) : MatchEvent
+    data class RedCard(override val match: Match, val home: Boolean, val moment: MatchMoment?, override val at: Long = System.currentTimeMillis()) : MatchEvent
+    data class FullTime(override val match: Match, override val at: Long = System.currentTimeMillis()) : MatchEvent
+}
 
 /**
  * Canlı skorlar. Ekran koruyucu, yüzen skor şeridi ya da launcher ihtiyaç duyduğunda [acquire] ile
@@ -74,8 +94,9 @@ object ScoresHub {
     private val _matches = MutableStateFlow<List<Match>>(emptyList())
     val matches: StateFlow<List<Match>> = _matches
 
-    private val _goals = MutableSharedFlow<GoalEvent>(extraBufferCapacity = 8)
-    val goals: SharedFlow<GoalEvent> = _goals
+    private val _events = MutableSharedFlow<MatchEvent>(extraBufferCapacity = 16)
+    /** Gol, kırmızı kart, maç sonu. */
+    val events: SharedFlow<MatchEvent> = _events
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
@@ -136,10 +157,19 @@ object ScoresHub {
         val old = _matches.value.associateBy { it.id }
         list.forEach { m ->
             val o = old[m.id] ?: return@forEach
-            val hs = m.home.score ?: 0
-            val aw = m.away.score ?: 0
-            if (hs > (o.home.score ?: 0)) _goals.tryEmit(GoalEvent(m, homeScored = true))
-            if (aw > (o.away.score ?: 0)) _goals.tryEmit(GoalEvent(m, homeScored = false))
+            if ((m.home.score ?: 0) > (o.home.score ?: 0)) {
+                _events.tryEmit(MatchEvent.Goal(m, home = true, moment = m.lastGoal?.takeIf { it.home }))
+            }
+            if ((m.away.score ?: 0) > (o.away.score ?: 0)) {
+                _events.tryEmit(MatchEvent.Goal(m, home = false, moment = m.lastGoal?.takeIf { !it.home }))
+            }
+            if (m.home.redCards > o.home.redCards) {
+                _events.tryEmit(MatchEvent.RedCard(m, home = true, moment = m.lastRedCard?.takeIf { it.home }))
+            }
+            if (m.away.redCards > o.away.redCards) {
+                _events.tryEmit(MatchEvent.RedCard(m, home = false, moment = m.lastRedCard?.takeIf { !it.home }))
+            }
+            if (o.state == MatchState.LIVE && m.state == MatchState.DONE) _events.tryEmit(MatchEvent.FullTime(m))
         }
         // Canlılar önce, sonra başlayacaklar (saate göre), sonra bitenler
         _matches.value = list.sortedWith(
@@ -187,10 +217,37 @@ object ScoresHub {
                 abbr = t.optString("abbreviation").ifBlank { t.optString("displayName").take(3).uppercase() },
                 logo = t.optString("logo").takeIf { it.startsWith("http") },
                 score = c.optString("score").toIntOrNull(),
+                id = t.optString("id").ifBlank { c.optString("id") },
             )
             if (c.optString("homeAway") == "home") home = team else away = team
         }
-        if (home == null || away == null) return null
+        val homeTeam: TeamScore = home ?: return null
+        val awayTeam: TeamScore = away ?: return null
+
+        // Gol ve kart ayrıntıları: kırmızı kart sayısı, son gol, son kırmızı kart
+        var lastGoal: MatchMoment? = null
+        var lastRed: MatchMoment? = null
+        var homeReds = 0
+        var awayReds = 0
+        comp.optJSONArray("details")?.let { details ->
+            for (i in 0 until details.length()) {
+                val d = details.optJSONObject(i) ?: continue
+                val teamId = d.optJSONObject("team")?.optString("id").orEmpty()
+                val isHome = teamId == homeTeam.id
+                val player = d.optJSONArray("athletesInvolved")?.optJSONObject(0)?.optString("displayName")?.takeIf { it.isNotBlank() }
+                val minute = d.optJSONObject("clock")?.optString("displayValue")?.takeIf { it.isNotBlank() }
+                if (d.optBoolean("scoringPlay")) {
+                    val own = d.optBoolean("ownGoal")
+                    lastGoal = MatchMoment(player, minute, home = isHome, ownGoal = own, penalty = d.optBoolean("penaltyKick"))
+                }
+                if (d.optBoolean("redCard")) {
+                    if (isHome) homeReds++ else awayReds++
+                    lastRed = MatchMoment(player, minute, home = isHome)
+                }
+            }
+        }
+        val homeFinal = homeTeam.copy(redCards = homeReds)
+        val awayFinal = awayTeam.copy(redCards = awayReds)
         val status = e.optJSONObject("status") ?: comp.optJSONObject("status")
         val type = status?.optJSONObject("type")
         val state = when (type?.optString("state")) {
@@ -210,8 +267,8 @@ object ScoresHub {
             MatchState.PRE -> DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(start)
         }
         // Skor yoksa (başlamamış) null kalsın
-        val fixedHome = if (state == MatchState.PRE) home.copy(score = null) else home
-        val fixedAway = if (state == MatchState.PRE) away.copy(score = null) else away
-        return Match(e.optString("id"), league, fixedHome, fixedAway, state, label, start)
+        val fixedHome = if (state == MatchState.PRE) homeFinal.copy(score = null) else homeFinal
+        val fixedAway = if (state == MatchState.PRE) awayFinal.copy(score = null) else awayFinal
+        return Match(e.optString("id"), league, fixedHome, fixedAway, state, label, start, lastGoal, lastRed)
     }
 }

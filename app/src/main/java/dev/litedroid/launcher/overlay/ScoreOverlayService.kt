@@ -1,5 +1,30 @@
 package dev.litedroid.launcher.overlay
 
+import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.background
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.AnimatedContent
+import dev.litedroid.launcher.ui.MatchEventCard
+import dev.litedroid.launcher.data.MatchEvent
+import dev.litedroid.launcher.data.Match
+import androidx.core.content.ContextCompat
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -44,7 +69,6 @@ import dev.litedroid.launcher.data.MatchState
 import dev.litedroid.launcher.data.ScoresHub
 import dev.litedroid.launcher.data.SettingsRepository
 import dev.litedroid.launcher.tx
-import dev.litedroid.launcher.ui.GoalBanner
 import dev.litedroid.launcher.ui.MatchRow
 import dev.litedroid.launcher.ui.theme.LiteDroidTheme
 import dev.litedroid.launcher.ui.widgetGlass
@@ -54,6 +78,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 object ScoreOverlay {
     /** LiteDroid ön plandayken şerit gizlenir (ana ekranda zaten skorlar var). */
     val launcherVisible = MutableStateFlow(false)
+
+    /** Ekran koruyucu açıkken (LiteDroid'inki ya da sistemin) şerit gizlenir; koruyucunun kendi skor kartı var. */
+    val dreaming = MutableStateFlow(false)
+
+    /** Yüzen menü açıkken şerit gizlenir (menü tüm skorları zaten gösteriyor). */
+    val menuOpen = MutableStateFlow(false)
 
     const val ADB_COMMAND = "adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow"
 
@@ -92,6 +122,16 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
     private var view: ComposeView? = null
 
+    /** Sistem ekran koruyucusu başlayınca/bitince haber verir. */
+    private val dreamReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_DREAMING_STARTED, Intent.ACTION_SCREEN_OFF -> ScoreOverlay.dreaming.value = true
+                Intent.ACTION_DREAMING_STOPPED, Intent.ACTION_SCREEN_ON -> ScoreOverlay.dreaming.value = false
+            }
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -103,6 +143,13 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
         I18n.lang = settings.language
         ScoresHub.leagues = settings.scoreLeagues
         ScoresHub.acquire(this, "overlay")
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_DREAMING_STARTED)
+            addAction(Intent.ACTION_DREAMING_STOPPED)
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        }
+        ContextCompat.registerReceiver(this, dreamReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
         if (ScoreOverlay.canDraw(this)) addOverlay(settings.floatingOnlyLive) else stopSelf()
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
     }
@@ -156,6 +203,7 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     override fun onDestroy() {
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         ScoresHub.release("overlay")
+        runCatching { unregisterReceiver(dreamReceiver) }
         view?.let { v -> runCatching { getSystemService(WindowManager::class.java)?.removeView(v) } }
         view = null
         super.onDestroy()
@@ -167,29 +215,103 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     }
 }
 
+/** Şeritte gösterilen şey: bir sayfa maç ya da bir olay (gol, kırmızı kart, maç sonu). */
+private sealed interface StripContent {
+    data class Page(val index: Int, val matches: List<Match>) : StripContent
+    data class Event(val event: MatchEvent) : StripContent
+}
+
+/**
+ * Yüzen skor şeridi: en fazla 3 maç, kompakt satırlar. Daha fazla maç varsa 10 sn'de bir sonraki
+ * üçlüye yukarı kayarak geçer. Gol / kırmızı kart / maç sonu olunca aynı kutunun içinde birkaç saniye
+ * animasyonlu olay kartı gösterilir, sonra maçlara döner. Kutu, içindeki satır sayısına göre boyutlanır.
+ */
 @Composable
 private fun OverlayContent(onlyLive: Boolean) {
     val matches by ScoresHub.matches.collectAsState()
     val launcherVisible by ScoreOverlay.launcherVisible.collectAsState()
-    if (launcherVisible) {
+    val dreaming by ScoreOverlay.dreaming.collectAsState()
+    val menuOpen by ScoreOverlay.menuOpen.collectAsState()
+
+    var event by remember { mutableStateOf<MatchEvent?>(null) }
+    LaunchedEffect(Unit) {
+        ScoresHub.events.collect { e ->
+            event = e
+            delay(7_000)
+            event = null
+            delay(500)
+        }
+    }
+
+    val shown = matches.filter { if (onlyLive) it.state == MatchState.LIVE else it.state != MatchState.DONE }
+    val pages = shown.chunked(3)
+    var page by remember { mutableIntStateOf(0) }
+    LaunchedEffect(pages.size) {
+        page = 0
+        while (pages.size > 1) {
+            delay(10_000)
+            page = (page + 1) % pages.size
+        }
+    }
+
+    if (launcherVisible || dreaming || menuOpen) {
         Box {}
         return
     }
-    val shown = matches.filter { if (onlyLive) it.state == MatchState.LIVE else it.state != MatchState.DONE }.take(3)
-    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        GoalBanner()
-        if (shown.isNotEmpty()) {
-            Column(
-                Modifier
-                    .width(290.dp)
-                    .widgetGlass(RoundedCornerShape(16.dp), alpha = 0.72f)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                shown.forEach { MatchRow(it, compact = true) }
+    val e = event
+    val content: StripContent? = when {
+        e != null -> StripContent.Event(e)
+        pages.isNotEmpty() -> StripContent.Page(page.coerceIn(0, pages.lastIndex), pages[page.coerceIn(0, pages.lastIndex)])
+        else -> null
+    }
+    if (content == null) {
+        Box {}
+        return
+    }
+    Box(
+        Modifier
+            .widgetGlass(RoundedCornerShape(14.dp), alpha = 0.78f)
+            .padding(horizontal = 9.dp, vertical = 6.dp)
+    ) {
+        AnimatedContent(
+            targetState = content,
+            contentKey = { c ->
+                when (c) {
+                    is StripContent.Page -> "page_${c.index}"
+                    is StripContent.Event -> "event_${c.event.at}"
+                }
+            },
+            transitionSpec = {
+                (slideInVertically(tween(450)) { it } + fadeIn(tween(450)))
+                    .togetherWith(slideOutVertically(tween(450)) { -it } + fadeOut(tween(300)))
+                    .using(SizeTransform(clip = true))
+            },
+            label = "strip",
+        ) { c ->
+            when (c) {
+                is StripContent.Page -> Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    c.matches.forEach { MatchRow(it, tiny = true) }
+                    if (pages.size > 1) {
+                        // Hangi üçlüde olduğumuzu gösteren küçük noktalar
+                        Row(
+                            Modifier.align(Alignment.CenterHorizontally),
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        ) {
+                            repeat(pages.size) { i ->
+                                Box(
+                                    Modifier
+                                        .size(if (i == c.index) 5.dp else 3.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(Color.White.copy(alpha = if (i == c.index) 0.8f else 0.3f))
+                                )
+                            }
+                        }
+                    }
+                }
+                is StripContent.Event -> Box(Modifier.padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    MatchEventCard(c.event, compact = true)
+                }
             }
-        } else {
-            Spacer(Modifier.height(1.dp))
         }
     }
 }
