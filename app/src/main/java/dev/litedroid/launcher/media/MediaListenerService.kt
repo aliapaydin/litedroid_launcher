@@ -1,5 +1,10 @@
 package dev.litedroid.launcher.media
 
+import android.os.Bundle
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.Canvas
+import android.graphics.Bitmap
+import android.os.Build
 import android.app.Notification
 import android.media.MediaMetadata
 import android.media.session.MediaController
@@ -22,7 +27,9 @@ class MediaListenerService : NotificationListenerService() {
     private val callbacks = HashMap<MediaSession.Token, MediaController.Callback>()
 
     private val sessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
-        track(controllers.orEmpty())
+        val list = controllers.orEmpty()
+        track(list)
+        LiveMediaHub.retain(list.mapNotNull { it.packageName }.toSet())
     }
 
     override fun onListenerConnected() {
@@ -30,6 +37,7 @@ class MediaListenerService : NotificationListenerService() {
         android.util.Log.i("LiteDroidMedia", "listener connected")
         NotificationsHub.dismissAll = { runCatching { cancelAllNotifications() } }
         publishNotifications()
+        runCatching { activeNotifications }.getOrNull().orEmpty().forEach { readMediaNotification(it) }
         val manager = getSystemService(MediaSessionManager::class.java) ?: return
         sessionManager = manager
         val component = NowPlayingStore.listenerComponent(this)
@@ -46,7 +54,44 @@ class MediaListenerService : NotificationListenerService() {
         super.onListenerDisconnected()
     }
 
-    override fun onNotificationPosted(sbn: StatusBarNotification?) = publishNotifications()
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        sbn?.let { readMediaNotification(it) }
+        publishNotifications()
+    }
+
+    /**
+     * Medya bildirimi (YouTube Music, Apple Music, TIDAL, Qobuz… çalarken çıkan): içindeki oturumu da takibe al
+     * ve başlık/sanatçı/kapak bilgisini yedek olarak sakla. Oturumuna başlık ya da kapak koymayan uygulamalar
+     * da böylece "Şimdi çalıyor" kartında düzgün görünür.
+     */
+    @Suppress("DEPRECATION")
+    private fun sessionTokenOf(extras: Bundle): MediaSession.Token? =
+        if (Build.VERSION.SDK_INT >= 33) extras.getParcelable(Notification.EXTRA_MEDIA_SESSION, MediaSession.Token::class.java)
+        else extras.getParcelable(Notification.EXTRA_MEDIA_SESSION) as? MediaSession.Token
+
+    private fun readMediaNotification(sbn: StatusBarNotification) {
+        if (sbn.packageName == packageName) return
+        val extras = sbn.notification?.extras ?: return
+        val token = runCatching { sessionTokenOf(extras) }.getOrNull() ?: return
+        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+        val art = runCatching {
+            sbn.notification.getLargeIcon()?.loadDrawable(this)?.let { d ->
+                if (d is BitmapDrawable && d.bitmap != null) d.bitmap
+                else {
+                    val w = d.intrinsicWidth.takeIf { it > 0 } ?: 256
+                    val h = d.intrinsicHeight.takeIf { it > 0 } ?: 256
+                    Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { b ->
+                        val c = Canvas(b)
+                        d.setBounds(0, 0, w, h)
+                        d.draw(c)
+                    }
+                }
+            }
+        }.getOrNull()
+        runCatching { LiveMediaHub.hint(this, sbn.packageName, title, text, art) }
+        runCatching { track(listOf(MediaController(this, token))) }
+    }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) = publishNotifications()
 

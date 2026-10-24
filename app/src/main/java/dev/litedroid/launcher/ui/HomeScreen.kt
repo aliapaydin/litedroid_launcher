@@ -1,5 +1,7 @@
 package dev.litedroid.launcher.ui
 
+import dev.litedroid.launcher.data.Changelog
+import androidx.compose.material.icons.filled.List
 import dev.litedroid.launcher.overlay.RemoteKeyService
 import dev.litedroid.launcher.data.ClaudeModel
 import dev.litedroid.launcher.data.League
@@ -169,6 +171,8 @@ private fun HomeContent(vm: LauncherViewModel) {
     var notifOpen by remember { mutableStateOf(false) }
     var storeOpen by remember { mutableStateOf(false) }
     var aboutOpen by remember { mutableStateOf(false) }
+    var changelogOpen by remember { mutableStateOf(false) }
+    var settingsRefocus by remember { mutableIntStateOf(0) }
     var settingsOpen by remember { mutableStateOf(false) }
     var searchOpen by remember { mutableStateOf(false) }
     var gameOpen by remember { mutableStateOf<BuiltInGame?>(null) }
@@ -180,7 +184,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
+    val pageOpen = storeOpen || aboutOpen || changelogOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
 
@@ -318,6 +322,7 @@ private fun HomeContent(vm: LauncherViewModel) {
         notifOpen = false
         storeOpen = false
         aboutOpen = false
+        changelogOpen = false
         settingsOpen = false
         searchOpen = false
         gameOpen = null
@@ -343,6 +348,7 @@ private fun HomeContent(vm: LauncherViewModel) {
         notifOpen = false
         storeOpen = false
         aboutOpen = false
+        changelogOpen = false
         settingsOpen = false
         searchOpen = false
         gameOpen = null
@@ -362,6 +368,10 @@ private fun HomeContent(vm: LauncherViewModel) {
             gamePickerOpen -> gamePickerOpen = false
             movingPkg != null -> movingPkg = null
             aboutOpen -> aboutOpen = false
+            changelogOpen -> {
+                changelogOpen = false
+                settingsRefocus++
+            }
             settingsOpen -> settingsOpen = false
             searchOpen -> searchOpen = false
             storeOpen -> storeOpen = false
@@ -816,6 +826,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                         settingsOpen = false
                         aboutOpen = true
                     },
+                    onChangelog = { changelogOpen = true },
                     onAndroidSettings = { startSafely(Intent(Settings.ACTION_SETTINGS)) },
                     onMediaAccess = {
                         if (vm.mediaAccess) toast(tx("Medya geçmişi izni açık", "Media history permission is on"))
@@ -839,7 +850,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                         toast(tx("İzleme geçmişi temizlendi", "Watch history cleared"))
                     },
                 ),
-                enabled = textTarget == null,
+                enabled = textTarget == null && !changelogOpen,
+                refocusSignal = settingsRefocus,
             )
         }
 
@@ -904,6 +916,15 @@ private fun HomeContent(vm: LauncherViewModel) {
             }
         }
 
+        if (changelogOpen) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f))
+            )
+            ChangelogDialog(modifier = Modifier.align(Alignment.Center))
+        }
+
         if (aboutOpen) {
             val content = vm.content
             AboutDialog(
@@ -964,6 +985,7 @@ private fun settingsEntries(
     onEditCity: () -> Unit,
     onOpenStore: () -> Unit,
     onOpenAbout: () -> Unit,
+    onChangelog: () -> Unit,
     onAndroidSettings: () -> Unit,
     onMediaAccess: () -> Unit,
     onUsageAccess: () -> Unit,
@@ -982,7 +1004,7 @@ private fun settingsEntries(
     },
     SettingsEntry.Row("layout", tx("Arayüz", "Layout"), Icons.Filled.ThumbUp, settings.layout.label,
         tx("Casual: cam vitrin ve büyük karolar. Modern: sekmeler, öne çıkan vitrin, geniş kart satırları, ", "Casual: glass showcase and big tiles. Modern: tabs, featured hero, wide card rows, ") +
-            tx("alt çubukta bağlantı ve hava durumu.", "connection and weather in the bottom bar.")) {
+            tx("üst barda Claude, arama ve hızlı panel.", "Claude, search and quick panel in the top bar.")) {
         vm.updateSettings { it.copy(layout = UiLayout.entries.toList().next(it.layout)) }
     },
     SettingsEntry.Row("shelf", tx("Vitrin stili (Casual)", "Showcase style (Casual)"), Icons.Filled.Home, vm.shelfStyle.label,
@@ -1016,7 +1038,7 @@ private fun settingsEntries(
 
     SettingsEntry.Header(tx("Hava durumu", "Weather")),
     SettingsEntry.Row("weather", tx("Hava durumu", "Weather"), Icons.Filled.Star, if (settings.weatherEnabled) tx("Açık", "On") else tx("Kapalı", "Off"),
-        tx("Modern arayüzün alt çubuğunda sıcaklık ve konum. Veri Open-Meteo'dan gelir.", "Temperature and location in the Modern bottom bar. Data from Open-Meteo.")) {
+        tx("Hızlı panelde ve yüzen menüde sıcaklık ve konum. Veri Open-Meteo'dan gelir.", "Temperature and location in the quick panel and floating menu. Data from Open-Meteo.")) {
         vm.updateSettings { it.copy(weatherEnabled = !it.weatherEnabled) }
     },
     SettingsEntry.Row("city", tx("Konum", "Location"), Icons.Filled.Place, settings.weatherCity.ifBlank { tx("Otomatik", "Automatic") },
@@ -1149,5 +1171,7 @@ private fun settingsEntries(
         Icons.Filled.Search, "${vm.hiddenApps.size}", null) { vm.toggleShowHidden() },
     SettingsEntry.Row("store", tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart, null, null) { onOpenStore() },
     SettingsEntry.Row("android", tx("Android ayarları", "Android settings"), Icons.Filled.Build, null, null) { onAndroidSettings() },
+    SettingsEntry.Row("changelog", tx("Sürüm notları", "Release notes"), Icons.Filled.List, "v" + Changelog.releases.first().version,
+        tx("İlk sürümden bugüne LiteDroid'e gelen tüm yenilikler, sürüm sürüm.", "Everything new in LiteDroid since the first version, release by release.")) { onChangelog() },
     SettingsEntry.Row("about", tx("Hakkında", "About"), Icons.Filled.Info, null, null) { onOpenAbout() },
 )
