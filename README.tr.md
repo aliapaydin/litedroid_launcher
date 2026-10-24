@@ -53,7 +53,7 @@ LiteDroid bir hafta sonu sorusuyla başladı: *"Chromecast with Google TV'm Appl
 **✨ Claude'a sor**
 - Işıltı düğmesine bas, sorunu söyle. Cevap ekranda büyük yazıyla akarak gelir, sonra sesli okunur.
 - Güncel sorularda (bu akşamın maçları, haberler, hava) web'de arar ve kaynakları gösterir. Takip soruları bağlamı korur, istersen yazarak da sorabilirsin.
-- Kendi Anthropic API anahtarınla çalışır: Ayarlar → Claude'a sor → API anahtarı. Kumandayla yazmak zor olduğu için alan açıkken bilgisayardan `adb shell input text "sk-ant-..."` ile yapıştırabilirsin.
+- Kendi Anthropic API anahtarınla çalışır: Ayarlar → Claude'a sor → API anahtarı. Kumandayla yazmak zor olduğu için bilgisayardan gönderebilirsin: `adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."`
 
 **⚽ Canlı skorlar**
 - Süper Lig, Premier League, LaLiga, Serie A, Bundesliga ve Ligue 1 varsayılan olarak takipte.

@@ -225,6 +225,7 @@ fun TextInputDialog(
     onSave: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    maxLength: Int = 20,
 ) {
     var text by remember { mutableStateOf(initial) }
     val fieldFocus = remember { FocusRequester() }
@@ -250,7 +251,7 @@ fun TextInputDialog(
         Spacer(Modifier.height(18.dp))
         BasicTextField(
             value = text,
-            onValueChange = { text = it.take(20) },
+            onValueChange = { text = it.take(maxLength) },
             singleLine = true,
             textStyle = TextStyle(fontFamily = Jakarta, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
             cursorBrush = SolidColor(Color.White),

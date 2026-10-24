@@ -141,10 +141,11 @@ adb shell appops set dev.litedroid.launcher WRITE_SETTINGS allow
 
 ### Ask Claude setup
 1. Create an API key at [console.anthropic.com](https://console.anthropic.com) (usage is billed to your account).
-2. On the TV: **Settings → Ask Claude → API key**. Typing with the remote is tedious, so with the field open you can paste it from your computer:
+2. Send it to the TV from your computer (typing it with the remote is tedious):
    ```bash
-   adb shell input text "sk-ant-..."
+   adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."
    ```
+   or enter it in **Settings → Ask Claude → API key**.
 3. Press the ✦ button in the top bar and ask away. Voice input uses the TV's built-in speech recognition; answers are read with its text-to-speech voice.
 
 <details>

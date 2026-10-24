@@ -114,7 +114,7 @@ private enum class TextTarget { NAME, CITY, CLAUDE_KEY, CLAUDE_QUESTION }
 
 private const val CMD_MEDIA =
     "adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService"
-private const val CMD_KEY = "adb shell input text \"sk-ant-...\""
+private const val CMD_KEY = "adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key ANAHTAR"
 private const val CMD_OVERLAY = "adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow"
 private const val CMD_USAGE = "adb shell appops set dev.litedroid.launcher GET_USAGE_STATS allow"
 private const val CMD_SAVER =
@@ -829,8 +829,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                         TextTarget.NAME -> tx("Üst barda ve selamlamada görünür", "Shown in the top bar and greeting")
                         TextTarget.CITY -> tx("Şehir adı yaz (ör. İzmir). Boş bırakırsan konum otomatik bulunur.", "Type a city name (e.g. Izmir). Leave empty to detect it automatically.")
                         TextTarget.CLAUDE_KEY -> tx(
-                            "console.anthropic.com'dan aldığın anahtar (sk-ant-…). Kumandayla yazmak zor: alan açıkken bilgisayardan $CMD_KEY",
-                            "Your key from console.anthropic.com (sk-ant-…). Typing it with the remote is tedious: with this field open, run $CMD_KEY",
+                            "console.anthropic.com → API Keys'ten aldığın anahtar (sk-ant-api03-…). Kumandayla yazmak zor: bilgisayardan da gönderebilirsin: $CMD_KEY",
+                            "Your key from console.anthropic.com → API Keys (sk-ant-api03-…). Typing with the remote is tedious, you can send it from a computer: $CMD_KEY",
                         )
                         TextTarget.CLAUDE_QUESTION -> tx("Sorunu yaz, Claude cevaplasın", "Type your question for Claude")
                     },
@@ -841,6 +841,12 @@ private fun HomeContent(vm: LauncherViewModel) {
                         TextTarget.CLAUDE_QUESTION -> ""
                     },
                     allowEmpty = target == TextTarget.CITY || target == TextTarget.CLAUDE_KEY,
+                    maxLength = when (target) {
+                        TextTarget.NAME -> 20
+                        TextTarget.CITY -> 40
+                        TextTarget.CLAUDE_KEY -> 400
+                        TextTarget.CLAUDE_QUESTION -> 500
+                    },
                     onSave = { value ->
                         when (target) {
                             TextTarget.NAME -> vm.updateSettings { it.copy(userName = value) }
