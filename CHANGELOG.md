@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.0
+- **Home redirect** for TV boxes that lock their own launcher (e.g. Botech Wzone, where `pm disable-user` is refused): when another app is the default home, the remote shortcut accessibility service swallows the Home key and opens LiteDroid, and whenever that stock home screen comes to the front (boot, leaving an app) it switches to LiteDroid. Does nothing when LiteDroid is already the default home. Toggle in Settings ("Send Home to LiteDroid", on by default).
+
 ## 1.3.1
 - Usage report reworked: an opaque dark page (the home screen no longer shows through), one vertical page that scrolls with the remote (summary → charts side by side → apps), apps as two-column cards with icon, rank badge, time, share and opens.
 - Packages that can't be resolved to an app name (Google TV ambient mode and other system components) are named when known, otherwise left out.

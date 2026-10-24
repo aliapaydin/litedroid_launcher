@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.3.1-ff5c8a?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.4.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -201,6 +201,7 @@ DRM-protected playback (Netflix, Prime Video…) shows up black, that's Android'
 |---|---|
 | No continue-watching cards | Grant the notification listener, then `adb logcat -s LiteDroidMedia` |
 | No scores / no strip | Settings → Live scores: leagues and strip on? `adb logcat -s LiteDroidScores` |
+| Home goes to the box's own launcher and it can't be disabled | Turn on the remote shortcut service; with "Send Home to LiteDroid" on, Home opens LiteDroid |
 | Double Back does nothing | Is the accessibility service on? `adb logcat -s LiteDroidRemote` |
 | Claude says "no credit" | Add credit to your Anthropic account |
 </details>

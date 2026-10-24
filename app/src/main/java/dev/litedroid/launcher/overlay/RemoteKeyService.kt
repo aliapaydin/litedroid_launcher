@@ -32,7 +32,12 @@ import dev.litedroid.launcher.ui.theme.LiteDroidTheme
 /**
  * Kumanda kısayolu (erişilebilirlik hizmeti). Başka bir uygulama açıkken Geri'ye iki kez basınca
  * LiteDroid'in yüzen menüsünü açar. Tek basış (kısa bir beklemeyle) normal Geri olarak uygulamaya iletilir.
- * LiteDroid'in kendisi ya da ekran koruyucu öndeyken hiçbir tuşa karışmaz.
+ * LiteDroid'in kendisi ya da ekran koruyucu öndeyken Geri tuşuna karışmaz.
+ *
+ * Home yönlendirme: bazı TV kutuları (ör. Botech Wzone) kendi launcher'ının kapatılmasına ve başka bir
+ * ana ekran seçilmesine izin vermez. Varsayılan ana ekran başka bir uygulamaysa servis Home tuşunu
+ * yutup LiteDroid'i açar; o ana ekran başka bir yoldan (açılış, uygulamadan çıkış) öne gelirse de
+ * hemen LiteDroid'e geçer. LiteDroid zaten varsayılan ana ekransa hiçbir şey yapmaz.
  *
  * Açmak için: Ayarlar → Erişilebilirlik → LiteDroid kumanda kısayolu, ya da
  * adb shell settings put secure enabled_accessibility_services dev.litedroid.launcher/dev.litedroid.launcher.overlay.RemoteKeyService
@@ -56,6 +61,11 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     /** Kendi gönderdiğimiz Geri olaylarını yeniden yakalamamak için. */
     private var passThroughUntil = 0L
 
+    // Home yönlendirme durumu
+    private var foreignHome: String? = null
+    private var foreignHomeCheckedAt = 0L
+    private var lastRedirectAt = 0L
+
     /** İkinci basış gelmediyse ilk basış normal Geri olarak uygulamaya gider. */
     private val sendBackRunnable = Runnable {
         pendingBack = false
@@ -76,12 +86,54 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     override fun onServiceConnected() {
         super.onServiceConnected()
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
-        Log.i(TAG, "remote shortcut connected")
+        Log.i(TAG, "remote shortcut connected, default home: ${defaultHome(force = true)}")
+    }
+
+    /**
+     * LiteDroid dışında bir varsayılan ana ekran varsa onun paket adı (yönlendirme kapalıysa null).
+     * Sonuç 30 sn önbelleklenir; "android" çözümlemesi seçim penceresi demektir, o da yakalanır.
+     */
+    private fun defaultHome(force: Boolean = false): String? {
+        val now = SystemClock.uptimeMillis()
+        if (force || now - foreignHomeCheckedAt > 30_000) {
+            foreignHomeCheckedAt = now
+            val enabled = runCatching { SettingsRepository(this).load().homeRedirect }.getOrDefault(true)
+            foreignHome = if (!enabled) null else runCatching {
+                packageManager.resolveActivity(
+                    Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
+                    android.content.pm.PackageManager.MATCH_DEFAULT_ONLY,
+                )?.activityInfo?.packageName
+            }.getOrNull()?.takeIf { it != packageName }
+        }
+        return foreignHome
+    }
+
+    /** LiteDroid ana ekranını açar (MainActivity bunu Home basışı sayar: başa döner). */
+    private fun openLiteDroidHome() {
+        val now = SystemClock.uptimeMillis()
+        if (now - lastRedirectAt < 600) return
+        lastRedirectAt = now
+        closeMenu()
+        runCatching {
+            startActivity(
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                    .setPackage(packageName)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+            )
+        }.onFailure { Log.w(TAG, "home redirect failed: ${it.message}") }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || menuView != null) return
+        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
+        // Kutunun kendi ana ekranı öne geldiyse (açılışta, uygulamadan çıkınca...) LiteDroid'e geç
+        val home = defaultHome()
+        if (home != null && pkg == home) {
+            Log.i(TAG, "$pkg came to front, redirecting to LiteDroid")
+            openLiteDroidHome()
+            return
+        }
+        if (menuView != null) return
         if (pkg == packageName) {
             // Kendi ana ekranımız öne geldi mi? (Menü penceresi bu bilgiyi bozmasın diye sınıf adına bakılır)
             if (event.className?.toString()?.contains("MainActivity") == true) launcherInFront = true
@@ -91,6 +143,11 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        // Home: varsayılan ana ekran başkasıysa tuşu yut, LiteDroid'i aç
+        if (event.keyCode == KeyEvent.KEYCODE_HOME && defaultHome() != null) {
+            if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) openLiteDroidHome()
+            return true
+        }
         val isBack = event.keyCode == KeyEvent.KEYCODE_BACK
 
         // Menü açıkken: menüyü açan ikinci basışın bırakılması yutulur; sonraki Geri menüyü kapatır,
