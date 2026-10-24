@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+- Continue watching cards show the real video thumbnail for YouTube (from the video id) instead of the app logo.
+- Artwork refreshes when an app swaps its placeholder logo for the real cover.
+- Frosted text band at the bottom of continue cards (a tiny, upscaled copy of the artwork, no live blur) plus text shadows, so titles stay readable on bright images.
+- Released under the MIT License.
+
 ## 1.0.0 — LiteDroid Launcher
 - Renamed from *Camekan* to **LiteDroid Launcher** (package `dev.litedroid.launcher`).
 - Continue watching: one card per content, up to 3 per app, per-card color, number badge, time left and "watched ago"; marquee titles on focus.

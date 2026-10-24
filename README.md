@@ -8,11 +8,12 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-ff5c8a?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.1-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
   <img alt="Min SDK" src="https://img.shields.io/badge/minSdk-26-555?style=for-the-badge">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-f5c542?style=for-the-badge"></a>
 </p>
 
 <p align="center">
@@ -185,8 +186,12 @@ app/src/main/java/dev/litedroid/launcher/
 - [Open-Meteo](https://open-meteo.com) weather data, [ipwho.is](https://ipwhois.io) approximate location
 - Jetpack Compose and Coil
 
+## 📄 License
+
+LiteDroid Launcher is open source under the [MIT License](LICENSE). The bundled Plus Jakarta Sans font keeps its own [SIL Open Font License](licenses/PlusJakartaSans-OFL.txt).
+
 ## 👤 Author
 
 **Ali Apaydın** · [apaydin.a@gmail.com](mailto:apaydin.a@gmail.com)
 
-If you try LiteDroid on your own TV, I'd love to see a screenshot. Issues and ideas are welcome.
+If you try LiteDroid on your own TV, I'd love to see a screenshot. Issues, ideas and pull requests are welcome.

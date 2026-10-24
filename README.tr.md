@@ -101,6 +101,10 @@ adb shell appops set dev.litedroid.launcher WRITE_SETTINGS allow
 
 TV'den ekran görüntüsü almak için `TV=<TV_IP>:<PORT> ./tools/tvshot.sh`, devam et kayıtlarını görmek için `adb logcat -s LiteDroidMedia` kullanabilirsin.
 
+## 📄 Lisans
+
+LiteDroid Launcher [MIT Lisansı](LICENSE) ile açık kaynaktır: kodu kullanabilir, değiştirebilir ve paylaşabilirsin; telif bildirimi korunmalıdır. Pakete dahil Plus Jakarta Sans yazı tipi kendi [SIL Open Font License](licenses/PlusJakartaSans-OFL.txt) lisansıyla gelir.
+
 ## 👤 Geliştirici
 
 **Ali Apaydın** · [apaydin.a@gmail.com](mailto:apaydin.a@gmail.com)

@@ -1,5 +1,14 @@
 package dev.litedroid.launcher.ui
 
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Shadow
+import coil3.size.Precision
+import coil3.request.ImageRequest
+import coil3.compose.LocalPlatformContext
 import dev.litedroid.launcher.games.GameGlyph
 import dev.litedroid.launcher.games.BuiltInGame
 import dev.litedroid.launcher.media.PlayedItem
@@ -1008,6 +1017,19 @@ private val CONTINUE_TINTS = listOf(
     Color(0xFFA96BFF), Color(0xFF3DD6FF), Color(0xFFFF7A45),
 )
 
+private val CARD_SHADOW = Shadow(Color.Black.copy(alpha = 0.7f), Offset(0f, 1.5f), 6f)
+
+/**
+ * Görüntünün yalnızca alt kısmını çizer (yazı bandı) ve üstüne ince bir ışık çizgisi koyar.
+ * Altına konan küçük çözünürlüklü kopya ile birlikte buzlu cam etkisi verir.
+ */
+private fun Modifier.frostedBand(from: Float = 0.45f): Modifier = this.drawWithContent {
+    val top = size.height * from
+    clipRect(top = top) { this@drawWithContent.drawContent() }
+    drawRect(Color.Black.copy(alpha = 0.18f), topLeft = Offset(0f, top), size = Size(size.width, size.height - top))
+    drawLine(Color.White.copy(alpha = 0.14f), Offset(0f, top), Offset(size.width, top), 1f)
+}
+
 private fun tintFor(key: String): Color = CONTINUE_TINTS[(key.hashCode() and 0x7fffffff) % CONTINUE_TINTS.size]
 
 /** "az önce", "5 dk önce", "3 sa önce", "dün", "4 gün önce". */
@@ -1099,8 +1121,39 @@ private fun ContinueCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+                // Yazının olduğu alt kısım: aynı görselin çok küçük çözülüp büyütülmüş hali = buzlu cam.
+                // Canlı blur kullanmaz, TV'yi yormaz.
+                val ctx = LocalPlatformContext.current
+                val tiny = remember(image) {
+                    ImageRequest.Builder(ctx)
+                        .data(artModel(image))
+                        .size(28, 16)
+                        .precision(Precision.EXACT)
+                        .build()
+                }
+                AsyncImage(
+                    model = tiny,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    filterQuality = FilterQuality.Low,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .frostedBand(),
+                )
             }
-            app?.banner != null -> AppArt(app, Modifier.fillMaxSize())
+            app?.banner != null -> {
+                AppArt(app, Modifier.fillMaxSize())
+                app.backdrop?.let { b ->
+                    Image(
+                        b, null,
+                        contentScale = ContentScale.Crop,
+                        filterQuality = FilterQuality.Low,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .frostedBand(),
+                    )
+                }
+            }
             app != null -> IconCardArt(app, focused = false, compact = false, showText = false)
             else -> Box(
                 Modifier
@@ -1122,7 +1175,14 @@ private fun ContinueCard(
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(0.25f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.9f)))
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        0.42f to Color.Black.copy(alpha = 0.12f),
+                        0.48f to Color.Black.copy(alpha = 0.38f),
+                        1f to Color.Black.copy(alpha = 0.78f),
+                    )
+                )
         )
         Box(
             Modifier
@@ -1167,6 +1227,7 @@ private fun ContinueCard(
         ) {
             Text(
                 title,
+                style = LocalTextStyle.current.copy(shadow = CARD_SHADOW),
                 color = Color.White,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
@@ -1177,7 +1238,8 @@ private fun ContinueCard(
             )
             Text(
                 subtitle,
-                color = Color.White.copy(alpha = 0.75f),
+                style = LocalTextStyle.current.copy(shadow = CARD_SHADOW),
+                color = Color.White.copy(alpha = 0.85f),
                 fontSize = 10.sp,
                 maxLines = 1,
                 overflow = if (focused) TextOverflow.Clip else TextOverflow.Ellipsis,

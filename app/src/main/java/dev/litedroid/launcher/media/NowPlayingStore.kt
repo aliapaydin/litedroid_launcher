@@ -249,8 +249,20 @@ object NowPlayingStore {
             return
         }
 
-        val art = existing?.art?.takeIf { !it.startsWith("/") || File(it).exists() }
-            ?: meta?.let { saveArt(context, key, it) }
+        // Kapak: YouTube'da video kimliğinden gerçek küçük resim; diğerlerinde oturumun kapağı.
+        // Uygulamalar oynatma başında çoğu zaman kendi logosunu gönderip sonra gerçek kapağa geçer,
+        // bu yüzden kapak değiştikçe dosya yenilenir (yeni ad = önbellekte eski resim kalmaz).
+        val oldArt = existing?.art?.takeIf { !it.startsWith("/") || File(it).exists() }
+        val signature = meta?.let { artSignature(it) }
+        val art = youtubeThumbnail(pkg, contentId, hints ?: existing?.hints)
+            ?: run {
+                if (meta == null || signature == null) return@run oldArt
+                if (oldArt != null && synchronized(this) { artSignatures[key] } == signature) return@run oldArt
+                saveArt(context, key, meta, signature)?.also { fresh ->
+                    if (fresh != oldArt) oldArt?.takeIf { it.startsWith("/") }?.let { File(it).delete() }
+                } ?: oldArt
+            }
+        synchronized(this) { signature?.let { artSignatures[key] = it } }
         val subtitle = meta?.let {
             it.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
                 ?: it.getString(MediaMetadata.METADATA_KEY_ARTIST)?.takeIf { a -> title != null && norm(a) != norm(label) }
@@ -310,7 +322,45 @@ object NowPlayingStore {
         return parts.joinToString(" | ").take(1500).takeIf { it.isNotBlank() }
     }
 
-    private fun saveArt(context: Context, key: String, meta: MediaMetadata): String? {
+    private val artSignatures = HashMap<String, String>()
+
+    private val YOUTUBE_PACKAGES = setOf(
+        "com.google.android.youtube.tv",
+        "com.google.android.youtube",
+        "com.google.android.youtube.tvkids",
+        "com.google.android.youtube.tvunplugged",
+    )
+    private val YT_ID = Regex("[A-Za-z0-9_-]{11}")
+    private val YT_IN_TEXT = Regex("(?:v=|youtu\\.be/|/watch/|/shorts/|/vi/)([A-Za-z0-9_-]{11})")
+
+    /** YouTube videosunun gerçek küçük resmi (kimlik biliniyorsa). */
+    private fun youtubeThumbnail(pkg: String, id: String?, hints: String?): String? {
+        if (pkg !in YOUTUBE_PACKAGES) return null
+        val vid = id?.takeIf { YT_ID.matches(it) } ?: hints?.let { YT_IN_TEXT.find(it)?.groupValues?.get(1) } ?: return null
+        return "https://i.ytimg.com/vi/$vid/hqdefault.jpg"
+    }
+
+    /** Kapağın değişip değişmediğini anlamak için ucuz bir imza. */
+    private fun artSignature(meta: MediaMetadata): String? {
+        val bitmap = meta.getBitmap(MediaMetadata.METADATA_KEY_ART)
+            ?: meta.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+            ?: meta.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+        if (bitmap != null) {
+            // Köşe ve orta piksellerden küçük bir parmak izi
+            val w = bitmap.width
+            val h = bitmap.height
+            val probe = runCatching {
+                listOf(bitmap.getPixel(w / 2, h / 2), bitmap.getPixel(w / 4, h / 4), bitmap.getPixel(3 * w / 4, 3 * h / 4))
+                    .joinToString("") { Integer.toHexString(it) }
+            }.getOrDefault("")
+            return "${w}x${h}:$probe"
+        }
+        return meta.getString(MediaMetadata.METADATA_KEY_ART_URI)
+            ?: meta.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
+            ?: meta.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
+    }
+
+    private fun saveArt(context: Context, key: String, meta: MediaMetadata, signature: String): String? {
         val bitmap = meta.getBitmap(MediaMetadata.METADATA_KEY_ART)
             ?: meta.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: meta.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
@@ -320,7 +370,7 @@ object NowPlayingStore {
         if (bitmap == null) return uri
         return runCatching {
             val dir = File(context.filesDir, "art").apply { mkdirs() }
-            val file = File(dir, "$key.jpg")
+            val file = File(dir, "${key}_${signature.hashCode().toUInt()}.jpg")
             val scaled = if (bitmap.width > 640) {
                 Bitmap.createScaledBitmap(bitmap, 640, (bitmap.height * 640f / bitmap.width).toInt().coerceAtLeast(1), true)
             } else bitmap
