@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.3.1-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.4.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -256,6 +256,7 @@ DRM korumalı içerikler (Netflix, Prime Video…) siyah görünür. Bu Android'
 |---|---|
 | Kaldığın yerden devam kartı gelmiyor | Bildirim dinleyici iznini ver, sonra `adb logcat -s LiteDroidMedia` |
 | Skorlar ya da şerit görünmüyor | Ayarlar → Canlı skorlar'da lig ve şerit açık mı? `adb logcat -s LiteDroidScores` |
+| Home tuşu kutunun kendi ana ekranına gidiyor ve launcher kapatılamıyor ("This command is illegal") | Kumanda kısayolu servisini aç; Ayarlar'da "Home tuşunu LiteDroid'e yönlendir" açıkken Home LiteDroid'i açar |
 | Geri'ye iki kez basınca menü açılmıyor | Erişilebilirlik servisi açık mı? `adb logcat -s LiteDroidRemote` |
 | Claude "bakiye yok" diyor | Anthropic konsolunda hesabına kredi yükle |
 | Claude anahtarı kabul etmiyor | Anahtar `sk-ant-api03-` ile başlamalı, adb komutuyla tam olarak gönder |

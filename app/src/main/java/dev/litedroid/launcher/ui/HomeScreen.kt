@@ -1117,6 +1117,16 @@ private fun settingsEntries(
             "While watching anything, a small live-score strip in the top-right corner, with a short goal alert. Run this command once:\n\n$CMD_OVERLAY")) {
         onFloatingScores()
     },
+    SettingsEntry.Row("home_redirect", tx("Home tuşunu LiteDroid'e yönlendir", "Send Home to LiteDroid"), Icons.Filled.Home,
+        if (settings.homeRedirect) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Bazı TV kutuları kendi ana ekranlarının kapatılmasına izin vermez ve Home tuşu hep oraya gider. Bu açıkken kumanda kısayolu servisi " +
+            "Home'u yakalar ve kutunun ana ekranı öne geldiğinde LiteDroid'i açar. LiteDroid zaten varsayılan ana ekransa hiçbir şey yapmaz. " +
+            "Kumanda kısayolu (erişilebilirlik) açık olmalı.",
+            "Some TV boxes don't let you turn off their own home screen, so Home always goes there. With this on, the remote shortcut service " +
+            "catches Home and opens LiteDroid whenever the box's home screen comes to the front. Does nothing when LiteDroid is already the default. " +
+            "Needs the remote shortcut (accessibility) on.")) {
+        vm.updateSettings { it.copy(homeRedirect = !it.homeRedirect) }
+    },
     SettingsEntry.Row("remote_menu", tx("Kumanda kısayolu (Geri'ye iki kez bas)", "Remote shortcut (double-press Back)"), Icons.Filled.Menu,
         if (vm.remoteShortcutEnabled()) tx("Açık", "On") else tx("Kapalı", "Off"),
         tx("Bir uygulama açıkken Geri'ye hızlıca iki kez basınca yüzen menü açılır: saat, tüm skorlar, çalan müzik, skor ayarları. " +

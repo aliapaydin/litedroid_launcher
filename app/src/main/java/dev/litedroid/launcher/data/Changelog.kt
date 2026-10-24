@@ -10,6 +10,18 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.4.0",
+                tx("Home tuşu kilitli kutularda da LiteDroid", "LiteDroid on boxes that lock the Home key"),
+                listOf(
+                    tx("Kendi ana ekranının kapatılmasına izin vermeyen TV kutularında (ör. Botech Wzone) Home tuşu artık LiteDroid'i açar.",
+                        "On TV boxes that won't let you turn off their own home screen (e.g. Botech Wzone), Home now opens LiteDroid."),
+                    tx("Kutunun ana ekranı açılışta ya da bir uygulamadan çıkınca öne gelirse LiteDroid hemen devralır.",
+                        "If the box's home screen comes up at boot or when leaving an app, LiteDroid takes over right away."),
+                    tx("Ayarlar'da \"Home tuşunu LiteDroid'e yönlendir\" ile açılıp kapatılır; kumanda kısayolu servisi açık olmalı.",
+                        "Switch it in Settings with \"Send Home to LiteDroid\"; it needs the remote shortcut service on."),
+                ),
+            ),
+            Release(
                 "1.3.1",
                 tx("Kullanım raporu yeniden düzenlendi", "Usage report reworked"),
                 listOf(

@@ -69,6 +69,11 @@ data class LauncherSettings(
     /** Başka bir uygulama açıkken ekranın köşesinde yüzen skor şeridi. */
     val floatingScores: Boolean = false,
     val floatingOnlyLive: Boolean = true,
+    /**
+     * Kutunun kendi ana ekranı varsayılan kalıyorsa (bazı TV kutuları başka launcher'a izin vermez),
+     * kumanda kısayolu servisi Home tuşunu ve o ana ekranı yakalayıp LiteDroid'i açar.
+     */
+    val homeRedirect: Boolean = true,
     /** Claude'a sor: kullanıcının kendi Anthropic API anahtarı. */
     val claudeKey: String = "",
     val claudeModel: ClaudeModel = ClaudeModel.SONNET,
@@ -106,6 +111,7 @@ class SettingsRepository(context: Context) {
         scoreLeagues = prefs.getStringSet(K_LEAGUES, null)?.toSet() ?: League.entries.map { it.code }.toSet(),
         floatingScores = prefs.getBoolean(K_FLOAT, false),
         floatingOnlyLive = prefs.getBoolean(K_FLOAT_LIVE, true),
+        homeRedirect = prefs.getBoolean(K_HOME_REDIRECT, true),
         claudeKey = prefs.getString(K_CLAUDE_KEY, "").orEmpty(),
         claudeModel = enumOr(prefs.getString(K_CLAUDE_MODEL, null), ClaudeModel.SONNET),
         claudeSpeak = prefs.getBoolean(K_CLAUDE_SPEAK, true),
@@ -134,6 +140,7 @@ class SettingsRepository(context: Context) {
             .putStringSet(K_LEAGUES, s.scoreLeagues)
             .putBoolean(K_FLOAT, s.floatingScores)
             .putBoolean(K_FLOAT_LIVE, s.floatingOnlyLive)
+            .putBoolean(K_HOME_REDIRECT, s.homeRedirect)
             .putString(K_CLAUDE_KEY, s.claudeKey)
             .putString(K_CLAUDE_MODEL, s.claudeModel.name)
             .putBoolean(K_CLAUDE_SPEAK, s.claudeSpeak)
@@ -164,6 +171,7 @@ class SettingsRepository(context: Context) {
         const val K_SAVER_SCORES = "saver_scores"
         const val K_LEAGUES = "score_leagues"
         const val K_FLOAT = "floating_scores"
+        const val K_HOME_REDIRECT = "home_redirect"
         const val K_FLOAT_LIVE = "floating_only_live"
         const val K_CLAUDE_KEY = "claude_key"
         const val K_CLAUDE_MODEL = "claude_model"
