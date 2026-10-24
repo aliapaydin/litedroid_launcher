@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+- **Remote shortcut:** while any app is open, hold **Back** to open a floating LiteDroid menu (clock, weather, now-playing controls, floating-score toggles, all of today's matches, shortcuts to Home and Ask Claude). A short press is still a normal Back. Uses an accessibility service that only watches keys and the foreground app.
+- The floating score strip hides on the LiteDroid home screen, during any screensaver (system dream included) and while the menu is open.
+- Quick panel scrolls with focus, so controls below the now-playing card are reachable.
+
 ## 1.1.0
 - **Ask Claude:** voice (or typed) questions, streamed large-type answers, text-to-speech replies, web search with sources, follow-ups, Sonnet/Haiku choice; uses your own API key.
 - **Live scores** for Süper Lig, Premier League, LaLiga, Serie A, Bundesliga and Ligue 1 with team logos and goal alerts; choose leagues in Settings.

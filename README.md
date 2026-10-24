@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-ff5c8a?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.1-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -73,6 +73,10 @@ Installed games from Google Play get their own row underneath.
 - Today's matches with team logos, live minute and score, and a **GOAL!** alert when the score changes.
 - **Floating score strip**: while you watch Netflix, YouTube or anything else, a small strip with logos and live scores sits in the corner. It never takes focus from the app below; turn it on in Settings.
 - Pick which leagues to follow.
+
+### 🎛️ Floating menu over any app
+- While Netflix, YouTube or anything else is open, **hold Back** on the remote: a LiteDroid menu slides in with the clock, weather, now-playing controls, all of today's scores and the floating-strip switches. A short press stays a normal Back.
+- Enable once: **Android Settings → Accessibility → LiteDroid remote shortcut** (it only sees key presses and which app is in front).
 
 ### 🎧 Screensaver widgets
 - **Now playing**: artwork, title, artist and a live progress bar for whatever is playing (Spotify included).

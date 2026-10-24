@@ -1,5 +1,6 @@
 package dev.litedroid.launcher.dream
 
+import dev.litedroid.launcher.overlay.ScoreOverlay
 import dev.litedroid.launcher.I18n
 import android.service.dreams.DreamService
 import androidx.compose.ui.platform.ComposeView
@@ -59,10 +60,12 @@ class LiteDroidDream : DreamService(), LifecycleOwner, SavedStateRegistryOwner {
 
     override fun onDreamingStarted() {
         super.onDreamingStarted()
+        ScoreOverlay.dreaming.value = true
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
     }
 
     override fun onDreamingStopped() {
+        ScoreOverlay.dreaming.value = false
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         super.onDreamingStopped()
     }

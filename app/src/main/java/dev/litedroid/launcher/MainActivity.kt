@@ -59,6 +59,13 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
+    private fun handleOpenClaude(intent: Intent?): Boolean {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_CLAUDE, false) != true) return false
+        intent.removeExtra(EXTRA_OPEN_CLAUDE)
+        viewModel.requestOpenClaude()
+        return true
+    }
+
     private fun startVoiceInput(): Boolean {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -92,6 +99,7 @@ class MainActivity : ComponentActivity() {
         }
         ContextCompat.registerReceiver(this, packageReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         handleKeyIntent(intent)
+        handleOpenClaude(intent)
         askContentPermissionOnce()
     }
 
@@ -119,6 +127,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Yüzen menüden değiştirilen ayarlar (ör. yüzen skor) burada da görünsün
+        viewModel.reloadSettings()
         viewModel.setResumed(true)
         ScoreOverlay.launcherVisible.value = true
         viewModel.syncOverlay()
@@ -135,6 +145,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (handleKeyIntent(intent)) return
+        if (handleOpenClaude(intent)) return
         if (intent.hasCategory(Intent.CATEGORY_HOME)) viewModel.onHomePressed()
     }
 
@@ -144,9 +155,12 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private companion object {
-        const val READ_EPG = "com.android.providers.tv.permission.READ_EPG_DATA"
-        const val KEY_ASKED = "epg_permission_asked"
-        const val EXTRA_CLAUDE_KEY = "claude_key"
+    companion object {
+        private const val READ_EPG = "com.android.providers.tv.permission.READ_EPG_DATA"
+        private const val KEY_ASKED = "epg_permission_asked"
+        private const val EXTRA_CLAUDE_KEY = "claude_key"
+
+        /** Yüzen menüdeki "Claude'a sor" kısayolu LiteDroid'i bu ekranla açar. */
+        const val EXTRA_OPEN_CLAUDE = "open_claude"
     }
 }

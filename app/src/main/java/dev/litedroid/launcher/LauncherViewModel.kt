@@ -1,5 +1,6 @@
 package dev.litedroid.launcher
 
+import dev.litedroid.launcher.overlay.RemoteKeyService
 import androidx.compose.runtime.mutableStateListOf
 import dev.litedroid.launcher.data.Speaker
 import dev.litedroid.launcher.data.ClaudeExchange
@@ -191,6 +192,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun syncOverlay() = ScoreOverlay.sync(app, settings)
 
     fun overlayAllowed(): Boolean = ScoreOverlay.canDraw(app)
+
+    fun remoteShortcutEnabled(): Boolean = RemoteKeyService.isEnabled(app)
+
+    /** Yüzen menüden "Claude'a sor" seçilince artar; ana ekran Claude ekranını açar. */
+    var openClaudeSignal by mutableIntStateOf(0)
+        private set
+
+    fun requestOpenClaude() {
+        openClaudeSignal++
+    }
+
+    /** Ayarlar başka bir yerden (yüzen menü) değiştiyse yeniden oku. */
+    fun reloadSettings() {
+        val fresh = settingsRepo.load()
+        if (fresh != settings) settings = fresh
+    }
 
     // ---------------- Claude'a sor ----------------
 

@@ -1,5 +1,6 @@
 package dev.litedroid.launcher.ui
 
+import dev.litedroid.launcher.overlay.RemoteKeyService
 import dev.litedroid.launcher.data.ClaudeModel
 import dev.litedroid.launcher.data.League
 import dev.litedroid.launcher.overlay.ScoreOverlay
@@ -332,6 +333,20 @@ private fun HomeContent(vm: LauncherViewModel) {
             runCatching { gridState.animateScrollToItem(0) }
             focusTile(null)
         }
+    }
+
+    // Yüzen menüden "Claude'a sor" seçildi
+    LaunchedEffect(vm.openClaudeSignal) {
+        if (vm.openClaudeSignal == 0) return@LaunchedEffect
+        menuFor = null
+        panelOpen = false
+        notifOpen = false
+        storeOpen = false
+        aboutOpen = false
+        settingsOpen = false
+        searchOpen = false
+        gameOpen = null
+        askOpen = true
     }
 
     // Launcher'da Geri tuşu uygulamadan çıkmaz: önce katmanları kapatır, sonra başa döner
@@ -777,6 +792,11 @@ private fun HomeContent(vm: LauncherViewModel) {
                         settingsOpen = false
                         askOpen = true
                     },
+                    onRemoteShortcut = {
+                        if (!startFirstWorking(listOf(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)), null)) {
+                            toast(tx("Komut sol panelde", "The command is in the left panel"))
+                        }
+                    },
                     onGames = {
                         settingsOpen = false
                         gamePickerOpen = true
@@ -953,6 +973,7 @@ private fun settingsEntries(
     onOpenClaude: () -> Unit,
     onFloatingScores: () -> Unit,
     onGames: () -> Unit,
+    onRemoteShortcut: () -> Unit,
 ): List<SettingsEntry> = listOf(
     SettingsEntry.Header(tx("Görünüm", "Appearance")),
     SettingsEntry.Row("language", "Dil / Language", Icons.Filled.Face, settings.language.label,
@@ -1052,6 +1073,16 @@ private fun settingsEntries(
             "Bir kez şu komutu çalıştır:\n\n$CMD_OVERLAY",
             "While watching anything, a small live-score strip in the top-right corner, with a short goal alert. Run this command once:\n\n$CMD_OVERLAY")) {
         onFloatingScores()
+    },
+    SettingsEntry.Row("remote_menu", tx("Kumanda kısayolu (Geri'ye basılı tut)", "Remote shortcut (hold Back)"), Icons.Filled.Menu,
+        if (vm.remoteShortcutEnabled()) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Bir uygulama açıkken Geri'ye basılı tutunca yüzen menü açılır: saat, tüm skorlar, çalan müzik, skor ayarları. " +
+            "Kısa basış normal Geri'dir. Açmak için: Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu. " +
+            "Ya da bilgisayardan (başka erişilebilirlik hizmetin yoksa):\n\n${RemoteKeyService.ADB_ENABLE}",
+            "While an app is open, hold Back to open the floating menu: clock, all scores, now playing, score settings. " +
+            "A short press is a normal Back. Turn it on in Android Settings → Accessibility → LiteDroid remote shortcut, " +
+            "or from a computer (if you use no other accessibility service):\n\n${RemoteKeyService.ADB_ENABLE}")) {
+        onRemoteShortcut()
     },
     SettingsEntry.Row("float_live", tx("Şeritte yalnızca canlı maçlar", "Only live matches in the strip"), Icons.Filled.Refresh,
         if (settings.floatingOnlyLive) tx("Evet", "Yes") else tx("Bugünün tümü", "All today"),

@@ -1,5 +1,8 @@
 package dev.litedroid.launcher.overlay
 
+import androidx.core.content.ContextCompat
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -55,6 +58,12 @@ object ScoreOverlay {
     /** LiteDroid ön plandayken şerit gizlenir (ana ekranda zaten skorlar var). */
     val launcherVisible = MutableStateFlow(false)
 
+    /** Ekran koruyucu açıkken (LiteDroid'inki ya da sistemin) şerit gizlenir; koruyucunun kendi skor kartı var. */
+    val dreaming = MutableStateFlow(false)
+
+    /** Yüzen menü açıkken şerit gizlenir (menü tüm skorları zaten gösteriyor). */
+    val menuOpen = MutableStateFlow(false)
+
     const val ADB_COMMAND = "adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow"
 
     fun canDraw(context: Context): Boolean = Settings.canDrawOverlays(context)
@@ -92,6 +101,16 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
     private var view: ComposeView? = null
 
+    /** Sistem ekran koruyucusu başlayınca/bitince haber verir. */
+    private val dreamReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_DREAMING_STARTED, Intent.ACTION_SCREEN_OFF -> ScoreOverlay.dreaming.value = true
+                Intent.ACTION_DREAMING_STOPPED, Intent.ACTION_SCREEN_ON -> ScoreOverlay.dreaming.value = false
+            }
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -103,6 +122,13 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
         I18n.lang = settings.language
         ScoresHub.leagues = settings.scoreLeagues
         ScoresHub.acquire(this, "overlay")
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_DREAMING_STARTED)
+            addAction(Intent.ACTION_DREAMING_STOPPED)
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        }
+        ContextCompat.registerReceiver(this, dreamReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
         if (ScoreOverlay.canDraw(this)) addOverlay(settings.floatingOnlyLive) else stopSelf()
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
     }
@@ -156,6 +182,7 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     override fun onDestroy() {
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         ScoresHub.release("overlay")
+        runCatching { unregisterReceiver(dreamReceiver) }
         view?.let { v -> runCatching { getSystemService(WindowManager::class.java)?.removeView(v) } }
         view = null
         super.onDestroy()
@@ -171,7 +198,9 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 private fun OverlayContent(onlyLive: Boolean) {
     val matches by ScoresHub.matches.collectAsState()
     val launcherVisible by ScoreOverlay.launcherVisible.collectAsState()
-    if (launcherVisible) {
+    val dreaming by ScoreOverlay.dreaming.collectAsState()
+    val menuOpen by ScoreOverlay.menuOpen.collectAsState()
+    if (launcherVisible || dreaming || menuOpen) {
         Box {}
         return
     }

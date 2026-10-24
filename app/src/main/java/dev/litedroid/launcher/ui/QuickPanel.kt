@@ -1,5 +1,7 @@
 package dev.litedroid.launcher.ui
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
@@ -98,6 +100,7 @@ fun QuickPanel(
     val media by LiveMediaHub.current.collectAsState()
     val weather = if (vm.settings.weatherEnabled) vm.weather else null
 
+    // İçerik ekrana sığmazsa (ör. şimdi çalan kartı açıkken) odak aşağı indikçe panel kendiliğinden kayar
     Column(
         modifier
             .width(440.dp)
@@ -107,6 +110,7 @@ fun QuickPanel(
             .background(Brush.verticalGradient(listOf(Color(0xFF15172A).copy(alpha = 0.97f), Color(0xFF0A0B14).copy(alpha = 0.98f))))
             .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.04f))), RoundedCornerShape(30.dp))
             .glassSheen(0.6f)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
         // ---- Saat ve durum ----
@@ -200,7 +204,7 @@ fun QuickPanel(
             Spacer(Modifier.height(10.dp))
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(6.dp))
         // ---- Kısayollar ----
         actions.chunked(2).forEach { pair ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -213,7 +217,7 @@ fun QuickPanel(
 }
 
 @Composable
-private fun TileView(tile: QuickTile, modifier: Modifier, focusRequester: FocusRequester?) {
+internal fun TileView(tile: QuickTile, modifier: Modifier, focusRequester: FocusRequester?) {
     var focused by remember { mutableStateOf(false) }
     val sounds = LocalSounds.current
     val scale by animateFloatAsState(if (focused) 1.04f else 1f, spring(dampingRatio = 0.7f, stiffness = 700f), label = "tile")
@@ -269,7 +273,7 @@ private fun TileView(tile: QuickTile, modifier: Modifier, focusRequester: FocusR
 }
 
 @Composable
-private fun ActionView(action: QuickAction, modifier: Modifier) {
+internal fun ActionView(action: QuickAction, modifier: Modifier) {
     var focused by remember { mutableStateOf(false) }
     val sounds = LocalSounds.current
     val fg = if (focused) Color(0xFF111322) else Color.White
@@ -298,7 +302,7 @@ private fun ActionView(action: QuickAction, modifier: Modifier) {
 }
 
 @Composable
-private fun MediaButton(symbol: String, big: Boolean = false, onClick: () -> Unit) {
+internal fun MediaButton(symbol: String, big: Boolean = false, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val size = if (big) 40.dp else 34.dp
     Box(
