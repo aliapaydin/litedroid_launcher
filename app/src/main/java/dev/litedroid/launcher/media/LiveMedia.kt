@@ -38,6 +38,24 @@ object LiveMediaHub {
     val current: StateFlow<LiveMedia?> = _current
 
     private val byPackage = HashMap<String, LiveMedia>()
+    private val controllers = HashMap<String, MediaController>()
+
+    /** Hızlı paneldeki oynat/duraklat, ileri, geri düğmeleri için. */
+    fun playPause() {
+        val m = _current.value ?: return
+        val c = synchronized(this) { controllers[m.packageName] } ?: return
+        runCatching { if (m.playing) c.transportControls.pause() else c.transportControls.play() }
+    }
+
+    fun next() {
+        val m = _current.value ?: return
+        synchronized(this) { controllers[m.packageName] }?.let { runCatching { it.transportControls.skipToNext() } }
+    }
+
+    fun previous() {
+        val m = _current.value ?: return
+        synchronized(this) { controllers[m.packageName] }?.let { runCatching { it.transportControls.skipToPrevious() } }
+    }
     private var lastArtKey: String? = null
     private var lastArt: ImageBitmap? = null
 
@@ -55,7 +73,9 @@ object LiveMediaHub {
         synchronized(this) {
             if (state == null || state.state == PlaybackState.STATE_STOPPED || state.state == PlaybackState.STATE_NONE) {
                 byPackage.remove(pkg)
+                controllers.remove(pkg)
             } else {
+                controllers[pkg] = controller
                 val artist = meta?.getString(MediaMetadata.METADATA_KEY_ARTIST)
                     ?: meta?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
                     ?: meta?.getString(MediaMetadata.METADATA_KEY_ALBUM)
@@ -80,6 +100,7 @@ object LiveMediaHub {
     fun forget(pkg: String) {
         synchronized(this) {
             byPackage.remove(pkg)
+            controllers.remove(pkg)
             _current.value = byPackage.values.firstOrNull { it.playing } ?: byPackage.values.firstOrNull()
         }
     }

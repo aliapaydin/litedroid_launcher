@@ -179,7 +179,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || settingsOpen || searchOpen || gameOpen != null || askOpen
+    val pageOpen = storeOpen || aboutOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
 
@@ -246,7 +246,14 @@ private fun HomeContent(vm: LauncherViewModel) {
             is StripItem.Played -> {
                 // Önce içeriğin kendisini aç (oynatıcıya dön / derin bağlantı), olmazsa uygulamayı
                 if (Resume.resume(context, item.item)) vm.recordLaunch(item.item.packageName)
-                else item.app?.let { launchApp(it) }
+                else item.app?.let { app ->
+                    // Uygulamayı sıfırdan aç: arkada kalmış bir oynatıcıya (başka bir videoya) dönmesin
+                    vm.recordLaunch(app.packageName)
+                    startSafely(
+                        Intent(app.launchIntent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+                        tx("${app.label} açılamadı", "Couldn't open ${app.label}"),
+                    )
+                }
             }
             is StripItem.Content -> {
                 val intent = item.item.intentUri?.let {
@@ -639,51 +646,62 @@ private fun HomeContent(vm: LauncherViewModel) {
             exit = slideOutHorizontally { it } + fadeOut(),
             modifier = Modifier.align(Alignment.CenterEnd),
         ) {
-            GlassMenu(
-                title = tx("Hızlı Ayarlar", "Quick Settings"),
-                subtitle = null,
-                items = buildList {
-                    add(MenuItem(tx("Tüm ayarlar", "All settings"), Icons.Filled.Settings) {
-                        panelOpen = false
-                        settingsOpen = true
-                    })
-                    add(MenuItem(tx("Arayüz: ${settings.layout.label}", "Layout: ${settings.layout.label}"), Icons.Filled.ThumbUp) {
+            QuickPanel(
+                vm = vm,
+                tiles = buildList {
+                    add(QuickTile("layout", tx("Arayüz", "Layout"), settings.layout.label, QuickIcons.layout, active = modern) {
                         vm.updateSettings { it.copy(layout = UiLayout.entries.toList().next(it.layout)) }
                     })
-                    add(MenuItem(tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart) {
+                    add(QuickTile("sound", tx("Ses efektleri", "Sound effects"), if (settings.soundsEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.sound, active = settings.soundsEnabled) {
+                        vm.updateSettings { it.copy(soundsEnabled = !it.soundsEnabled) }
+                    })
+                    add(QuickTile(
+                        "scores", tx("Yüzen skor", "Floating scores"),
+                        when {
+                            !settings.floatingScores -> tx("Kapalı", "Off")
+                            vm.overlayAllowed() -> tx("Açık", "On")
+                            else -> tx("İzin gerekli", "Permission needed")
+                        },
+                        QuickIcons.scores, active = settings.floatingScores,
+                    ) {
+                        val turnOn = !settings.floatingScores
+                        vm.updateSettings { it.copy(floatingScores = turnOn) }
+                        if (turnOn && !vm.overlayAllowed()) toast(tx("Önce izin ver: Ayarlar → Canlı skorlar", "Grant permission first: Settings → Live scores"))
+                    })
+                    add(QuickTile("weather", tx("Hava durumu", "Weather"), if (settings.weatherEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.weather, active = settings.weatherEnabled) {
+                        vm.updateSettings { it.copy(weatherEnabled = !it.weatherEnabled) }
+                    })
+                    add(QuickTile(
+                        "hidden", tx("Gizli uygulamalar", "Hidden apps"),
+                        if (showHidden) tx("Gösteriliyor", "Shown") else tx("${hiddenApps.size} gizli", "${hiddenApps.size} hidden"),
+                        QuickIcons.hidden, active = showHidden,
+                    ) { vm.toggleShowHidden() })
+                    if (modern) {
+                        add(QuickTile("anim", tx("Animasyon", "Animation"), settings.animSpeed.label, QuickIcons.motion, active = settings.animSpeed != AnimSpeed.CALM) {
+                            vm.updateSettings { it.copy(animSpeed = AnimSpeed.entries.toList().next(it.animSpeed)) }
+                        })
+                    } else {
+                        add(QuickTile("shelf", tx("Vitrin", "Showcase"), vm.shelfStyle.label, QuickIcons.showcase, active = true) { vm.cycleShelfStyle() })
+                    }
+                },
+                actions = listOf(
+                    QuickAction(tx("Tüm ayarlar", "All settings"), QuickIcons.settings) {
+                        panelOpen = false
+                        settingsOpen = true
+                    },
+                    QuickAction(tx("Mağaza", "Store"), QuickIcons.store) {
                         panelOpen = false
                         storeOpen = true
-                    })
-                    if (!modern) {
-                        add(MenuItem(tx("Vitrin: ${vm.shelfStyle.label}", "Showcase: ${vm.shelfStyle.label}"), Icons.Filled.Home) { vm.cycleShelfStyle() })
-                    }
-                    add(MenuItem(tx("Duvar kâğıdı: ${Wallpapers.all[vm.themeIndex].label}", "Wallpaper: ${Wallpapers.all[vm.themeIndex].label}"), Icons.Filled.Create) {
-                        vm.cycleTheme()
-                    })
-                    add(MenuItem(tx("Ekran koruyucuyu başlat", "Start screensaver"), Icons.Filled.Star) {
+                    },
+                    QuickAction(tx("Android", "Android"), QuickIcons.settings) {
                         panelOpen = false
-                        vm.startScreensaver()
-                    })
-                    add(MenuItem(
-                        if (showHidden) tx("Gizli uygulamaları sakla", "Conceal hidden apps") else tx("Gizli uygulamaları göster (${hiddenApps.size})", "Show hidden apps (${hiddenApps.size})"),
-                        Icons.Filled.Search,
-                    ) { vm.toggleShowHidden() })
-                    add(MenuItem(tx("Claude'a sor", "Ask Claude"), Icons.Filled.Face) {
-                        panelOpen = false
-                        askOpen = true
-                    })
-                    add(MenuItem(tx("Dahili oyunlar", "Built-in games"), Icons.Filled.Star) {
-                        panelOpen = false
-                        gamePickerOpen = true
-                    })
-                    add(MenuItem(tx("Hakkında", "About"), Icons.Filled.Info) {
+                        startSafely(Intent(Settings.ACTION_SETTINGS))
+                    },
+                    QuickAction(tx("Hakkında", "About"), QuickIcons.about) {
                         panelOpen = false
                         aboutOpen = true
-                    })
-                },
-                modifier = Modifier
-                    .padding(20.dp)
-                    .fillMaxHeight(),
+                    },
+                ),
             )
         }
 
@@ -758,6 +776,10 @@ private fun HomeContent(vm: LauncherViewModel) {
                     onOpenClaude = {
                         settingsOpen = false
                         askOpen = true
+                    },
+                    onGames = {
+                        settingsOpen = false
+                        gamePickerOpen = true
                     },
                     onFloatingScores = {
                         val turnOn = !settings.floatingScores
@@ -930,6 +952,7 @@ private fun settingsEntries(
     onEditClaudeKey: () -> Unit,
     onOpenClaude: () -> Unit,
     onFloatingScores: () -> Unit,
+    onGames: () -> Unit,
 ): List<SettingsEntry> = listOf(
     SettingsEntry.Header(tx("Görünüm", "Appearance")),
     SettingsEntry.Row("language", "Dil / Language", Icons.Filled.Face, settings.language.label,
@@ -1088,6 +1111,9 @@ private fun settingsEntries(
         tx("Kaldığın yerden devam et ve son kullanılanlar listesini sıfırlar.", "Resets the continue-watching and recently used lists.")) { onClearHistory() },
 
     SettingsEntry.Header(tx("Diğer", "More")),
+    SettingsEntry.Row("games", tx("Dahili oyunlar", "Built-in games"), Icons.Filled.PlayArrow, null,
+        tx("Yılan, Kutu İtme, Mini Yarış, SOS, XOX ve Sudoku. Modern arayüzde Oyunlar sekmesinde de var.",
+            "Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe and Sudoku. Also in the Games tab of the Modern layout.")) { onGames() },
     SettingsEntry.Row("hidden", if (vm.showHidden) tx("Gizli uygulamaları sakla", "Conceal hidden apps") else tx("Gizli uygulamaları göster", "Show hidden apps"),
         Icons.Filled.Search, "${vm.hiddenApps.size}", null) { vm.toggleShowHidden() },
     SettingsEntry.Row("store", tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart, null, null) { onOpenStore() },
