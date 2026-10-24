@@ -45,6 +45,11 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- Home yönlendirme: kutunun kendi ana ekranını görebilmek için (Android 11+ paket görünürlüğü) -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
         <!-- Claude'a sor: sesli soru (konuşma tanıma) ve sesli yanıt (metin okuma) -->
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />

@@ -99,11 +99,14 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
             foreignHomeCheckedAt = now
             val enabled = runCatching { SettingsRepository(this).load().homeRedirect }.getOrDefault(true)
             foreignHome = if (!enabled) null else runCatching {
-                packageManager.resolveActivity(
-                    Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
-                    android.content.pm.PackageManager.MATCH_DEFAULT_ONLY,
-                )?.activityInfo?.packageName
-            }.getOrNull()?.takeIf { it != packageName }
+                val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                val pm = packageManager
+                val resolved = pm.resolveActivity(home, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+                // Çözümleme boş dönerse: ana ekran olabilen uygulamalardan en yüksek öncelikli olan (LiteDroid ve ayar yedeği hariç)
+                resolved ?: pm.queryIntentActivities(home, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+                    .filter { it.activityInfo.packageName != packageName && it.priority >= 0 }
+                    .maxByOrNull { it.priority }?.activityInfo?.packageName
+            }.getOrNull()?.takeIf { it != packageName && it != "com.android.tv.settings" }
         }
         return foreignHome
     }
@@ -144,6 +147,9 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         // Home: varsayılan ana ekran başkasıysa tuşu yut, LiteDroid'i aç
+        if (event.keyCode == KeyEvent.KEYCODE_HOME && event.action == KeyEvent.ACTION_DOWN) {
+            Log.i(TAG, "home key seen, default home: ${defaultHome()}")
+        }
         if (event.keyCode == KeyEvent.KEYCODE_HOME && defaultHome() != null) {
             if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) openLiteDroidHome()
             return true

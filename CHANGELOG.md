@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.1
+- Home redirect fix: declare a `<queries>` entry for `MAIN`/`HOME` so the stock launcher is visible under Android 11+ package visibility (it resolved to null before); fall back to the highest-priority home activity if resolution is empty; log Home key presses under `LiteDroidRemote`.
+
 ## 1.4.0
 - **Home redirect** for TV boxes that lock their own launcher (e.g. Botech Wzone, where `pm disable-user` is refused): when another app is the default home, the remote shortcut accessibility service swallows the Home key and opens LiteDroid, and whenever that stock home screen comes to the front (boot, leaving an app) it switches to LiteDroid. Does nothing when LiteDroid is already the default home. Toggle in Settings ("Send Home to LiteDroid", on by default).
 
