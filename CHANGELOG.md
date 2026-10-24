@@ -4,6 +4,8 @@
 - **Remote shortcut:** while any app is open, press **Back twice** to open a floating LiteDroid menu (clock, weather, now-playing controls, floating-score toggles, all of today's matches, shortcuts to Home and Ask Claude). A single press is still a normal Back (after a ~0.3 s wait for a second press). Uses an accessibility service that only watches keys and the foreground app.
 - The floating score strip hides on the LiteDroid home screen, during any screensaver (system dream included) and while the menu is open.
 - Quick panel scrolls with focus, so controls below the now-playing card are reachable.
+- Floating score strip redesigned: smaller rows, narrower box sized to 1-3 matches, more than three live matches rotate every 10 s with a slide-up animation; red cards shown next to teams.
+- Goal, red card and full-time events play as a short animated card inside the strip (and on the screensaver), with scorer/player and minute when available, then the strip returns to the matches.
 
 ## 1.1.0
 - **Ask Claude:** voice (or typed) questions, streamed large-type answers, text-to-speech replies, web search with sources, follow-ups, Sonnet/Haiku choice; uses your own API key.
