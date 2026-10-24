@@ -48,22 +48,14 @@ object Resume {
     private val UUID = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
     private val WEB_URL = Regex("https?://[^\\s|,\"']+")
 
+    /**
+     * Yalnızca kartın kendi içeriğini kesin olarak açabiliyorsak (YouTube video kimliği, Prime/Netflix/Disney+
+     * içerik kimliği, içerik adresi) o bağlantıyı açar. "Oynatıcıya dön" yolları kullanılmaz: onlar karttaki
+     * değil, uygulamada en son açılan içeriği oynatabiliyor. Kesin bağlantı yoksa false döner ve çağıran
+     * uygulamayı sıfırdan açar.
+     */
     fun resume(context: Context, item: PlayedItem): Boolean {
-        NowPlayingStore.liveController(item)?.let { controller ->
-            val pi = controller.sessionActivity
-            if (pi != null && send(context, pi)) {
-                runCatching { controller.transportControls.play() }
-                Log.i(TAG, "resume ${item.packageName}: live session")
-                return true
-            }
-        }
         if (start(context, specificLinks(item), "deep link")) return true
-        NowPlayingStore.sessionActivity(item.key)?.let {
-            if (send(context, it)) {
-                Log.i(TAG, "resume ${item.packageName}: session activity")
-                return true
-            }
-        }
         return start(context, genericLinks(item), "web link")
     }
 

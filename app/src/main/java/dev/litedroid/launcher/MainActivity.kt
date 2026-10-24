@@ -1,5 +1,8 @@
 package dev.litedroid.launcher
 
+import dev.litedroid.launcher.ui.LocalVoiceInput
+import dev.litedroid.launcher.overlay.ScoreOverlay
+import android.speech.RecognizerIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -31,6 +34,39 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Claude'a sor: sistemin konuşma tanıma ekranı; söylenen cümle Claude'a gönderilir. */
+    private val voiceInput =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val text = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+            if (!text.isNullOrBlank()) viewModel.askClaude(text)
+        }
+
+    /**
+     * Claude API anahtarını bilgisayardan göndermek için (kumandayla uzun anahtar yazmak zor):
+     * adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."
+     */
+    private fun handleKeyIntent(intent: Intent?): Boolean {
+        val key = intent?.getStringExtra(EXTRA_CLAUDE_KEY)?.trim()?.takeIf { it.isNotEmpty() } ?: return false
+        intent.removeExtra(EXTRA_CLAUDE_KEY)
+        viewModel.updateSettings { it.copy(claudeKey = key) }
+        android.widget.Toast.makeText(
+            this,
+            tx("Claude API anahtarı kaydedildi (…${key.takeLast(4)})", "Claude API key saved (…${key.takeLast(4)})"),
+            android.widget.Toast.LENGTH_LONG,
+        ).show()
+        return true
+    }
+
+    private fun startVoiceInput(): Boolean {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (I18n.lang == AppLanguage.EN) "en-US" else "tr-TR")
+            .putExtra(RecognizerIntent.EXTRA_PROMPT, tx("Claude'a sor…", "Ask Claude…"))
+        return runCatching { voiceInput.launch(intent) }.isSuccess
+    }
+
     private val epgPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { viewModel.refreshContent() }
 
@@ -39,7 +75,10 @@ class MainActivity : ComponentActivity() {
         sounds = SoundFx(this)
         setContent {
             LiteDroidTheme {
-                CompositionLocalProvider(LocalSounds provides sounds) {
+                CompositionLocalProvider(
+                    LocalSounds provides sounds,
+                    LocalVoiceInput provides { startVoiceInput() },
+                ) {
                     HomeScreen(viewModel)
                 }
             }
@@ -52,6 +91,7 @@ class MainActivity : ComponentActivity() {
             addDataScheme("package")
         }
         ContextCompat.registerReceiver(this, packageReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        handleKeyIntent(intent)
         askContentPermissionOnce()
     }
 
@@ -80,17 +120,21 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.setResumed(true)
+        ScoreOverlay.launcherVisible.value = true
+        viewModel.syncOverlay()
         // Bir uygulamadan dönünce "devam et" bilgisi değişmiş olabilir
         viewModel.refreshContent()
     }
 
     override fun onPause() {
         viewModel.setResumed(false)
+        ScoreOverlay.launcherVisible.value = false
         super.onPause()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (handleKeyIntent(intent)) return
         if (intent.hasCategory(Intent.CATEGORY_HOME)) viewModel.onHomePressed()
     }
 
@@ -103,5 +147,6 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val READ_EPG = "com.android.providers.tv.permission.READ_EPG_DATA"
         const val KEY_ASKED = "epg_permission_asked"
+        const val EXTRA_CLAUDE_KEY = "claude_key"
     }
 }

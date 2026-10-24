@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+- **Ask Claude:** voice (or typed) questions, streamed large-type answers, text-to-speech replies, web search with sources, follow-ups, Sonnet/Haiku choice; uses your own API key.
+- **Live scores** for Süper Lig, Premier League, LaLiga, Serie A, Bundesliga and Ligue 1 with team logos and goal alerts; choose leagues in Settings.
+- **Floating score strip** over other apps (overlay permission granted once via adb), hidden while LiteDroid itself is on screen.
+- **Screensaver widgets:** Now playing (any app, music included) and today's scores.
+- Modern top bar made compact so the clock always fits; ✦ Ask Claude buttons in both layouts.
+- **Settings in tabs:** categories on the left (focus to open), rows on the right, description below.
+- **New quick panel:** slides in from the right like Android's quick settings: clock and status, media controls for what's playing, toggle tiles (layout, sounds, floating scores, weather, hidden apps, animation/showcase) and shortcuts.
+- Continue cards open the exact content only when a precise link exists (e.g. YouTube video id); otherwise the app starts fresh instead of jumping into whatever played last.
+
 ## 1.0.1
 - Continue watching cards show the real video thumbnail for YouTube (from the video id) instead of the app logo.
 - Artwork refreshes when an app swaps its placeholder logo for the real cover.

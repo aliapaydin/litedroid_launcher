@@ -4,11 +4,11 @@
 
 <p align="center">
   <b>A fast, glass-styled home screen for Android TV & Google TV.</b><br>
-  Continue watching across apps · two layouts · six built-in games · a cinematic screensaver · no ads, no root.
+  Ask Claude by voice · live football scores · continue watching across apps · two layouts · six built-in games · a cinematic screensaver · no ads, no root.
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.1-ff5c8a?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -62,6 +62,21 @@ LiteDroid started as a weekend question — *"can my Chromecast with Google TV f
 | 🔢 **Sudoku** | six puzzles (easy & medium), each verified to have a unique solution; number keys supported |
 
 Installed games from Google Play get their own row underneath.
+
+### ✨ Ask Claude — by voice, on your TV
+- Press the sparkle button, **say your question**, and the answer streams onto the screen in large type, then is **read aloud**.
+- Uses the Claude API with **web search** for anything current (tonight's matches, news, weather, release dates) and shows the **sources** it used.
+- Follow-up questions keep the context; type instead of talking if you prefer. Sonnet (balanced) or Haiku (fastest).
+- Runs on **your own Anthropic API key**, stored only on the device and sent straight to `api.anthropic.com`.
+
+### ⚽ Live scores — Süper Lig, Premier League, LaLiga, Serie A, Bundesliga, Ligue 1
+- Today's matches with team logos, live minute and score, and a **GOAL!** alert when the score changes.
+- **Floating score strip**: while you watch Netflix, YouTube or anything else, a small strip with logos and live scores sits in the corner. It never takes focus from the app below; turn it on in Settings.
+- Pick which leagues to follow.
+
+### 🎧 Screensaver widgets
+- **Now playing**: artwork, title, artist and a live progress bar for whatever is playing (Spotify included).
+- **Scores card** with today's matches and goal alerts, drifting slowly to protect the screen.
 
 ### And the rest
 - **Store** — curated picks (streaming, Turkish platforms, music, players, tools) with *Popular / Free / Local* tags; installs and updates go through Google Play, LiteDroid never side-loads APKs.
@@ -117,10 +132,21 @@ Android TV doesn't expose these in its UI, so they're granted once over adb:
 adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService
 # Real "recently used" list
 adb shell appops set dev.litedroid.launcher GET_USAGE_STATS allow
+# Optional: floating live-score strip over other apps
+adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow
 # Optional: use LiteDroid as the system screensaver
 adb shell pm grant dev.litedroid.launcher android.permission.WRITE_SECURE_SETTINGS
 adb shell appops set dev.litedroid.launcher WRITE_SETTINGS allow
 ```
+
+### Ask Claude setup
+1. Create an API key at [console.anthropic.com](https://console.anthropic.com) (usage is billed to your account).
+2. Send it to the TV from your computer (typing it with the remote is tedious):
+   ```bash
+   adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."
+   ```
+   or enter it in **Settings → Ask Claude → API key**.
+3. Press the ✦ button in the top bar and ask away. Voice input uses the TV's built-in speech recognition; answers are read with its text-to-speech voice.
 
 <details>
 <summary>Make it the only home screen (optional, reversible)</summary>
@@ -184,6 +210,8 @@ app/src/main/java/dev/litedroid/launcher/
 
 - [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) typeface, SIL Open Font License 1.1 ([license](licenses/PlusJakartaSans-OFL.txt))
 - [Open-Meteo](https://open-meteo.com) weather data, [ipwho.is](https://ipwhois.io) approximate location
+- [Claude API](https://platform.claude.com/docs) by Anthropic for *Ask Claude* (your own key)
+- Match data from ESPN's public scoreboard feed (unofficial, no key; may change without notice)
 - Jetpack Compose and Coil
 
 ## 📄 License

@@ -1,5 +1,9 @@
 package dev.litedroid.launcher.ui
 
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.focus.focusProperties
 import dev.litedroid.launcher.ui.theme.Jakarta
 import androidx.compose.animation.animateColorAsState
 import dev.litedroid.launcher.tx
@@ -71,78 +75,188 @@ sealed interface SettingsEntry {
     ) : SettingsEntry
 }
 
+/** Ayarlar bir başlık altında toplanan satırlar: her başlık bir sekme olur. */
+private data class SettingsSection(val title: String, val rows: List<SettingsEntry.Row>)
+
+private fun sectionsOf(entries: List<SettingsEntry>): List<SettingsSection> {
+    val out = ArrayList<SettingsSection>()
+    var title: String? = null
+    var rows = ArrayList<SettingsEntry.Row>()
+    entries.forEach { e ->
+        when (e) {
+            is SettingsEntry.Header -> {
+                if (rows.isNotEmpty()) out += SettingsSection(title ?: "", rows)
+                title = e.title
+                rows = ArrayList()
+            }
+            is SettingsEntry.Row -> rows += e
+        }
+    }
+    if (rows.isNotEmpty()) out += SettingsSection(title ?: "", rows)
+    return out
+}
+
 /**
- * Tam ekran ayarlar. Solda logo ve odaktaki satırın açıklaması, sağda kaydırılabilir liste.
- * Değerli satırlar seçildikçe bir sonraki seçeneğe geçer (Hızlı → Normal → Sakin gibi).
+ * Tam ekran ayarlar, sekmeli: solda kategoriler (odaklanınca açılır), sağda o kategorinin satırları,
+ * altta odaktaki satırın açıklaması. Değerli satırlar seçildikçe bir sonraki seçeneğe geçer.
  */
 @Composable
 fun SettingsScreen(entries: List<SettingsEntry>, enabled: Boolean, modifier: Modifier = Modifier) {
+    val sections = remember(entries) { sectionsOf(entries) }
+    var selected by rememberSaveable { mutableIntStateOf(0) }
+    val current = sections.getOrNull(selected.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
+    val tabRequesters = remember(sections.size) { List(sections.size) { FocusRequester() } }
     val firstRow = remember { FocusRequester() }
     var hint by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         delay(60)
-        runCatching { firstRow.requestFocus() }
+        runCatching { tabRequesters.getOrNull(selected)?.requestFocus() }
     }
-    val firstKey = entries.filterIsInstance<SettingsEntry.Row>().firstOrNull()?.key
 
     Row(
         modifier
             .fillMaxSize()
-            .padding(start = 64.dp, end = 64.dp, top = 36.dp)
+            .padding(start = 56.dp, end = 56.dp, top = 30.dp, bottom = 24.dp)
     ) {
+        // ---- Sol: başlık ve sekmeler ----
         Column(Modifier.width(250.dp)) {
-            Image(painterResource(R.drawable.logo_mark), contentDescription = null, modifier = Modifier.size(56.dp))
-            Spacer(Modifier.height(10.dp))
-            Text(tx("Ayarlar", "Settings"), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-            Text(
-                tx("LiteDroid'i kendine göre ayarla", "Make LiteDroid your own"),
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 14.sp,
-            )
-            Spacer(Modifier.height(24.dp))
-            if (hint != null) {
-                Text(
-                    text = hint ?: "",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glass(RoundedCornerShape(18.dp))
-                        .padding(14.dp),
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(painterResource(R.drawable.logo_mark), contentDescription = null, modifier = Modifier.size(38.dp))
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(tx("Ayarlar", "Settings"), color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 28.sp)
+                    Text(tx("LiteDroid'i kendine göre ayarla", "Make LiteDroid your own"), color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp)
+                }
             }
-        }
-        Spacer(Modifier.width(36.dp))
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(top = 6.dp, bottom = 48.dp, start = 8.dp, end = 8.dp),
-        ) {
-            entries.forEach { entry ->
-                when (entry) {
-                    is SettingsEntry.Header -> item(key = "h_" + entry.title) {
-                        Text(
-                            text = entry.title,
-                            color = Color.White.copy(alpha = 0.55f),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(top = 14.dp, bottom = 2.dp, start = 4.dp),
-                        )
-                    }
-                    is SettingsEntry.Row -> item(key = entry.key) {
-                        SettingRowView(
-                            row = entry,
-                            enabled = enabled,
-                            focusRequester = if (entry.key == firstKey) firstRow else null,
-                            onFocus = { hint = entry.hint },
-                        )
-                    }
+            Spacer(Modifier.height(18.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                sections.forEachIndexed { i, section ->
+                    SectionTab(
+                        title = section.title,
+                        icon = section.rows.first().icon,
+                        count = section.rows.size,
+                        selected = i == selected,
+                        enabled = enabled,
+                        focusRequester = tabRequesters[i],
+                        rightTarget = firstRow,
+                        onFocus = {
+                            selected = i
+                            hint = null
+                        },
+                    )
                 }
             }
         }
+        Spacer(Modifier.width(30.dp))
+
+        // ---- Sağ: seçili kategorinin satırları + açıklama ----
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        ) {
+            Text(
+                current?.title.orEmpty(),
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp, bottom = 10.dp),
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp, start = 8.dp, end = 8.dp),
+            ) {
+                val rows = current?.rows.orEmpty()
+                items(rows.size, key = { rows[it].key }) { i ->
+                    val row = rows[i]
+                    SettingRowView(
+                        row = row,
+                        enabled = enabled,
+                        focusRequester = if (i == 0) firstRow else null,
+                        leftTarget = tabRequesters.getOrNull(selected),
+                        onFocus = { hint = row.hint },
+                    )
+                }
+            }
+            val h = hint
+            if (h != null) {
+                Text(
+                    text = h,
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                        .glass(RoundedCornerShape(16.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Sol kenardaki kategori sekmesi. Odaklanınca o kategori sağda açılır. */
+@Composable
+private fun SectionTab(
+    title: String,
+    icon: ImageVector,
+    count: Int,
+    selected: Boolean,
+    enabled: Boolean,
+    focusRequester: FocusRequester,
+    rightTarget: FocusRequester,
+    onFocus: () -> Unit,
+) {
+    val sounds = LocalSounds.current
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(14.dp)
+    val fg = when {
+        focused -> Color(0xFF111114)
+        selected -> Color.White
+        else -> Color.White.copy(alpha = 0.7f)
+    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(shape)
+            .background(
+                when {
+                    focused -> Color.White.copy(alpha = 0.94f)
+                    selected -> Color(0xFF6B4DFF).copy(alpha = 0.55f)
+                    else -> Color.Transparent
+                }
+            )
+            .focusRequester(focusRequester)
+            .focusProperties { right = rightTarget }
+            .onFocusChanged {
+                if (it.isFocused && !focused) {
+                    sounds?.play(Sfx.NAV)
+                    onFocus()
+                }
+                focused = it.isFocused
+            }
+            .onRemoteSelect({ runCatching { rightTarget.requestFocus() } })
+            .focusable(enabled = enabled)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(17.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(
+            title,
+            color = fg,
+            fontSize = 14.sp,
+            fontWeight = if (selected || focused) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Text("$count", color = fg.copy(alpha = 0.5f), fontSize = 11.sp)
     }
 }
 
@@ -151,6 +265,7 @@ private fun SettingRowView(
     row: SettingsEntry.Row,
     enabled: Boolean,
     focusRequester: FocusRequester?,
+    leftTarget: FocusRequester?,
     onFocus: () -> Unit,
 ) {
     val motion = LocalMotion.current
@@ -177,6 +292,8 @@ private fun SettingRowView(
             .background(bg)
             .border(1.dp, Color.White.copy(alpha = if (focused) 0f else 0.1f), shape)
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            // Sola basınca her zaman seçili sekmeye dön (başka sekmeye atlamasın)
+            .then(if (leftTarget != null) Modifier.focusProperties { left = leftTarget } else Modifier)
             .onFocusChanged {
                 if (it.isFocused && !focused) {
                     sounds?.play(Sfx.NAV)
@@ -225,6 +342,7 @@ fun TextInputDialog(
     onSave: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    maxLength: Int = 20,
 ) {
     var text by remember { mutableStateOf(initial) }
     val fieldFocus = remember { FocusRequester() }
@@ -250,7 +368,7 @@ fun TextInputDialog(
         Spacer(Modifier.height(18.dp))
         BasicTextField(
             value = text,
-            onValueChange = { text = it.take(20) },
+            onValueChange = { text = it.take(maxLength) },
             singleLine = true,
             textStyle = TextStyle(fontFamily = Jakarta, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
             cursorBrush = SolidColor(Color.White),

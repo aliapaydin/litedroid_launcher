@@ -81,6 +81,7 @@ class MediaListenerService : NotificationListenerService() {
                 override fun onSessionDestroyed() {
                     save(controller)
                     NowPlayingStore.forget(controller)
+                    controller.packageName?.let { LiveMediaHub.forget(it) }
                     runCatching { controller.unregisterCallback(this) }
                     callbacks.remove(token)
                 }
@@ -92,6 +93,7 @@ class MediaListenerService : NotificationListenerService() {
     }
 
     private fun save(controller: MediaController) {
+        runCatching { LiveMediaHub.update(this, controller) }
         runCatching { NowPlayingStore.save(this, controller) }
     }
 }

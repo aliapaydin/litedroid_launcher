@@ -50,6 +50,20 @@ LiteDroid bir hafta sonu sorusuyla başladı: *"Chromecast with Google TV'm Appl
   - Netflix, Prime ve Disney+ için doğrudan içerik bağlantısını dener.
   - Hiçbiri olmazsa uygulamayı açar.
 
+**✨ Claude'a sor**
+- Işıltı düğmesine bas, sorunu söyle. Cevap ekranda büyük yazıyla akarak gelir, sonra sesli okunur.
+- Güncel sorularda (bu akşamın maçları, haberler, hava) web'de arar ve kaynakları gösterir. Takip soruları bağlamı korur, istersen yazarak da sorabilirsin.
+- Kendi Anthropic API anahtarınla çalışır: Ayarlar → Claude'a sor → API anahtarı. Kumandayla yazmak zor olduğu için bilgisayardan gönderebilirsin: `adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."`
+
+**⚽ Canlı skorlar**
+- Süper Lig, Premier League, LaLiga, Serie A, Bundesliga ve Ligue 1 varsayılan olarak takipte.
+- Takım logoları, dakika ve skorla gösterilir; gol olunca **GOL!** bildirimi çıkar.
+- **Yüzen skor şeridi:** Netflix, YouTube ya da başka bir şey izlerken köşede küçük bir skor şeridi durur, alttaki uygulamayı engellemez. Ayarlardan açılır; bir kez `adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow` gerekir.
+
+**🎧 Ekran koruyucu kartları**
+- Spotify dahil çalan her şeyin kapağı, adı ve ilerlemesi.
+- Bugünün maçları ve gol bildirimleri.
+
 **Altı dahili oyun:**
 - **Yılan**
 - **Kutu İtme:** 5 bölüm, hepsi çözülebilir olarak doğrulandı.

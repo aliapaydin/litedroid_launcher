@@ -96,6 +96,7 @@ fun TopBar(
     onFavoriteSelect: (LauncherApp) -> Unit,
     onFavoriteLongPress: (LauncherApp) -> Unit,
     modifier: Modifier = Modifier,
+    onAskClaude: (() -> Unit)? = null,
 ) {
     val now = rememberNow()
     Box(
@@ -150,6 +151,10 @@ fun TopBar(
             Spacer(Modifier.width(12.dp))
             BarDivider(30.dp)
             Spacer(Modifier.width(12.dp))
+            if (onAskClaude != null) {
+                RoundBarButton(enabled = enabled, onFocus = { onBarFocus("claude", null) }, onSelect = onAskClaude, claude = true)
+                Spacer(Modifier.width(8.dp))
+            }
             RoundBarButton(enabled = enabled, onFocus = { onBarFocus("settings", null) }, onSelect = onSettings)
         }
     }
@@ -308,7 +313,7 @@ private fun DockIcon(
 }
 
 @Composable
-private fun RoundBarButton(enabled: Boolean, onFocus: () -> Unit, onSelect: () -> Unit) {
+private fun RoundBarButton(enabled: Boolean, onFocus: () -> Unit, onSelect: () -> Unit, claude: Boolean = false) {
     var focused by remember { mutableStateOf(false) }
     val motion = LocalMotion.current
     val sounds = LocalSounds.current
@@ -335,11 +340,15 @@ private fun RoundBarButton(enabled: Boolean, onFocus: () -> Unit, onSelect: () -
             .focusable(enabled = enabled),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Filled.Settings,
-            contentDescription = tx("Hızlı ayarlar", "Quick settings"),
-            tint = if (focused) Color(0xFF111114) else Color.White,
-            modifier = Modifier.size(19.dp),
-        )
+        if (claude) {
+            SparkleGlyph(if (focused) Color(0xFFC8553D) else Color(0xFFF2A07B), 19.dp)
+        } else {
+            Icon(
+                imageVector = Icons.Filled.Settings,
+                contentDescription = tx("Hızlı ayarlar", "Quick settings"),
+                tint = if (focused) Color(0xFF111114) else Color.White,
+                modifier = Modifier.size(19.dp),
+            )
+        }
     }
 }

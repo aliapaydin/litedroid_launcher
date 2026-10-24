@@ -1,5 +1,8 @@
 package dev.litedroid.launcher.ui
 
+import dev.litedroid.launcher.data.ClaudeModel
+import dev.litedroid.launcher.data.League
+import dev.litedroid.launcher.overlay.ScoreOverlay
 import dev.litedroid.launcher.games.GameScreen
 import dev.litedroid.launcher.games.BuiltInGame
 import dev.litedroid.launcher.LocalLanguage
@@ -107,10 +110,12 @@ import kotlin.math.roundToInt
 
 private data class MenuTarget(val app: LauncherApp, val fromDock: Boolean)
 
-private enum class TextTarget { NAME, CITY }
+private enum class TextTarget { NAME, CITY, CLAUDE_KEY, CLAUDE_QUESTION }
 
 private const val CMD_MEDIA =
     "adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService"
+private const val CMD_KEY = "adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key ANAHTAR"
+private const val CMD_OVERLAY = "adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow"
 private const val CMD_USAGE = "adb shell appops set dev.litedroid.launcher GET_USAGE_STATS allow"
 private const val CMD_SAVER =
     "adb shell pm grant dev.litedroid.launcher android.permission.WRITE_SECURE_SETTINGS\n" +
@@ -166,6 +171,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     var settingsOpen by remember { mutableStateOf(false) }
     var searchOpen by remember { mutableStateOf(false) }
     var gameOpen by remember { mutableStateOf<BuiltInGame?>(null) }
+    var askOpen by remember { mutableStateOf(false) }
     // Kapanış animasyonu sırasında son oyun çizilmeye devam etsin diye ayrı tutulur
     var lastGame by remember { mutableStateOf(BuiltInGame.SNAKE) }
     var gamePickerOpen by remember { mutableStateOf(false) }
@@ -173,7 +179,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || settingsOpen || searchOpen || gameOpen != null
+    val pageOpen = storeOpen || aboutOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
 
@@ -240,7 +246,14 @@ private fun HomeContent(vm: LauncherViewModel) {
             is StripItem.Played -> {
                 // Önce içeriğin kendisini aç (oynatıcıya dön / derin bağlantı), olmazsa uygulamayı
                 if (Resume.resume(context, item.item)) vm.recordLaunch(item.item.packageName)
-                else item.app?.let { launchApp(it) }
+                else item.app?.let { app ->
+                    // Uygulamayı sıfırdan aç: arkada kalmış bir oynatıcıya (başka bir videoya) dönmesin
+                    vm.recordLaunch(app.packageName)
+                    startSafely(
+                        Intent(app.launchIntent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+                        tx("${app.label} açılamadı", "Couldn't open ${app.label}"),
+                    )
+                }
             }
             is StripItem.Content -> {
                 val intent = item.item.intentUri?.let {
@@ -308,6 +321,8 @@ private fun HomeContent(vm: LauncherViewModel) {
         searchOpen = false
         gameOpen = null
         gamePickerOpen = false
+        if (askOpen) vm.stopClaude()
+        askOpen = false
         textTarget = null
         movingPkg = null
         stripFocusedKey = null
@@ -325,6 +340,10 @@ private fun HomeContent(vm: LauncherViewModel) {
         when {
             textTarget != null -> textTarget = null
             gameOpen != null -> gameOpen = null
+            askOpen -> {
+                vm.stopClaude()
+                askOpen = false
+            }
             gamePickerOpen -> gamePickerOpen = false
             movingPkg != null -> movingPkg = null
             aboutOpen -> aboutOpen = false
@@ -380,6 +399,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                         gameOpen = it
                     },
                     onSearch = { searchOpen = true },
+                    onAskClaude = { askOpen = true },
                     onNotifications = { notifOpen = true },
                     onQuickSettings = { panelOpen = true },
                     onProfile = { settingsOpen = true },
@@ -421,6 +441,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                         },
                         onFavoriteSelect = { launchApp(it) },
                         onFavoriteLongPress = { menuFor = MenuTarget(it, fromDock = true) },
+                        onAskClaude = { askOpen = true },
                     )
                     // Vitrin yüksekliği yerleşim aşamasında okunur (yeniden oluşturma yok)
                     Spacer(
@@ -625,47 +646,62 @@ private fun HomeContent(vm: LauncherViewModel) {
             exit = slideOutHorizontally { it } + fadeOut(),
             modifier = Modifier.align(Alignment.CenterEnd),
         ) {
-            GlassMenu(
-                title = tx("Hızlı Ayarlar", "Quick Settings"),
-                subtitle = null,
-                items = buildList {
-                    add(MenuItem(tx("Tüm ayarlar", "All settings"), Icons.Filled.Settings) {
-                        panelOpen = false
-                        settingsOpen = true
-                    })
-                    add(MenuItem(tx("Arayüz: ${settings.layout.label}", "Layout: ${settings.layout.label}"), Icons.Filled.ThumbUp) {
+            QuickPanel(
+                vm = vm,
+                tiles = buildList {
+                    add(QuickTile("layout", tx("Arayüz", "Layout"), settings.layout.label, QuickIcons.layout, active = modern) {
                         vm.updateSettings { it.copy(layout = UiLayout.entries.toList().next(it.layout)) }
                     })
-                    add(MenuItem(tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart) {
+                    add(QuickTile("sound", tx("Ses efektleri", "Sound effects"), if (settings.soundsEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.sound, active = settings.soundsEnabled) {
+                        vm.updateSettings { it.copy(soundsEnabled = !it.soundsEnabled) }
+                    })
+                    add(QuickTile(
+                        "scores", tx("Yüzen skor", "Floating scores"),
+                        when {
+                            !settings.floatingScores -> tx("Kapalı", "Off")
+                            vm.overlayAllowed() -> tx("Açık", "On")
+                            else -> tx("İzin gerekli", "Permission needed")
+                        },
+                        QuickIcons.scores, active = settings.floatingScores,
+                    ) {
+                        val turnOn = !settings.floatingScores
+                        vm.updateSettings { it.copy(floatingScores = turnOn) }
+                        if (turnOn && !vm.overlayAllowed()) toast(tx("Önce izin ver: Ayarlar → Canlı skorlar", "Grant permission first: Settings → Live scores"))
+                    })
+                    add(QuickTile("weather", tx("Hava durumu", "Weather"), if (settings.weatherEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.weather, active = settings.weatherEnabled) {
+                        vm.updateSettings { it.copy(weatherEnabled = !it.weatherEnabled) }
+                    })
+                    add(QuickTile(
+                        "hidden", tx("Gizli uygulamalar", "Hidden apps"),
+                        if (showHidden) tx("Gösteriliyor", "Shown") else tx("${hiddenApps.size} gizli", "${hiddenApps.size} hidden"),
+                        QuickIcons.hidden, active = showHidden,
+                    ) { vm.toggleShowHidden() })
+                    if (modern) {
+                        add(QuickTile("anim", tx("Animasyon", "Animation"), settings.animSpeed.label, QuickIcons.motion, active = settings.animSpeed != AnimSpeed.CALM) {
+                            vm.updateSettings { it.copy(animSpeed = AnimSpeed.entries.toList().next(it.animSpeed)) }
+                        })
+                    } else {
+                        add(QuickTile("shelf", tx("Vitrin", "Showcase"), vm.shelfStyle.label, QuickIcons.showcase, active = true) { vm.cycleShelfStyle() })
+                    }
+                },
+                actions = listOf(
+                    QuickAction(tx("Tüm ayarlar", "All settings"), QuickIcons.settings) {
+                        panelOpen = false
+                        settingsOpen = true
+                    },
+                    QuickAction(tx("Mağaza", "Store"), QuickIcons.store) {
                         panelOpen = false
                         storeOpen = true
-                    })
-                    if (!modern) {
-                        add(MenuItem(tx("Vitrin: ${vm.shelfStyle.label}", "Showcase: ${vm.shelfStyle.label}"), Icons.Filled.Home) { vm.cycleShelfStyle() })
-                    }
-                    add(MenuItem(tx("Duvar kâğıdı: ${Wallpapers.all[vm.themeIndex].label}", "Wallpaper: ${Wallpapers.all[vm.themeIndex].label}"), Icons.Filled.Create) {
-                        vm.cycleTheme()
-                    })
-                    add(MenuItem(tx("Ekran koruyucuyu başlat", "Start screensaver"), Icons.Filled.Star) {
+                    },
+                    QuickAction(tx("Android", "Android"), QuickIcons.settings) {
                         panelOpen = false
-                        vm.startScreensaver()
-                    })
-                    add(MenuItem(
-                        if (showHidden) tx("Gizli uygulamaları sakla", "Conceal hidden apps") else tx("Gizli uygulamaları göster (${hiddenApps.size})", "Show hidden apps (${hiddenApps.size})"),
-                        Icons.Filled.Search,
-                    ) { vm.toggleShowHidden() })
-                    add(MenuItem(tx("Dahili oyunlar", "Built-in games"), Icons.Filled.Star) {
-                        panelOpen = false
-                        gamePickerOpen = true
-                    })
-                    add(MenuItem(tx("Hakkında", "About"), Icons.Filled.Info) {
+                        startSafely(Intent(Settings.ACTION_SETTINGS))
+                    },
+                    QuickAction(tx("Hakkında", "About"), QuickIcons.about) {
                         panelOpen = false
                         aboutOpen = true
-                    })
-                },
-                modifier = Modifier
-                    .padding(20.dp)
-                    .fillMaxHeight(),
+                    },
+                ),
             )
         }
 
@@ -736,6 +772,22 @@ private fun HomeContent(vm: LauncherViewModel) {
                     settings = settings,
                     onEditName = { textTarget = TextTarget.NAME },
                     onEditCity = { textTarget = TextTarget.CITY },
+                    onEditClaudeKey = { textTarget = TextTarget.CLAUDE_KEY },
+                    onOpenClaude = {
+                        settingsOpen = false
+                        askOpen = true
+                    },
+                    onGames = {
+                        settingsOpen = false
+                        gamePickerOpen = true
+                    },
+                    onFloatingScores = {
+                        val turnOn = !settings.floatingScores
+                        vm.updateSettings { it.copy(floatingScores = turnOn) }
+                        if (turnOn && !ScoreOverlay.canDraw(context)) {
+                            toast(tx("Önce izin ver: komut sol panelde", "Grant the permission first: the command is in the left panel"))
+                        }
+                    },
                     onOpenStore = {
                         settingsOpen = false
                         storeOpen = true
@@ -771,17 +823,59 @@ private fun HomeContent(vm: LauncherViewModel) {
             )
         }
 
+        AnimatedVisibility(
+            visible = askOpen,
+            enter = fadeIn() + slideInVertically { it / 10 },
+            exit = fadeOut(),
+        ) {
+            AskClaudeScreen(
+                vm = vm,
+                onType = { textTarget = TextTarget.CLAUDE_QUESTION },
+                onOpenSettings = {
+                    askOpen = false
+                    settingsOpen = true
+                },
+            )
+        }
+
         textTarget?.let { target ->
             key(target) {
                 TextInputDialog(
-                    title = if (target == TextTarget.NAME) tx("Kullanıcı adı", "User name") else tx("Hava durumu konumu", "Weather location"),
-                    subtitle = if (target == TextTarget.NAME) tx("Üst barda ve selamlamada görünür", "Shown in the top bar and greeting")
-                    else tx("Şehir adı yaz (ör. İzmir). Boş bırakırsan konum otomatik bulunur.", "Type a city name (e.g. Izmir). Leave empty to detect it automatically."),
-                    initial = if (target == TextTarget.NAME) settings.userName else settings.weatherCity,
-                    allowEmpty = target == TextTarget.CITY,
+                    title = when (target) {
+                        TextTarget.NAME -> tx("Kullanıcı adı", "User name")
+                        TextTarget.CITY -> tx("Hava durumu konumu", "Weather location")
+                        TextTarget.CLAUDE_KEY -> tx("Claude API anahtarı", "Claude API key")
+                        TextTarget.CLAUDE_QUESTION -> tx("Claude'a sor", "Ask Claude")
+                    },
+                    subtitle = when (target) {
+                        TextTarget.NAME -> tx("Üst barda ve selamlamada görünür", "Shown in the top bar and greeting")
+                        TextTarget.CITY -> tx("Şehir adı yaz (ör. İzmir). Boş bırakırsan konum otomatik bulunur.", "Type a city name (e.g. Izmir). Leave empty to detect it automatically.")
+                        TextTarget.CLAUDE_KEY -> tx(
+                            "console.anthropic.com → API Keys'ten aldığın anahtar (sk-ant-api03-…). Kumandayla yazmak zor: bilgisayardan da gönderebilirsin: $CMD_KEY",
+                            "Your key from console.anthropic.com → API Keys (sk-ant-api03-…). Typing with the remote is tedious, you can send it from a computer: $CMD_KEY",
+                        )
+                        TextTarget.CLAUDE_QUESTION -> tx("Sorunu yaz, Claude cevaplasın", "Type your question for Claude")
+                    },
+                    initial = when (target) {
+                        TextTarget.NAME -> settings.userName
+                        TextTarget.CITY -> settings.weatherCity
+                        TextTarget.CLAUDE_KEY -> settings.claudeKey
+                        TextTarget.CLAUDE_QUESTION -> ""
+                    },
+                    allowEmpty = target == TextTarget.CITY || target == TextTarget.CLAUDE_KEY,
+                    maxLength = when (target) {
+                        TextTarget.NAME -> 20
+                        TextTarget.CITY -> 40
+                        TextTarget.CLAUDE_KEY -> 400
+                        TextTarget.CLAUDE_QUESTION -> 500
+                    },
                     onSave = { value ->
-                        if (target == TextTarget.NAME) vm.updateSettings { it.copy(userName = value) }
-                        else vm.updateSettings { it.copy(weatherCity = value) }
+                        when (target) {
+                            TextTarget.NAME -> vm.updateSettings { it.copy(userName = value) }
+                            TextTarget.CITY -> vm.updateSettings { it.copy(weatherCity = value) }
+                            TextTarget.CLAUDE_KEY -> vm.updateSettings { it.copy(claudeKey = value.trim()) }
+                            TextTarget.CLAUDE_QUESTION -> vm.askClaude(value)
+                        }
                         textTarget = null
                     },
                     onCancel = { textTarget = null },
@@ -829,7 +923,13 @@ private fun HomeContent(vm: LauncherViewModel) {
             enter = fadeIn(tween(900)),
             exit = fadeOut(tween(350)),
         ) {
-            ScreensaverContent(settings.saverScene, settings.userName)
+            ScreensaverContent(
+                settings.saverScene,
+                settings.userName,
+                showNowPlaying = settings.saverNowPlaying,
+                showScores = settings.saverScores,
+                leagues = settings.scoreLeagues,
+            )
         }
     }
 }
@@ -849,6 +949,10 @@ private fun settingsEntries(
     onUsageAccess: () -> Unit,
     onSystemSaver: () -> Unit,
     onClearHistory: () -> Unit,
+    onEditClaudeKey: () -> Unit,
+    onOpenClaude: () -> Unit,
+    onFloatingScores: () -> Unit,
+    onGames: () -> Unit,
 ): List<SettingsEntry> = listOf(
     SettingsEntry.Header(tx("Görünüm", "Appearance")),
     SettingsEntry.Row("language", "Dil / Language", Icons.Filled.Face, settings.language.label,
@@ -926,6 +1030,73 @@ private fun settingsEntries(
         onSystemSaver()
     },
 
+    SettingsEntry.Row("saver_np", tx("Şimdi çalıyor kartı", "Now playing card"), Icons.Filled.PlayArrow,
+        if (settings.saverNowPlaying) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Ekran koruyucuda, çalan müzik ya da videonun kapağı, adı ve ilerlemesi.", "On the screensaver: artwork, title and progress of what's playing.")) {
+        vm.updateSettings { it.copy(saverNowPlaying = !it.saverNowPlaying) }
+    },
+    SettingsEntry.Row("saver_scores", tx("Skor kartı", "Scores card"), Icons.Filled.Star,
+        if (settings.saverScores) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Ekran koruyucuda bugünün maçları, canlı skorlar ve gol bildirimi.", "On the screensaver: today's matches, live scores and goal alerts.")) {
+        vm.updateSettings { it.copy(saverScores = !it.saverScores) }
+    },
+
+    SettingsEntry.Header(tx("Canlı skorlar", "Live scores")),
+    SettingsEntry.Row("float_scores", tx("Yüzen skor şeridi", "Floating score strip"), Icons.Filled.Star,
+        when {
+            !settings.floatingScores -> tx("Kapalı", "Off")
+            vm.overlayAllowed() -> tx("Açık", "On")
+            else -> tx("İzin gerekli", "Permission needed")
+        },
+        tx("Netflix, YouTube ya da başka bir şey izlerken sağ üst köşede canlı maçların küçük skor şeridi; gol olunca kısa bildirim. " +
+            "Bir kez şu komutu çalıştır:\n\n$CMD_OVERLAY",
+            "While watching anything, a small live-score strip in the top-right corner, with a short goal alert. Run this command once:\n\n$CMD_OVERLAY")) {
+        onFloatingScores()
+    },
+    SettingsEntry.Row("float_live", tx("Şeritte yalnızca canlı maçlar", "Only live matches in the strip"), Icons.Filled.Refresh,
+        if (settings.floatingOnlyLive) tx("Evet", "Yes") else tx("Bugünün tümü", "All today"),
+        tx("Kapalıysa henüz başlamamış bugünkü maçlar da görünür.", "When off, today's upcoming matches are shown too.")) {
+        vm.updateSettings { it.copy(floatingOnlyLive = !it.floatingOnlyLive) }
+    },
+) + League.entries.map { league ->
+    SettingsEntry.Row("league_${league.code}", league.label, Icons.Filled.Star,
+        if (league.code in settings.scoreLeagues) tx("Takipte", "Following") else tx("Kapalı", "Off"),
+        tx("Bu ligin maçları skor kartında ve yüzen şeritte görünsün.", "Show this league in the scores card and the floating strip.")) {
+        vm.updateSettings {
+            val now = if (league.code in it.scoreLeagues) it.scoreLeagues - league.code else it.scoreLeagues + league.code
+            it.copy(scoreLeagues = now)
+        }
+    }
+} + listOf(
+    SettingsEntry.Header(tx("Claude'a sor", "Ask Claude")),
+    SettingsEntry.Row("claude_open", tx("Claude'a sor'u aç", "Open Ask Claude"), Icons.Filled.Face, null,
+        tx("Sesle ya da yazarak her şeyi sor; cevap ekranda ve sesli gelir.", "Ask anything by voice or text; the answer appears on screen and is read aloud.")) {
+        onOpenClaude()
+    },
+    SettingsEntry.Row("claude_key", tx("API anahtarı", "API key"), Icons.Filled.Lock,
+        settings.claudeKey.takeIf { it.isNotBlank() }?.let { "…" + it.takeLast(4) } ?: tx("Girilmedi", "Not set"),
+        tx("Claude'a sor kendi Anthropic API anahtarınla çalışır (console.anthropic.com → API Keys). Kullandıkça API ücreti senin hesabına yazılır. " +
+            "Anahtar yalnızca bu cihazda saklanır, doğrudan api.anthropic.com'a gönderilir.",
+            "Ask Claude uses your own Anthropic API key (console.anthropic.com → API Keys). Usage is billed to your account. " +
+            "The key is stored only on this device and sent directly to api.anthropic.com.")) {
+        onEditClaudeKey()
+    },
+    SettingsEntry.Row("claude_model", tx("Model", "Model"), Icons.Filled.Build, settings.claudeModel.label,
+        tx("Sonnet daha kapsamlı, Haiku daha hızlı ve ucuz cevap verir.", "Sonnet is more thorough; Haiku is faster and cheaper.")) {
+        vm.updateSettings { it.copy(claudeModel = ClaudeModel.entries.toList().next(it.claudeModel)) }
+    },
+    SettingsEntry.Row("claude_speak", tx("Sesli yanıt", "Spoken replies"), Icons.Filled.Notifications,
+        if (settings.claudeSpeak) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Cevap bitince cihazın metin okuma sesiyle okunur.", "Answers are read aloud with the device's text-to-speech voice.")) {
+        vm.updateSettings { it.copy(claudeSpeak = !it.claudeSpeak) }
+    },
+    SettingsEntry.Row("claude_web", tx("Web araması", "Web search"), Icons.Filled.Search,
+        if (settings.claudeWebSearch) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Güncel sorularda (maçlar, haberler, hava) Claude web'de arar ve kaynak gösterir. Arama başına küçük bir ek API ücreti vardır.",
+            "For current topics Claude searches the web and cites sources. Each search adds a small API fee.")) {
+        vm.updateSettings { it.copy(claudeWebSearch = !it.claudeWebSearch) }
+    },
+
     SettingsEntry.Header(tx("İçerik ve gizlilik", "Content and privacy")),
     SettingsEntry.Row("media", tx("Medya geçmişi", "Media history"), Icons.Filled.Lock, if (vm.mediaAccess) tx("Açık", "On") else tx("Kapalı", "Off"),
         tx("Netflix, YouTube, Prime gibi uygulamalarda yarım kalan videoları kapağıyla \"Kaldığın yerden devam et\" rafında ve çan menüsünde gösterir. ", "Shows unfinished videos from apps like Netflix, YouTube and Prime with artwork in the continue row and the bell menu. ") +
@@ -940,6 +1111,9 @@ private fun settingsEntries(
         tx("Kaldığın yerden devam et ve son kullanılanlar listesini sıfırlar.", "Resets the continue-watching and recently used lists.")) { onClearHistory() },
 
     SettingsEntry.Header(tx("Diğer", "More")),
+    SettingsEntry.Row("games", tx("Dahili oyunlar", "Built-in games"), Icons.Filled.PlayArrow, null,
+        tx("Yılan, Kutu İtme, Mini Yarış, SOS, XOX ve Sudoku. Modern arayüzde Oyunlar sekmesinde de var.",
+            "Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe and Sudoku. Also in the Games tab of the Modern layout.")) { onGames() },
     SettingsEntry.Row("hidden", if (vm.showHidden) tx("Gizli uygulamaları sakla", "Conceal hidden apps") else tx("Gizli uygulamaları göster", "Show hidden apps"),
         Icons.Filled.Search, "${vm.hiddenApps.size}", null) { vm.toggleShowHidden() },
     SettingsEntry.Row("store", tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart, null, null) { onOpenStore() },
