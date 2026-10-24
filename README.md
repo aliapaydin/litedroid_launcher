@@ -3,227 +3,300 @@
 </p>
 
 <p align="center">
-  <b>A fast, glass-styled home screen for Android TV & Google TV.</b><br>
-  Ask Claude by voice · live football scores · continue watching across apps · two layouts · six built-in games · a cinematic screensaver · no ads, no root.
+  <b>Android TV ve Google TV için hızlı, cam görünümlü bir ana ekran.</b><br>
+  Sesle Claude'a sor · canlı maç skorları · uygulamalar arası kaldığın yerden devam · altı dahili oyun · sinematik ekran koruyucu · reklamsız, root gerektirmez.
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.1-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.1.2-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
   <img alt="Min SDK" src="https://img.shields.io/badge/minSdk-26-555?style=for-the-badge">
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-f5c542?style=for-the-badge"></a>
+  <a href="LICENSE"><img alt="Lisans: MIT" src="https://img.shields.io/badge/lisans-MIT-f5c542?style=for-the-badge"></a>
 </p>
 
 <p align="center">
-  <a href="README.tr.md">🇹🇷 Türkçe</a> ·
-  <a href="#-features">Features</a> ·
-  <a href="#-under-the-hood">Under the hood</a> ·
-  <a href="#-install">Install</a> ·
-  <a href="CHANGELOG.md">Changelog</a>
+  <a href="README.en.md">🇬🇧 English</a> ·
+  <a href="#-özellikler">Özellikler</a> ·
+  <a href="#-kaputun-altında">Kaputun altında</a> ·
+  <a href="#-kurulum">Kurulum</a> ·
+  <a href="CHANGELOG.md">Sürüm notları</a>
 </p>
 
 ---
 
-LiteDroid started as a weekend question — *"can my Chromecast with Google TV feel like an Apple TV?"* — and grew into a full launcher written from scratch in Kotlin and Jetpack Compose. It replaces the stock home screen with frosted-glass menus, a colorful showcase, a "continue watching" row that works across streaming apps, built-in remote-friendly games and a hand-drawn animated screensaver, while staying smooth on modest TV hardware.
+LiteDroid bir hafta sonu sorusuyla başladı: *"Chromecast with Google TV'm Apple TV gibi hissettirebilir mi?"* Sonra Kotlin ve Jetpack Compose ile sıfırdan yazılmış tam bir launcher'a dönüştü.
 
-## 📸 Screenshots
+Standart ana ekranın yerine buzlu cam menüler, uygulamalar arası çalışan bir "kaldığın yerden devam et" rafı, sesle soru sorabildiğin bir yapay zekâ asistanı, maç izlerken köşede duran canlı skorlar, kumandayla oynanan oyunlar ve kodla çizilmiş bir ekran koruyucu getiriyor. Bunların hepsini mütevazı TV donanımında akıcı kalarak yapıyor.
 
-| Modern layout | Classic ("Casual") layout |
+## ✨ Özellikler
+
+### 🏠 Modern ana ekran
+
+<p align="center"><img src="docs/screenshots/modern-home.png" alt="Modern ana ekran" width="100%"></p>
+
+- **Ana sayfa · Uygulamalar · Oyunlar · Mağaza** sekmeleri, uygulamalarını dönerek tanıtan bir vitrin ve geniş kart satırları.
+- Üst barda Claude düğmesi, arama, bildirimler, hızlı panel, profil ve büyük saat. Altta Wi-Fi, hava durumu ve konum.
+- Bir uygulamaya basılı tutunca favorilere ekle, gizle ya da taşı.
+
+| Uygulamalar | Klasik ("Casual") arayüz |
 |---|---|
-| ![Modern home](docs/screenshots/modern-home.png) | ![Casual home](docs/screenshots/casual-home.png) |
-| **Built-in games** | **Settings** |
-| ![Games](docs/screenshots/games.png) | ![Settings](docs/screenshots/settings.png) |
+| ![Uygulamalar](docs/screenshots/apps.png) | ![Casual](docs/screenshots/casual-home.png) |
 
-<p align="center"><img src="docs/screenshots/about.png" alt="About" width="70%"></p>
+İstersen **Casual** arayüze geç: favori uygulamaların ortada durduğu yüzen bir cam bar, odaktaki uygulamanın rengini alan sinematik bir vitrin ve zıplayan büyük karolar. Ayarlar → Görünüm → Arayüz'den anında değişir.
 
-## ✨ Features
+### ▶️ Kaldığın yerden devam et
 
-### Two layouts, one launcher
-- **Modern** — tabbed navigation (Home · Apps · Games · Store), a rotating featured hero for your apps, wide card rows, search, a bell, quick settings, profile and a big clock. A slim status bar shows Wi-Fi/Ethernet, weather and location.
-- **Casual** — a floating glass top bar with your favorite apps docked in the middle, a cinematic showcase that recolors itself after the focused app, and big bouncy tiles. Three showcase styles: *Cinematic*, *Card*, *Minimal*.
-- Switch instantly in **Settings → Appearance → Layout**.
+- YouTube, Prime Video, Apple TV, Netflix gibi uygulamalarda izlediklerini Android medya oturumlarından yakalar. Spotify gibi müzik uygulamaları bu rafa girmez.
+- Her içerik tek kart olur ve bir uygulamadan **en fazla 3 yarım içerik** tutulur. Aynı uygulamadan birden fazla kart varsa her birinin kendi rengi, numarası, "21 dk kaldı" ve "2 sa önce" bilgisi olur.
+- Karta basınca:
+  - YouTube videoyu **kaldığı saniyeden** açar.
+  - Tam içerik bağlantısı olmayan uygulamalar **temiz bir başlangıçla** açılır, yarım kalmış bir ekrana takılmazsın.
 
-### Continue watching — across apps
-- Picks up what you play in **YouTube, Prime Video, Apple TV, Netflix** and other video apps through Android media sessions; music apps (Spotify & co.) are left out.
-- One card per piece of content (never duplicated), up to **3 unfinished items per app**. Several cards from the same app get their **own color, a number badge, "21 min left" and "2 h ago"**, so you can tell them apart even when the app doesn't share titles.
-- Selecting a card **resumes where possible**: it returns to the app's player if it's still alive, opens YouTube at the exact second, tries Netflix / Prime Video / Disney+ deep links, and otherwise opens the app.
-- Finished content drops off by itself. The bell menu doubles as a *Continue watching* list.
+### ✨ Claude'a sor
 
-### Six built-in games, made for the remote
+<p align="center"><img src="docs/screenshots/ask-claude.png" alt="Claude'a sor" width="100%"></p>
+
+- Üst bardaki ✦ düğmesine bas ve **sorunu söyle**. Cevap ekranda büyük yazıyla akarak gelir, sonra **sesli okunur**.
+- Güncel sorularda (bu akşamın maçları, haberler, hava, vizyondaki filmler) **web'de arar** ve kullandığı **kaynakları** altta gösterir.
+- Takip soruları bağlamı korur. İstersen yazarak da sorabilirsin.
+- Model seçimi: **Haiku** (en hızlı ve en ucuz) ya da **Sonnet** (daha dengeli).
+- Kendi Anthropic API anahtarınla çalışır. Anahtar sadece TV'de saklanır ve doğrudan `api.anthropic.com`'a gider. Kurulumu aşağıda: [Claude'a sor kurulumu](#claudea-sor-kurulumu).
+
+### ⚽ Canlı skorlar
+
+Süper Lig, Premier League, LaLiga, Serie A, Bundesliga ve Ligue 1 varsayılan olarak takipte. Hangi ligleri izleyeceğini ayarlardan seçersin.
+
+<p align="center"><img src="docs/screenshots/score-strip-context.png" alt="Prime Video izlerken köşedeki skor şeridi" width="80%"></p>
+
+**Yüzen skor şeridi:** Netflix, YouTube, Prime ya da başka bir şey izlerken sağ üst köşede küçük bir şerit durur.
+- Takım logoları, skor ve dakika görünür.
+- Aynı anda **en fazla 3 maç** gösterir. Daha fazla canlı maç varsa her 10 saniyede bir yukarı kayarak sıradaki maçlara geçer.
+- Tek ya da iki maç varken koyu kutu ona göre küçülür.
+- **Gol, kırmızı kart ya da maç sonu** olunca şeridin içinde ayrı bir kutu açılır ve animasyonla gösterir, sonra normale döner.
+- Alttaki uygulamanın odağını hiç almaz. Ana ekranda, ekran koruyucuda ve yüzen menü açıkken kendiliğinden gizlenir.
+
+<p align="center"><img src="docs/screenshots/score-strip.png" alt="Skor şeridi yakından" width="55%"></p>
+
+### 🎛️ Her uygulamanın üstünde yüzen menü
+
+- Netflix, YouTube ya da başka bir şey açıkken kumandada **Geri'ye iki kez hızlıca bas**.
+- Sağdan bir LiteDroid menüsü açılır. İçinde saat, hava durumu, çalan müziğin kontrolleri, bugünün tüm maçları, skor şeridi ayarları ve Ana ekran / Claude'a sor kısayolları var.
+- **Tek basış normal Geri olarak çalışmaya devam eder.**
+- Bir kez açman gerekiyor: **Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu**. Servis yalnızca tuş basışlarını ve öndeki uygulamanın adını görür.
+
+### 🧩 Hızlı panel
+
+<p align="center"><img src="docs/screenshots/quick-panel.png" alt="Hızlı panel" width="100%"></p>
+
+Android'deki gibi sağdan kayarak açılan widget tarzı bir panel:
+- Çalan müziğin kapağı ve kontrolleri.
+- Saat, tarih, hava durumu ve ağ bağlantısı.
+- Arayüz, ses efektleri, hava durumu, animasyon ve vitrin stili için tek tuşla değişen kutucuklar.
+- Tüm ayarlar, Mağaza, Android ayarları ve Hakkında kısayolları.
+- İçerik uzarsa panel kendi içinde kayar.
+
+### 🌙 Ekran koruyucu
+
+<p align="center"><img src="docs/screenshots/screensaver.png" alt="Ekran koruyucu" width="100%"></p>
+
+- Tamamen kodla çizilmiş dört sahne: **Sinema gecesi, Maç günü, Oyun zamanı** (synthwave) ve **Sakin gece** (kuzey ışıkları).
+- Cam bir saat kartı ve süzülen ışık tozları.
+- **Şimdi çalıyor** kartı: Spotify dahil çalan her şeyin kapağı, adı, sanatçısı ve canlı ilerleme çubuğu.
+- **Canlı skor kartı:** Bugünün maçlarını ve gol bildirimlerini gösterir. Ekranı korumak için yavaşça yer değiştirir.
+- İstersen sistem ekran koruyucusu olarak da ayarlayabilirsin.
+
+### 🎮 Kumandaya göre yapılmış altı oyun
+
+| Oyunlar | Yılan | Sudoku |
+|---|---|---|
+| ![Oyunlar](docs/screenshots/games.png) | ![Yılan](docs/screenshots/game-snake.png) | ![Sudoku](docs/screenshots/game-sudoku.png) |
+
 | | |
 |---|---|
-| 🐍 **Snake** | speeds up as you grow, best score saved |
-| 📦 **Box Push** | five hand-made Sokoban levels, all verified solvable |
-| 🏎️ **Mini Racer** | three lanes, rising speed, smooth 60 fps loop |
-| 🔤 **SOS** | 6×6 board against a CPU that hunts for SOS lines and avoids setting you up |
-| ❌ **Tic-Tac-Toe** | minimax opponent with a touch of randomness, so it can be beaten |
-| 🔢 **Sudoku** | six puzzles (easy & medium), each verified to have a unique solution; number keys supported |
+| 🐍 **Yılan** | Uzadıkça hızlanır, en iyi skor kaydedilir. |
+| 📦 **Kutu İtme** | Elle tasarlanmış 5 Sokoban bölümü. Hepsinin çözülebildiği doğrulandı. |
+| 🏎️ **Mini Yarış** | Üç şerit, artan hız, akıcı 60 fps. |
+| 🔤 **SOS** | 6×6 tahtada, SOS kovalayan ve sana fırsat vermemeye çalışan bilgisayara karşı. |
+| ❌ **XOX** | Minimax rakip, biraz rastgelelikle, yani yenilebilir. |
+| 🔢 **Sudoku** | Kolay ve orta 6 bulmaca. Her birinin tek çözümü olduğu doğrulandı. Rakam tuşları da çalışır. |
 
-Installed games from Google Play get their own row underneath.
+Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
 
-### ✨ Ask Claude — by voice, on your TV
-- Press the sparkle button, **say your question**, and the answer streams onto the screen in large type, then is **read aloud**.
-- Uses the Claude API with **web search** for anything current (tonight's matches, news, weather, release dates) and shows the **sources** it used.
-- Follow-up questions keep the context; type instead of talking if you prefer. Sonnet (balanced) or Haiku (fastest).
-- Runs on **your own Anthropic API key**, stored only on the device and sent straight to `api.anthropic.com`.
+### ⚙️ Sekmeli ayarlar
 
-### ⚽ Live scores — Süper Lig, Premier League, LaLiga, Serie A, Bundesliga, Ligue 1
-- Today's matches with team logos, live minute and score, and a **GOAL!** alert when the score changes.
-- **Floating score strip**: while you watch Netflix, YouTube or anything else, a small strip with logos and live scores sits in the corner. It never takes focus from the app below; turn it on in Settings.
-- Pick which leagues to follow.
+<p align="center"><img src="docs/screenshots/settings.png" alt="Ayarlar" width="100%"></p>
 
-### 🎛️ Floating menu over any app
-- While Netflix, YouTube or anything else is open, **press Back twice** on the remote: a LiteDroid menu slides in with the clock, weather, now-playing controls, all of today's scores and the floating-strip switches. A single press stays a normal Back.
-- Enable once: **Android Settings → Accessibility → LiteDroid remote shortcut** (it only sees key presses and which app is in front).
+Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses, Ekran koruyucu, Canlı skorlar, Claude'a sor, İçerik ve gizlilik** ve **Diğer**. Odaktaki satırın açıklaması altta görünür, kumandayla aradığını bulmak kolaydır.
 
-### 🎧 Screensaver widgets
-- **Now playing**: artwork, title, artist and a live progress bar for whatever is playing (Spotify included).
-- **Scores card** with today's matches and goal alerts, drifting slowly to protect the screen.
+### Ve diğerleri
 
-### And the rest
-- **Store** — curated picks (streaming, Turkish platforms, music, players, tools) with *Popular / Free / Local* tags; installs and updates go through Google Play, LiteDroid never side-loads APKs.
-- **Screensaver** — four scenes drawn entirely in code (*Movie night*, *Match day*, *Game time* synthwave, *Quiet night* aurora) behind a glass clock card, with drifting light dust. Can also be set as the system screensaver.
-- **Sound & motion** — navigation, select, back and edge-bump sounds; spring animations with three speed presets.
-- **Turkish & English** UI, switchable live. Weather from Open-Meteo, location by IP or a city you type.
-- Favorites, hide/move apps, seven wallpapers, and *Back* never kicks you out of the launcher.
+- **Mağaza:** Yayın platformları, yerli platformlar, müzik, oynatıcılar ve araçlardan seçilmiş uygulamalar. *Çok sevilen / Ücretsiz / Yerli* etiketleri var. Kurulum ve güncellemeler Google Play üzerinden yapılır, LiteDroid APK yüklemez.
+- **Ses ve hareket:** Gezinme, seçme, geri ve kenara çarpma sesleri. Üç hız ayarlı yaylı animasyonlar.
+- **Türkçe ve İngilizce arayüz.** Dil anında değişir.
+- **Hava durumu** Open-Meteo'dan gelir. Konum IP'den bulunur ya da şehri kendin yazarsın.
+- **Diğer:** Favoriler, uygulama gizleme ve taşıma, 7 duvar kâğıdı. Geri tuşu seni asla launcher'ın dışına atmaz.
 
-## 🛠 Under the hood
+<p align="center"><img src="docs/screenshots/about.png" alt="Hakkında" width="70%"></p>
 
-TV chips are slow at exactly the things launchers love: full-screen blur, shadows and stacked transparency. LiteDroid is built around avoiding them.
+## 🛠 Kaputun altında
 
-| Problem | What LiteDroid does instead |
+TV çipleri, launcher'ların en sevdiği şeylerde zorlanır: tam ekran bulanıklık, gölgeler ve üst üste binen saydamlık. LiteDroid bunlardan kaçınacak şekilde tasarlandı.
+
+| Sorun | LiteDroid'in çözümü |
 |---|---|
-| Animated wallpaper redrawn every frame | Baked once into a **320×180 bitmap**, then scaled by the GPU |
-| `Modifier.blur` / live blur | Removed entirely; "blurred" app art is **pre-baked** to 64×36 / 40×40 bitmaps with a box blur at load time |
-| `Modifier.shadow` on every card | A **few concentric rounded strokes** drawn behind the card (`softGlow`, `softShadow`) |
-| `Crossfade` allocating offscreen layers | A custom **`FastCrossfade`** using `CompositingStrategy.ModulateAlpha` |
-| Infinite transitions always running | Created **only while motion is on** and paused under menus |
-| Recomposition from animated values | Animated values are **read in `graphicsLayer` / layout lambdas**, not in composition |
+| Hareketli duvar kâğıdı her karede yeniden çiziliyor | Bir kez **320×180'lik bir bitmap'e** pişirilip GPU ile ölçekleniyor |
+| `Modifier.blur` / canlı bulanıklık | Hiç yok. Bulanık uygulama görselleri yüklenirken küçük bitmap'lere **önceden hazırlanıyor** |
+| Her kartta `Modifier.shadow` | Kartın arkasına çizilen **birkaç ince yuvarlak halka** (`softGlow`, `softShadow`) |
+| Ekran dışı katman açan `Crossfade` | `CompositingStrategy.ModulateAlpha` kullanan özel bir **`FastCrossfade`** |
+| Sürekli çalışan sonsuz animasyonlar | **Sadece hareket açıkken** oluşturuluyor, menülerin altında duraklıyor |
+| Animasyon değerlerinin ekranı yeniden kurması | Değerler `graphicsLayer` ve layout lambda'larında okunuyor, kompozisyonda değil |
 
-Other bits worth a look:
-- **Media capture** (`media/NowPlayingStore.kt`): keys content by media id → real title → app, ignores fake titles such as an app echoing its own name, remembers the last id per session (some apps blank it mid-playback), filters trailers by requiring ~12 s of actual playback, keeps the last known position when an app reports 0 on stop.
-- **Resume** (`media/Resume.kt`): live session → app-specific deep link → the app's own "return to player" intent → any URL found in the session metadata.
-- **Remote input**: select fires on key-up only when armed (no accidental double actions), long-press on first repeat, focus memory that returns you to where you were after a menu closes.
-- **i18n** with a tiny `tx("tr", "en")` helper and a static composition local so a language switch recomposes everything instantly.
+**Canlı skor sistemi** (`data/Scores.kt`)
+- ESPN'in herkese açık skor akışından 6 ligin günlük maçlarını çeker.
+- Canlı maç varken her 45 saniyede, yokken her 5 dakikada bir yeniler.
+- Ekranlar akışa abone olup bırakır. Kimse dinlemiyorsa ağ isteği atılmaz.
+- Önceki ve yeni durumu karşılaştırıp **Gol, Kırmızı kart ve Maç sonu** olayları üretir. Golü atan oyuncu ve dakika da olaya eklenir.
 
-## 📦 Install
+**Yüzen şerit ve menü** (`overlay/`)
+- Şerit, `TYPE_APPLICATION_OVERLAY` türünde, odak almayan ve dokunulamayan bir pencerede çizilen bir ön plan servisidir. Gösterecek bir şey yokken pencere tamamen gizlenir.
+- Menü bir erişilebilirlik servisidir: Geri tuşunu dinler, 320 ms içindeki ikinci basışta `TYPE_ACCESSIBILITY_OVERLAY` penceresini açar, tek basışı sisteme geri iletir.
 
-**Requirements:** an Android TV / Google TV device (tested on Chromecast with Google TV, Android 14), a computer with `adb`, JDK 17.
+**Claude entegrasyonu** (`data/ClaudeClient.kt`)
+- Messages API'ye **akışlı (SSE)** istek atar. Cevap kelime kelime ekrana gelir.
+- `web_search` aracıyla en fazla 3 arama yapar ve kaynakları gösterir.
+- Ses girişi TV'nin kendi konuşma tanıma servisiyle, okuma ise TextToSpeech ile yapılır.
+
+**Kaldığın yerden devam** (`media/`)
+- İçerikleri medya kimliği → gerçek başlık → uygulama sırasıyla eşleştirir. Uygulamanın kendi adını başlık gibi gönderdiği sahte başlıkları yok sayar.
+- Fragmanları elemek için başlıksız oturumlarda en az 12 saniye oynatma ister.
+- Kesin içerik bağlantısı yoksa uygulamayı eski ekranına değil, baştan açar.
+
+## 📦 Kurulum
+
+**Gerekenler:** Android TV ya da Google TV cihazı (Chromecast with Google TV, Android 14 üzerinde test edildi), `adb` kurulu bir bilgisayar ve JDK 17.
 
 ```bash
 git clone https://github.com/aliapaydin/litedroid_launcher.git
 cd litedroid_launcher
-./gradlew assembleRelease        # needs JDK 17 (macOS: export JAVA_HOME=$(/usr/libexec/java_home -v 17))
+./gradlew assembleRelease        # JDK 17 gerekir (macOS: export JAVA_HOME=$(/usr/libexec/java_home -v 17))
 ```
 
-Enable **Developer options → Wireless debugging** on the TV, then:
+TV'de **Geliştirici seçenekleri → Kablosuz hata ayıklama**'yı aç, sonra:
 
 ```bash
-adb pair  <TV_IP>:<PAIRING_PORT>      # first time only
+adb pair  <TV_IP>:<EŞLEŞME_PORTU>     # sadece ilk sefer
 adb connect <TV_IP>:<PORT>
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-Press **Home** on the remote and choose **LiteDroid Launcher → Always**.
+Kumandada **Ana ekran** tuşuna bas ve **LiteDroid Launcher → Her zaman**'ı seç.
 
-### One-time permissions (recommended)
-Android TV doesn't expose these in its UI, so they're granted once over adb:
+### Tek seferlik izinler
 
-```bash
-# Continue watching (media sessions)
-adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService
-# Real "recently used" list
-adb shell appops set dev.litedroid.launcher GET_USAGE_STATS allow
-# Optional: floating live-score strip over other apps
-adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow
-# Optional: use LiteDroid as the system screensaver
-adb shell pm grant dev.litedroid.launcher android.permission.WRITE_SECURE_SETTINGS
-adb shell appops set dev.litedroid.launcher WRITE_SETTINGS allow
-```
+Android TV bu izinleri arayüzünde göstermediği için bir kez adb ile verilir:
 
-### Ask Claude setup
-1. Create an API key at [console.anthropic.com](https://console.anthropic.com) (usage is billed to your account).
-2. Send it to the TV from your computer (typing it with the remote is tedious):
+| İzin | Ne işe yarar | Komut |
+|---|---|---|
+| Bildirim dinleyici | Kaldığın yerden devam, şimdi çalıyor kartları | `adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService` |
+| Kullanım istatistikleri | Gerçek "son kullanılanlar" listesi | `adb shell appops set dev.litedroid.launcher GET_USAGE_STATS allow` |
+| Diğer uygulamaların üstünde gösterme | Yüzen skor şeridi | `adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow` |
+| Güvenli ayarlar | LiteDroid'i sistem ekran koruyucusu yapmak | `adb shell pm grant dev.litedroid.launcher android.permission.WRITE_SECURE_SETTINGS` |
+| Sistem ayarları | Aynı amaçla | `adb shell appops set dev.litedroid.launcher WRITE_SETTINGS allow` |
+
+**Yüzen menü** için ayrıca TV'de: **Ayarlar → Sistem → Erişilebilirlik → LiteDroid kumanda kısayolu → Aç**.
+
+### Claude'a sor kurulumu
+
+1. [console.anthropic.com](https://console.anthropic.com) adresinden bir API anahtarı oluştur ve hesabına bakiye yükle. Kullanım senin hesabından ücretlendirilir, Haiku en ekonomik seçenektir.
+2. Kumandayla uzun anahtar yazmak zor olduğu için anahtarı bilgisayardan gönder:
    ```bash
    adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."
    ```
-   or enter it in **Settings → Ask Claude → API key**.
-3. Press the ✦ button in the top bar and ask away. Voice input uses the TV's built-in speech recognition; answers are read with its text-to-speech voice.
+   İstersen **Ayarlar → Claude'a sor → API anahtarı**'ndan da girebilirsin.
+3. Üst bardaki ✦ düğmesine bas ve sor.
+
+> Anahtarını kimseyle paylaşma. Ekran görüntüsünde ya da bir yerde göründüyse konsoldan silip yenisini oluştur.
 
 <details>
-<summary>Make it the only home screen (optional, reversible)</summary>
+<summary>Tek ana ekran yap (isteğe bağlı, geri alınabilir)</summary>
 
 ```bash
 adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
 adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
-# undo:
+# geri almak için:
 adb shell pm enable com.google.android.apps.tv.launcherx
 adb shell pm enable com.google.android.tungsten.setupwraith
 ```
 </details>
 
 <details>
-<summary>Grab screenshots from the TV</summary>
+<summary>TV'den ekran görüntüsü al</summary>
 
 ```bash
-TV=<TV_IP>:<PORT> ./tools/tvshot.sh        # one shot
-TV=<TV_IP>:<PORT> ./tools/tvshot.sh 5 1    # five shots, one second apart
+TV=<TV_IP>:<PORT> ./tools/tvshot.sh        # tek görüntü
+TV=<TV_IP>:<PORT> ./tools/tvshot.sh 5 1    # 1 saniye arayla 5 görüntü
 ```
-DRM-protected playback (Netflix, Prime Video…) shows up black, that's Android's protection.
+DRM korumalı içerikler (Netflix, Prime Video…) siyah görünür. Bu Android'in korumasıdır.
 </details>
 
 <details>
-<summary>Debug continue watching</summary>
+<summary>Sorun giderme</summary>
 
-```bash
-adb logcat -s LiteDroidMedia
-```
-Each line shows what an app shares about its playback (title, id, keys) and how LiteDroid resumed it.
+| Sorun | Bakılacak yer |
+|---|---|
+| Kaldığın yerden devam kartı gelmiyor | Bildirim dinleyici iznini ver, sonra `adb logcat -s LiteDroidMedia` |
+| Skorlar ya da şerit görünmüyor | Ayarlar → Canlı skorlar'da lig ve şerit açık mı? `adb logcat -s LiteDroidScores` |
+| Geri'ye iki kez basınca menü açılmıyor | Erişilebilirlik servisi açık mı? `adb logcat -s LiteDroidRemote` |
+| Claude "bakiye yok" diyor | Anthropic konsolunda hesabına kredi yükle |
+| Claude anahtarı kabul etmiyor | Anahtar `sk-ant-api03-` ile başlamalı, adb komutuyla tam olarak gönder |
 </details>
 
-## ℹ️ How "continue watching" behaves per app
+## ℹ️ Uygulamalara göre "kaldığın yerden devam"
 
-Google TV keeps its own continue-watching data private to system apps, so LiteDroid works from what each app publishes in its media session:
+Google TV kendi devam etme verilerini sadece sistem uygulamalarına açar. LiteDroid bu yüzden her uygulamanın medya oturumunda paylaştığı bilgiyle çalışır:
 
-| App | What it shares | What you get |
+| Uygulama | Paylaştığı bilgi | Sonuç |
 |---|---|---|
-| YouTube | title, channel, artwork, position, video id | Titled card with artwork; resumes at the exact second |
-| Prime Video | content id, position (no title) | One card per title (up to 3), numbered and colored; deep link attempted |
-| Apple TV | duration only | App card with time left |
-| Netflix | nothing beyond play/pause | App card; returns to the player if Netflix is still in the background |
+| YouTube | Başlık, kanal, kapak görseli, konum, video kimliği | Başlıklı, kapaklı kart. Tam kaldığın saniyeden açılır |
+| Prime Video | İçerik kimliği, konum (başlık yok) | Her içerik için numaralı ve renkli kart (en fazla 3) |
+| Apple TV | Sadece süre | Kalan süreyi gösteren uygulama kartı |
+| Netflix | Oynat/duraklat dışında hiçbir şey | Uygulama kartı |
 
-## 🗂 Project structure
+## 🗂 Proje yapısı
 
 ```
 app/src/main/java/dev/litedroid/launcher/
-├── MainActivity.kt          Home intent, key handling, idle timer, sounds
-├── LauncherViewModel.kt     Apps, favorites, settings, history, weather, network
-├── I18n.kt                  Turkish / English
-├── data/                    Apps, settings, usage stats, weather, store catalog
-├── media/                   Media session listener, history store, resume logic
-├── dream/                   System screensaver (DreamService)
-├── games/                   Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe, Sudoku
-└── ui/                      Modern & Casual layouts, cards, glass, screensaver, store, settings
+├── MainActivity.kt          Ana ekran intent'i, tuşlar, boşta kalma zamanlayıcısı, sesler
+├── LauncherViewModel.kt     Uygulamalar, favoriler, ayarlar, geçmiş, hava, ağ
+├── I18n.kt                  Türkçe / İngilizce
+├── data/                    Uygulamalar, ayarlar, hava, mağaza, skorlar, Claude istemcisi, sesli okuma
+├── media/                   Medya oturumu dinleyicisi, geçmiş, devam ettirme mantığı
+├── overlay/                 Yüzen skor şeridi, kumanda kısayolu servisi, yüzen menü
+├── dream/                   Sistem ekran koruyucusu (DreamService)
+├── games/                   Yılan, Kutu İtme, Mini Yarış, SOS, XOX, Sudoku
+└── ui/                      Modern ve Casual arayüzler, Claude ekranı, hızlı panel, widget'lar, ayarlar
 ```
 
-**Stack:** Kotlin 2.0 · Jetpack Compose (BOM 2024.12, Material 3) · Coroutines · Coil 3 · Android Gradle Plugin 8.7 · minSdk 26 / targetSdk 35. No TV UI library, D-pad focus is handled by hand; no third-party UI kits: custom glyphs, the games and every screensaver scene are drawn in code. Sound effects were synthesized for the project.
+**Kullanılanlar:** Kotlin 2.0 · Jetpack Compose (BOM 2024.12, Material 3) · Coroutines · Coil 3 · Android Gradle Plugin 8.7 · minSdk 26 / targetSdk 35.
 
-## 🙏 Credits
+Hazır TV arayüz kütüphanesi yok, kumanda odağı elle yönetiliyor. Üçüncü parti arayüz kiti de yok: simgeler, oyunlar ve ekran koruyucu sahnelerinin hepsi kodla çiziliyor. Ses efektleri bu proje için sentezlendi.
 
-- [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) typeface, SIL Open Font License 1.1 ([license](licenses/PlusJakartaSans-OFL.txt))
-- [Open-Meteo](https://open-meteo.com) weather data, [ipwho.is](https://ipwhois.io) approximate location
-- [Claude API](https://platform.claude.com/docs) by Anthropic for *Ask Claude* (your own key)
-- Match data from ESPN's public scoreboard feed (unofficial, no key; may change without notice)
-- Jetpack Compose and Coil
+## 🙏 Teşekkürler
 
-## 📄 License
+- [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) yazı tipi, SIL Open Font License 1.1 ([lisans](licenses/PlusJakartaSans-OFL.txt))
+- Hava durumu için [Open-Meteo](https://open-meteo.com), yaklaşık konum için [ipwho.is](https://ipwhois.io)
+- *Claude'a sor* için Anthropic'in [Claude API](https://platform.claude.com/docs)'si (kendi anahtarınla)
+- Maç verileri ESPN'in herkese açık skor akışından gelir. Resmi değildir, anahtar gerektirmez ve haber verilmeden değişebilir.
+- Jetpack Compose ve Coil
 
-LiteDroid Launcher is open source under the [MIT License](LICENSE). The bundled Plus Jakarta Sans font keeps its own [SIL Open Font License](licenses/PlusJakartaSans-OFL.txt).
+## 📄 Lisans
 
-## 👤 Author
+LiteDroid Launcher [MIT Lisansı](LICENSE) ile açık kaynaktır. Kodu kullanabilir, değiştirebilir ve paylaşabilirsin, yeter ki telif bildirimi korunsun. Pakete dahil Plus Jakarta Sans yazı tipi kendi [SIL Open Font License](licenses/PlusJakartaSans-OFL.txt) lisansıyla gelir.
+
+## 👤 Geliştirici
 
 **Ali Apaydın** · [apaydin.a@gmail.com](mailto:apaydin.a@gmail.com)
 
-If you try LiteDroid on your own TV, I'd love to see a screenshot. Issues, ideas and pull requests are welcome.
+LiteDroid'i kendi TV'nde denersen bir ekran görüntüsü görmek isterim. Hata bildirimleri, fikirler ve pull request'ler her zaman açık.

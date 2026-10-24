@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2
+- Floating score strip: the overlay window is now fully hidden (`View.GONE`) when there is nothing to show, so no empty frame lingers at the screen edge on the home screen or screensaver.
+- README redesigned from scratch in Turkish (`README.md`) with new screenshots and a new hero image; English version moved to `README.en.md`.
+
 ## 1.1.1
 - **Remote shortcut:** while any app is open, press **Back twice** to open a floating LiteDroid menu (clock, weather, now-playing controls, floating-score toggles, all of today's matches, shortcuts to Home and Ask Claude). A single press is still a normal Back (after a ~0.3 s wait for a second press). Uses an accessibility service that only watches keys and the foreground app.
 - The floating score strip hides on the LiteDroid home screen, during any screensaver (system dream included) and while the menu is open.
