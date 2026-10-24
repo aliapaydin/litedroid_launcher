@@ -61,7 +61,7 @@ LiteDroid bir hafta sonu sorusuyla başladı: *"Chromecast with Google TV'm Appl
 - **Yüzen skor şeridi:** Netflix, YouTube ya da başka bir şey izlerken köşede küçük bir skor şeridi durur, alttaki uygulamayı engellemez. Ayarlardan açılır; bir kez `adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow` gerekir.
 
 **🎛️ Her uygulamanın üstünde yüzen menü**
-- Netflix, YouTube ya da başka bir şey açıkken kumandada **Geri'ye basılı tut**: saat, hava, çalan müzik kontrolleri, bugünün tüm maçları ve yüzen skor ayarlarıyla LiteDroid menüsü sağdan açılır. Kısa basış normal Geri'dir.
+- Netflix, YouTube ya da başka bir şey açıkken kumandada **Geri'ye iki kez bas**: saat, hava, çalan müzik kontrolleri, bugünün tüm maçları ve yüzen skor ayarlarıyla LiteDroid menüsü sağdan açılır. Tek basış normal Geri'dir.
 - Bir kez aç: **Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu** (yalnızca tuşları ve öndeki uygulamayı görür).
 
 **🎧 Ekran koruyucu kartları**

@@ -75,7 +75,7 @@ Installed games from Google Play get their own row underneath.
 - Pick which leagues to follow.
 
 ### 🎛️ Floating menu over any app
-- While Netflix, YouTube or anything else is open, **hold Back** on the remote: a LiteDroid menu slides in with the clock, weather, now-playing controls, all of today's scores and the floating-strip switches. A short press stays a normal Back.
+- While Netflix, YouTube or anything else is open, **press Back twice** on the remote: a LiteDroid menu slides in with the clock, weather, now-playing controls, all of today's scores and the floating-strip switches. A single press stays a normal Back.
 - Enable once: **Android Settings → Accessibility → LiteDroid remote shortcut** (it only sees key presses and which app is in front).
 
 ### 🎧 Screensaver widgets

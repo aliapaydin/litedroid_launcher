@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.1.1
-- **Remote shortcut:** while any app is open, hold **Back** to open a floating LiteDroid menu (clock, weather, now-playing controls, floating-score toggles, all of today's matches, shortcuts to Home and Ask Claude). A short press is still a normal Back. Uses an accessibility service that only watches keys and the foreground app.
+- **Remote shortcut:** while any app is open, press **Back twice** to open a floating LiteDroid menu (clock, weather, now-playing controls, floating-score toggles, all of today's matches, shortcuts to Home and Ask Claude). A single press is still a normal Back (after a ~0.3 s wait for a second press). Uses an accessibility service that only watches keys and the foreground app.
 - The floating score strip hides on the LiteDroid home screen, during any screensaver (system dream included) and while the menu is open.
 - Quick panel scrolls with focus, so controls below the now-playing card are reachable.
 

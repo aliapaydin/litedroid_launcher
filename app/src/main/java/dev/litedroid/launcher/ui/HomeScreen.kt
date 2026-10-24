@@ -1074,13 +1074,13 @@ private fun settingsEntries(
             "While watching anything, a small live-score strip in the top-right corner, with a short goal alert. Run this command once:\n\n$CMD_OVERLAY")) {
         onFloatingScores()
     },
-    SettingsEntry.Row("remote_menu", tx("Kumanda kısayolu (Geri'ye basılı tut)", "Remote shortcut (hold Back)"), Icons.Filled.Menu,
+    SettingsEntry.Row("remote_menu", tx("Kumanda kısayolu (Geri'ye iki kez bas)", "Remote shortcut (double-press Back)"), Icons.Filled.Menu,
         if (vm.remoteShortcutEnabled()) tx("Açık", "On") else tx("Kapalı", "Off"),
-        tx("Bir uygulama açıkken Geri'ye basılı tutunca yüzen menü açılır: saat, tüm skorlar, çalan müzik, skor ayarları. " +
-            "Kısa basış normal Geri'dir. Açmak için: Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu. " +
+        tx("Bir uygulama açıkken Geri'ye hızlıca iki kez basınca yüzen menü açılır: saat, tüm skorlar, çalan müzik, skor ayarları. " +
+            "Tek basış normal Geri'dir (çok kısa bir gecikmeyle). Açmak için: Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu. " +
             "Ya da bilgisayardan (başka erişilebilirlik hizmetin yoksa):\n\n${RemoteKeyService.ADB_ENABLE}",
-            "While an app is open, hold Back to open the floating menu: clock, all scores, now playing, score settings. " +
-            "A short press is a normal Back. Turn it on in Android Settings → Accessibility → LiteDroid remote shortcut, " +
+            "While an app is open, press Back twice quickly to open the floating menu: clock, all scores, now playing, score settings. " +
+            "A single press is a normal Back (with a tiny delay). Turn it on in Android Settings → Accessibility → LiteDroid remote shortcut, " +
             "or from a computer (if you use no other accessibility service):\n\n${RemoteKeyService.ADB_ENABLE}")) {
         onRemoteShortcut()
     },

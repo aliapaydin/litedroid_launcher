@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">LiteDroid Launcher</string>
     <string name="remote_key_label">LiteDroid kumanda kısayolu</string>
-    <string name="remote_key_description">Başka bir uygulama açıkken kumandada Geri tuşuna basılı tutunca LiteDroid\'in yüzen menüsünü açar (saat, canlı skorlar, çalan müzik, kısayollar). Yalnızca tuşları ve öndeki uygulamanın adını görür; ekrandaki içeriği okumaz.</string>
+    <string name="remote_key_description">Başka bir uygulama açıkken kumandada Geri tuşuna iki kez basınca LiteDroid\'in yüzen menüsünü açar (saat, canlı skorlar, çalan müzik, kısayollar). Yalnızca tuşları ve öndeki uygulamanın adını görür; ekrandaki içeriği okumaz.</string>
 </resources>

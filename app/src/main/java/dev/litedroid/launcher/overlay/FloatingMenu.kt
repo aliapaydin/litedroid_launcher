@@ -63,7 +63,7 @@ import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 
 /**
- * Başka bir uygulama açıkken (Geri'ye basılı tutunca) sağdan açılan yüzen menü:
+ * Başka bir uygulama açıkken (Geri'ye iki kez basınca) sağdan açılan yüzen menü:
  * saat ve hava, çalan müzik kontrolleri, skor ayarları, bugünün tüm maçları ve kısayollar.
  * İçerik sığmazsa odak indikçe kendiliğinden kayar. Geri ile kapanır.
  */
@@ -244,7 +244,7 @@ fun FloatingMenu(onClose: () -> Unit, onHome: () -> Unit, onAskClaude: () -> Uni
         Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             SparkleGlyph(Color.White.copy(alpha = 0.4f), 12.dp)
             Spacer(Modifier.width(6.dp))
-            Text(tx("LiteDroid · Geri'ye basılı tut: menü", "LiteDroid · Hold Back: menu"), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp)
+            Text(tx("LiteDroid · Geri'ye iki kez bas: menü", "LiteDroid · Double-press Back: menu"), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp)
         }
     }
 }

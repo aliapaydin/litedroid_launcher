@@ -1,5 +1,6 @@
 package dev.litedroid.launcher.overlay
 
+import android.os.SystemClock
 import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
 import android.content.Context
@@ -29,8 +30,8 @@ import dev.litedroid.launcher.data.SettingsRepository
 import dev.litedroid.launcher.ui.theme.LiteDroidTheme
 
 /**
- * Kumanda kısayolu (erişilebilirlik hizmeti). Başka bir uygulama açıkken Geri'ye basılı tutunca
- * LiteDroid'in yüzen menüsünü açar. Kısa basış normal Geri olarak uygulamaya iletilir.
+ * Kumanda kısayolu (erişilebilirlik hizmeti). Başka bir uygulama açıkken Geri'ye iki kez basınca
+ * LiteDroid'in yüzen menüsünü açar. Tek basış (kısa bir beklemeyle) normal Geri olarak uygulamaya iletilir.
  * LiteDroid'in kendisi ya da ekran koruyucu öndeyken hiçbir tuşa karışmaz.
  *
  * Açmak için: Ayarlar → Erişilebilirlik → LiteDroid kumanda kısayolu, ya da
@@ -45,14 +46,25 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     override val savedStateRegistry: SavedStateRegistry get() = savedStateController.savedStateRegistry
 
     private val handler = Handler(Looper.getMainLooper())
-    private var backDown = false
-    private var longFired = false
     private var menuView: ComposeView? = null
     private var launcherInFront = false
 
-    private val openMenuRunnable = Runnable {
-        longFired = true
-        openMenu()
+    // Çift tıklama durumu
+    private var backDownSeen = false
+    private var pendingBack = false
+    private var swallowNextUp = false
+    /** Kendi gönderdiğimiz Geri olaylarını yeniden yakalamamak için. */
+    private var passThroughUntil = 0L
+
+    /** İkinci basış gelmediyse ilk basış normal Geri olarak uygulamaya gider. */
+    private val sendBackRunnable = Runnable {
+        pendingBack = false
+        sendBack()
+    }
+
+    private fun sendBack() {
+        passThroughUntil = SystemClock.uptimeMillis() + 400
+        performGlobalAction(GLOBAL_ACTION_BACK)
     }
 
     override fun onCreate() {
@@ -79,32 +91,54 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        // Menü açıkken: Geri menüyü kapatır, diğer tuşlar menüye gider
+        val isBack = event.keyCode == KeyEvent.KEYCODE_BACK
+
+        // Menü açıkken: menüyü açan ikinci basışın bırakılması yutulur; sonraki Geri menüyü kapatır,
+        // diğer tuşlar menüye gider.
         if (menuView != null) {
-            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-                if (event.action == KeyEvent.ACTION_UP) closeMenu()
-                return true
+            if (!isBack) return false
+            if (event.action == KeyEvent.ACTION_UP) {
+                if (swallowNextUp) swallowNextUp = false else closeMenu()
+            }
+            return true
+        }
+
+        // Bekleyen tek Geri varken başka bir tuşa basıldıysa önce o Geri'yi gönder (sıra bozulmasın)
+        if (!isBack) {
+            if (pendingBack && event.action == KeyEvent.ACTION_DOWN) {
+                handler.removeCallbacks(sendBackRunnable)
+                pendingBack = false
+                sendBack()
             }
             return false
         }
-        if (event.keyCode != KeyEvent.KEYCODE_BACK) return false
+        if (SystemClock.uptimeMillis() < passThroughUntil) return false
         if (launcherInFront || ScoreOverlay.launcherVisible.value || ScoreOverlay.dreaming.value) return false
 
         when (event.action) {
             KeyEvent.ACTION_DOWN -> {
-                if (event.repeatCount == 0) {
-                    backDown = true
-                    longFired = false
-                    handler.postDelayed(openMenuRunnable, LONG_PRESS_MS)
+                if (event.repeatCount > 0) return true
+                if (pendingBack) {
+                    // İkinci basış: Geri gönderilmez, menü açılır
+                    handler.removeCallbacks(sendBackRunnable)
+                    pendingBack = false
+                    swallowNextUp = true
+                    openMenu()
+                } else {
+                    backDownSeen = true
                 }
                 return true
             }
             KeyEvent.ACTION_UP -> {
-                handler.removeCallbacks(openMenuRunnable)
-                val wasDown = backDown
-                backDown = false
-                // Kısa basış: uygulamaya normal Geri olarak ilet
-                if (wasDown && !longFired) performGlobalAction(GLOBAL_ACTION_BACK)
+                if (swallowNextUp) {
+                    swallowNextUp = false
+                    return true
+                }
+                if (backDownSeen) {
+                    backDownSeen = false
+                    pendingBack = true
+                    handler.postDelayed(sendBackRunnable, DOUBLE_TAP_MS)
+                }
                 return true
             }
         }
@@ -175,7 +209,11 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     }
 
     override fun onInterrupt() {
-        handler.removeCallbacks(openMenuRunnable)
+        if (pendingBack) {
+            handler.removeCallbacks(sendBackRunnable)
+            pendingBack = false
+            sendBack()
+        }
     }
 
     override fun onDestroy() {
@@ -186,7 +224,8 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     companion object {
         private const val TAG = "LiteDroidRemote"
-        private const val LONG_PRESS_MS = 650L
+        /** İki basış arasındaki en uzun süre. Tek Geri de bu kadar gecikmeyle uygulamaya gider. */
+        private const val DOUBLE_TAP_MS = 320L
 
         const val ADB_ENABLE =
             "adb shell settings put secure enabled_accessibility_services dev.litedroid.launcher/dev.litedroid.launcher.overlay.RemoteKeyService\n" +
