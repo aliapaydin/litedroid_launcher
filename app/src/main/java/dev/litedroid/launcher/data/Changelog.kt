@@ -10,6 +10,14 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.4.1",
+                tx("Home yönlendirme düzeltmesi", "Home redirect fix"),
+                listOf(
+                    tx("LiteDroid artık kutunun kendi ana ekranını görebiliyor; Home yönlendirmesi bu yüzden çalışmıyordu.",
+                        "LiteDroid can now see the box's own home screen, which is why Home redirect didn't work."),
+                ),
+            ),
+            Release(
                 "1.4.0",
                 tx("Home tuşu kilitli kutularda da LiteDroid", "LiteDroid on boxes that lock the Home key"),
                 listOf(
