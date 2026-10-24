@@ -1,5 +1,6 @@
 package dev.litedroid.launcher.overlay
 
+import android.view.View
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
@@ -190,10 +191,20 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
             x = (28 * density).toInt()
             y = (24 * density).toInt()
         }
-        val composeView = ComposeView(this).apply {
+        val composeView = ComposeView(this)
+        composeView.apply {
             setViewTreeLifecycleOwner(this@ScoreOverlayService)
             setViewTreeSavedStateRegistryOwner(this@ScoreOverlayService)
-            setContent { LiteDroidTheme { OverlayContent(onlyLive) } }
+            // Gösterilecek bir şey yokken pencere tamamen gizlenir (GONE). Boş içerikle küçülen pencere
+            // ekranın kenarında eski karenin bir parçasını "hayalet" gibi bırakabiliyordu.
+            visibility = View.GONE
+            setContent {
+                LiteDroidTheme {
+                    OverlayContent(onlyLive) { show ->
+                        composeView.visibility = if (show) View.VISIBLE else View.GONE
+                    }
+                }
+            }
         }
         runCatching { wm.addView(composeView, params) }
             .onSuccess { view = composeView }
@@ -227,7 +238,7 @@ private sealed interface StripContent {
  * animasyonlu olay kartı gösterilir, sonra maçlara döner. Kutu, içindeki satır sayısına göre boyutlanır.
  */
 @Composable
-private fun OverlayContent(onlyLive: Boolean) {
+private fun OverlayContent(onlyLive: Boolean, onShow: (Boolean) -> Unit) {
     val matches by ScoresHub.matches.collectAsState()
     val launcherVisible by ScoreOverlay.launcherVisible.collectAsState()
     val dreaming by ScoreOverlay.dreaming.collectAsState()
@@ -254,16 +265,15 @@ private fun OverlayContent(onlyLive: Boolean) {
         }
     }
 
-    if (launcherVisible || dreaming || menuOpen) {
-        Box {}
-        return
-    }
     val e = event
     val content: StripContent? = when {
+        launcherVisible || dreaming || menuOpen -> null
         e != null -> StripContent.Event(e)
         pages.isNotEmpty() -> StripContent.Page(page.coerceIn(0, pages.lastIndex), pages[page.coerceIn(0, pages.lastIndex)])
         else -> null
     }
+    val visible = content != null
+    LaunchedEffect(visible) { onShow(visible) }
     if (content == null) {
         Box {}
         return
