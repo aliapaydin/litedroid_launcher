@@ -396,6 +396,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     // Animasyon değerleri State olarak tutulur ve çizim/yerleşim aşamasında okunur
     val dimState = animateFloatAsState(
         targetValue = when {
+            usageOpen -> 0.96f
             storeOpen || settingsOpen || searchOpen -> 0.78f
             overlayOpen -> 0.55f
             else -> 0f

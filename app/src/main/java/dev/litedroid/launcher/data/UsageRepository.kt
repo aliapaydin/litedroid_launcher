@@ -66,6 +66,7 @@ class UsageRepository(context: Context) {
         val weekStart = today.minusDays(6).atStartOfDay(zone).toInstant().toEpochMilli()
         val now = System.currentTimeMillis()
         val sessions = runCatching { sessionsOf(usm, weekStart, now) }.getOrElse { return@withContext null }
+            .filter { displayName(it.pkg) != null }
 
         val (from, to) = when (range) {
             UsageRange.TODAY -> today.atStartOfDay(zone).toInstant().toEpochMilli() to now
@@ -93,13 +94,14 @@ class UsageRepository(context: Context) {
                 val ms = minOf(s.end, b) - maxOf(s.start, a)
                 if (ms > 0) perApp[s.pkg] = (perApp[s.pkg] ?: 0L) + ms
             }
-            DayUsage(day, perApp.values.sum(), perApp.maxByOrNull { it.value }?.key?.let { labelOf(it) })
+            DayUsage(day, perApp.values.sum(), perApp.maxByOrNull { it.value }?.key?.let { displayName(it) })
         }
 
-        val apps = inRange.groupBy { it.pkg }.map { (pkg, list) ->
+        val apps = inRange.groupBy { it.pkg }.mapNotNull { (pkg, list) ->
+            val label = displayName(pkg) ?: return@mapNotNull null
             AppUsage(
                 packageName = pkg,
-                label = labelOf(pkg),
+                label = label,
                 icon = iconOf(pkg),
                 totalMs = list.sumOf { it.end - it.start },
                 opens = list.size,
@@ -183,6 +185,23 @@ class UsageRepository(context: Context) {
     private val labels = HashMap<String, String>()
     private val icons = HashMap<String, ImageBitmap?>()
 
+    /**
+     * Rapor için görünen ad. Ana ekrandan açılmayan sistem bileşenleri (Google TV ortam modu, asistan
+     * katmanı gibi) uygulama listesine erişilemediği için paket adıyla gelir: bilinenler adlandırılır,
+     * diğer Google TV / Android sistem paketleri rapora alınmaz.
+     */
+    private fun displayName(pkg: String): String? {
+        KNOWN_NAMES[pkg]?.let { return it }
+        val label = labelOf(pkg)
+        if (label != pkg) return label
+        if (pkg.startsWith("com.google.android.apps.tv.") || pkg.startsWith("com.android.") ||
+            pkg.startsWith("com.google.android.tv") || pkg.startsWith("com.google.android.gms")
+        ) return null
+        // Son anlamlı parçadan okunur bir ad: com.example.myplayer → Myplayer
+        return pkg.split('.').lastOrNull { it.length > 2 && it !in setOf("android", "app", "tv", "atv") }
+            ?.replaceFirstChar { it.uppercase() } ?: pkg
+    }
+
     private fun labelOf(pkg: String): String = labels.getOrPut(pkg) {
         runCatching { ctx.packageManager.getApplicationLabel(ctx.packageManager.getApplicationInfo(pkg, 0)).toString() }
             .getOrDefault(pkg)
@@ -202,7 +221,13 @@ class UsageRepository(context: Context) {
     private companion object {
         /** Kapanış olayı kaçırılırsa bir oturum en fazla bu kadar sayılır. */
         const val MAX_SESSION_MS = 6L * 3600 * 1000
+        val KNOWN_NAMES = mapOf(
+            "com.google.android.katniss" to "Google Asistan",
+            "com.google.android.youtube.tv" to "YouTube",
+            "com.google.android.youtube.tvkids" to "YouTube Kids",
+        )
         val IGNORED = setOf(
+            "com.google.android.apps.tv.dreamx",
             "android",
             "com.android.systemui",
             "com.google.android.apps.tv.launcherx",

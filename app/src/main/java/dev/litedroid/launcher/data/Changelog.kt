@@ -10,6 +10,16 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.3.1",
+                tx("Kullanım raporu yeniden düzenlendi", "Usage report reworked"),
+                listOf(
+                    tx("Rapor artık koyu, okunaklı bir sayfa; arkadaki ana ekran görünmüyor.", "The report is now a dark, readable page; the home screen no longer shows through."),
+                    tx("Sayfa kumandayla aşağı kayar: özet, grafikler ve uygulamalar sırayla gelir.", "The whole page scrolls with the remote: summary, charts, then apps."),
+                    tx("Uygulamalar iki sütunlu kartlarda: simge, sıra, süre, pay ve açılış bilgisi.", "Apps in two-column cards with icon, rank, time, share and opens."),
+                    tx("Ortam modu gibi sistem bileşenleri paket adıyla görünmez, rapora alınmaz.", "System components like ambient mode no longer show up as package names."),
+                ),
+            ),
+            Release(
                 "1.3.0",
                 tx("Kullanım raporu", "Usage report"),
                 listOf(
