@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+- **Usage report** (Settings → Content and privacy → Usage report): screen time for Today / Yesterday / Last 7 days, an app ranking with total time, share, opens, longest session and last use, an hour-of-day chart, a 7-day chart, the busiest hour and the change from the previous day.
+- Sessions are rebuilt from `UsageEvents` (activity resumed/paused/stopped, screen off, shutdown), merged when the same app returns within 15 s and capped at 6 h if a close event is missing. LiteDroid itself, System UI and other launchers are not counted.
+
 ## 1.2.0
 - **Now playing for every music app:** YouTube Music, Apple Music, TIDAL, Qobuz, Deezer, fizy and the rest show title, artist, artwork and progress on the screensaver, floating menu and quick panel, just like Spotify.
   - Media notifications are read too: their session is tracked and their title/text/large icon fill gaps when an app leaves them out of the session.

@@ -172,6 +172,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     var storeOpen by remember { mutableStateOf(false) }
     var aboutOpen by remember { mutableStateOf(false) }
     var changelogOpen by remember { mutableStateOf(false) }
+    var usageOpen by remember { mutableStateOf(false) }
     var settingsRefocus by remember { mutableIntStateOf(0) }
     var settingsOpen by remember { mutableStateOf(false) }
     var searchOpen by remember { mutableStateOf(false) }
@@ -184,7 +185,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || changelogOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
+    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
 
@@ -323,6 +324,7 @@ private fun HomeContent(vm: LauncherViewModel) {
         storeOpen = false
         aboutOpen = false
         changelogOpen = false
+        usageOpen = false
         settingsOpen = false
         searchOpen = false
         gameOpen = null
@@ -349,6 +351,7 @@ private fun HomeContent(vm: LauncherViewModel) {
         storeOpen = false
         aboutOpen = false
         changelogOpen = false
+        usageOpen = false
         settingsOpen = false
         searchOpen = false
         gameOpen = null
@@ -368,6 +371,10 @@ private fun HomeContent(vm: LauncherViewModel) {
             gamePickerOpen -> gamePickerOpen = false
             movingPkg != null -> movingPkg = null
             aboutOpen -> aboutOpen = false
+            usageOpen -> {
+                usageOpen = false
+                settingsOpen = true
+            }
             changelogOpen -> {
                 changelogOpen = false
                 settingsRefocus++
@@ -827,6 +834,10 @@ private fun HomeContent(vm: LauncherViewModel) {
                         aboutOpen = true
                     },
                     onChangelog = { changelogOpen = true },
+                    onUsageReport = {
+                        settingsOpen = false
+                        usageOpen = true
+                    },
                     onAndroidSettings = { startSafely(Intent(Settings.ACTION_SETTINGS)) },
                     onMediaAccess = {
                         if (vm.mediaAccess) toast(tx("Medya geçmişi izni açık", "Media history permission is on"))
@@ -853,6 +864,14 @@ private fun HomeContent(vm: LauncherViewModel) {
                 enabled = textTarget == null && !changelogOpen,
                 refocusSignal = settingsRefocus,
             )
+        }
+
+        AnimatedVisibility(
+            visible = usageOpen,
+            enter = fadeIn() + slideInVertically { it / 8 },
+            exit = fadeOut() + slideOutVertically { it / 8 },
+        ) {
+            UsageReportScreen(vm)
         }
 
         AnimatedVisibility(
@@ -986,6 +1005,7 @@ private fun settingsEntries(
     onOpenStore: () -> Unit,
     onOpenAbout: () -> Unit,
     onChangelog: () -> Unit,
+    onUsageReport: () -> Unit,
     onAndroidSettings: () -> Unit,
     onMediaAccess: () -> Unit,
     onUsageAccess: () -> Unit,
@@ -1160,6 +1180,10 @@ private fun settingsEntries(
         tx("Kumanda tuşuyla açtıkların dahil gerçek son kullanılanlar. Bir kez şu komutu çalıştır:\n\n$CMD_USAGE", "True recently used apps, including ones opened with remote buttons. Run this command once:\n\n$CMD_USAGE")) {
         onUsageAccess()
     },
+    SettingsEntry.Row("usage_report", tx("Kullanım raporu", "Usage report"), Icons.Filled.DateRange, null,
+        tx("Bugün, dün ve son 7 günde hangi uygulamada ne kadar vakit geçti: ekran süresi, açılışlar, saatlere ve günlere göre dağılım. ",
+            "How much time went to which app today, yesterday and over the last 7 days: screen time, opens, by hour and by day. ") +
+            tx("Kullanım istatistikleri izni gerekir.", "Needs usage access.")) { onUsageReport() },
     SettingsEntry.Row("clear", tx("İzleme geçmişini temizle", "Clear watch history"), Icons.Filled.Delete, null,
         tx("Kaldığın yerden devam et ve son kullanılanlar listesini sıfırlar.", "Resets the continue-watching and recently used lists.")) { onClearHistory() },
 
