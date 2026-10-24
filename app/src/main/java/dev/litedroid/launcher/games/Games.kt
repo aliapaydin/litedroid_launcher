@@ -1,0 +1,314 @@
+package dev.litedroid.launcher.games
+
+import android.content.Context
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.litedroid.launcher.tx
+import dev.litedroid.launcher.ui.isSelectKey
+
+/** LiteDroid'in içinde gelen, kumandayla oynanan küçük oyunlar. */
+enum class BuiltInGame(
+    private val tr: String,
+    private val en: String,
+    private val trDesc: String,
+    private val enDesc: String,
+    val top: Color,
+    val bottom: Color,
+) {
+    SNAKE("Yılan", "Snake", "Elmaları topla, kendine çarpma", "Eat apples, don't bite yourself", Color(0xFF3BE07F), Color(0xFF0B6B3E)),
+    BOXES("Kutu İtme", "Box Push", "Kutuları hedeflere it", "Push the boxes onto targets", Color(0xFFFFB13D), Color(0xFF9A4A0C)),
+    RACER("Mini Yarış", "Mini Racer", "Şerit değiştir, araçlara çarpma", "Switch lanes, dodge the traffic", Color(0xFFFF5C6E), Color(0xFF8E1430)),
+    SOS("SOS", "SOS", "S-O-S diz, puanı kap", "Line up S-O-S to score", Color(0xFF4D9BFF), Color(0xFF16408F)),
+    TICTACTOE("XOX", "Tic-Tac-Toe", "Üçünü yan yana getir", "Get three in a row", Color(0xFFB06BFF), Color(0xFF4A1D9E)),
+    SUDOKU("Sudoku", "Sudoku", "Her satır, sütun ve kutuda 1-9", "1-9 in every row, column and box", Color(0xFF2ED3C8), Color(0xFF0C5E66));
+
+    val title: String get() = tx(tr, en)
+    val description: String get() = tx(trDesc, enDesc)
+    val hint: String
+        get() = when (this) {
+            SNAKE -> tx("Yön tuşları: dön · Orta tuş: başla", "Arrows: turn · Center: start")
+            BOXES -> tx("Yön tuşları: yürü/it · Orta tuş: bölümü yeniden başlat", "Arrows: walk/push · Center: restart level")
+            RACER -> tx("Sol/Sağ: şerit · Orta tuş: başla", "Left/Right: lane · Center: start")
+            SOS -> tx("Yön tuşları: gez · Orta tuş: S ya da O koy", "Arrows: move · Center: place S or O")
+            TICTACTOE -> tx("Yön tuşları: gez · Orta tuş: X koy", "Arrows: move · Center: place X")
+            SUDOKU -> tx("Orta tuş ya da rakam tuşları: sayı yaz · Sağ kenar: sonraki bulmaca", "Center or number keys: enter digit · Right edge: next puzzle")
+        }
+}
+
+enum class Dir(val dx: Int, val dy: Int) {
+    UP(0, -1), DOWN(0, 1), LEFT(-1, 0), RIGHT(1, 0);
+
+    fun isOpposite(other: Dir) = dx == -other.dx && dy == -other.dy
+}
+
+private fun Key.toDir(): Dir? = when (this) {
+    Key.DirectionUp -> Dir.UP
+    Key.DirectionDown -> Dir.DOWN
+    Key.DirectionLeft -> Dir.LEFT
+    Key.DirectionRight -> Dir.RIGHT
+    else -> null
+}
+
+private fun Key.toDigit(): Int? = when (this) {
+    Key.Zero, Key.NumPad0 -> 0
+    Key.One, Key.NumPad1 -> 1
+    Key.Two, Key.NumPad2 -> 2
+    Key.Three, Key.NumPad3 -> 3
+    Key.Four, Key.NumPad4 -> 4
+    Key.Five, Key.NumPad5 -> 5
+    Key.Six, Key.NumPad6 -> 6
+    Key.Seven, Key.NumPad7 -> 7
+    Key.Eight, Key.NumPad8 -> 8
+    Key.Nine, Key.NumPad9 -> 9
+    else -> null
+}
+
+/**
+ * Oyun yüzeyi: odağı alır, yön/orta/rakam tuşlarını oyuna iletir. Geri tuşu dışarı bırakılır
+ * (oyundan çıkmak için).
+ */
+@Composable
+fun GameSurface(
+    modifier: Modifier = Modifier,
+    onDir: (Dir) -> Unit,
+    onSelect: () -> Unit,
+    onDigit: ((Int) -> Unit)? = null,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val fr = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
+    Box(
+        modifier
+            .focusRequester(fr)
+            .onPreviewKeyEvent { e ->
+                val dir = e.key.toDir()
+                val digit = e.key.toDigit()
+                if (e.type != KeyEventType.KeyDown) {
+                    return@onPreviewKeyEvent dir != null || e.key.isSelectKey || (digit != null && onDigit != null)
+                }
+                when {
+                    dir != null -> { onDir(dir); true }
+                    e.key.isSelectKey -> {
+                        if (e.nativeKeyEvent.repeatCount == 0) onSelect()
+                        true
+                    }
+                    digit != null && onDigit != null -> { onDigit(digit); true }
+                    else -> false
+                }
+            }
+            .focusable(),
+        content = content,
+    )
+}
+
+/** En iyi skorlar (oyun başına tek sayı). */
+object GameScores {
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences("litedroid_games", Context.MODE_PRIVATE)
+    fun best(ctx: Context, id: String): Int = prefs(ctx).getInt(id, 0)
+
+    /** Yeni rekor ise kaydeder ve true döner. [lowerIsBetter] hamle sayısı gibi değerler için. */
+    fun submit(ctx: Context, id: String, value: Int, lowerIsBetter: Boolean = false): Boolean {
+        val old = best(ctx, id)
+        val better = if (lowerIsBetter) (old == 0 || value < old) else value > old
+        if (better) prefs(ctx).edit().putInt(id, value).apply()
+        return better
+    }
+}
+
+/** Oyunun üstündeki küçük bilgi kutucukları (Skor, En iyi...). */
+@Composable
+fun GameStats(vararg items: Pair<String, String>, accent: Color) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.forEach { (label, value) ->
+            Column(
+                Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+            ) {
+                Text(label.uppercase(), color = accent, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+            }
+        }
+    }
+}
+
+/** Oyun tahtasının üstünde yarı saydam mesaj (Başla / Oyun bitti / Tebrikler). */
+@Composable
+fun BoxScope.GameMessage(title: String, subtitle: String, accent: Color) {
+    Column(
+        Modifier
+            .align(Alignment.Center)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color(0xFF07080F).copy(alpha = 0.86f))
+            .border(1.dp, accent.copy(alpha = 0.6f), RoundedCornerShape(22.dp))
+            .padding(horizontal = 30.dp, vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
+        Spacer(Modifier.height(4.dp))
+        Text(subtitle, color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp)
+    }
+}
+
+/** Oyun kartlarındaki küçük çizim simgesi. */
+@Composable
+fun GameGlyph(game: BuiltInGame, size: Dp, color: Color = Color.White) {
+    Canvas(Modifier.size(size)) {
+        val w = this.size.width
+        val s = w / 10f
+        when (game) {
+            BuiltInGame.SNAKE -> {
+                val p = Path().apply {
+                    moveTo(s * 1.5f, s * 7.5f)
+                    cubicTo(s * 3f, s * 3f, s * 5f, s * 9f, s * 6.5f, s * 4.5f)
+                    lineTo(s * 8.2f, s * 3.2f)
+                }
+                drawPath(p, color, style = Stroke(width = s * 1.5f, cap = StrokeCap.Round))
+                drawCircle(Color(0xFFFF4D5E), radius = s * 1.1f, center = Offset(s * 8.6f, s * 7.6f))
+            }
+            BuiltInGame.BOXES -> {
+                drawRoundRect(color, Offset(s * 2f, s * 2f), Size(s * 6f, s * 6f), CornerRadius(s), style = Stroke(s * 1.2f))
+                drawLine(color, Offset(s * 2.5f, s * 2.5f), Offset(s * 7.5f, s * 7.5f), s)
+                drawLine(color, Offset(s * 7.5f, s * 2.5f), Offset(s * 2.5f, s * 7.5f), s)
+            }
+            BuiltInGame.RACER -> {
+                drawRoundRect(color, Offset(s * 3f, s * 1.2f), Size(s * 4f, s * 7.6f), CornerRadius(s * 1.4f))
+                drawRoundRect(Color.Black.copy(alpha = 0.45f), Offset(s * 3.7f, s * 2.6f), Size(s * 2.6f, s * 1.8f), CornerRadius(s * 0.5f))
+                drawRect(color, Offset(s * 2.2f, s * 2f), Size(s * 0.8f, s * 1.6f))
+                drawRect(color, Offset(s * 7f, s * 2f), Size(s * 0.8f, s * 1.6f))
+                drawRect(color, Offset(s * 2.2f, s * 6.4f), Size(s * 0.8f, s * 1.6f))
+                drawRect(color, Offset(s * 7f, s * 6.4f), Size(s * 0.8f, s * 1.6f))
+            }
+            BuiltInGame.SOS -> {
+                // S · O · S üç daire, ortadan geçen çizgi
+                drawCircle(color, s * 1.4f, Offset(s * 2f, s * 5f), style = Stroke(s * 0.9f))
+                drawCircle(color, s * 1.4f, Offset(s * 5f, s * 5f))
+                drawCircle(color, s * 1.4f, Offset(s * 8f, s * 5f), style = Stroke(s * 0.9f))
+                drawLine(color, Offset(s * 0.6f, s * 5f), Offset(s * 9.4f, s * 5f), s * 0.6f, cap = StrokeCap.Round)
+            }
+            BuiltInGame.TICTACTOE -> {
+                for (i in 1..2) {
+                    drawLine(color.copy(alpha = 0.6f), Offset(s * (1 + i * 8f / 3f), s), Offset(s * (1 + i * 8f / 3f), s * 9f), s * 0.6f)
+                    drawLine(color.copy(alpha = 0.6f), Offset(s, s * (1 + i * 8f / 3f)), Offset(s * 9f, s * (1 + i * 8f / 3f)), s * 0.6f)
+                }
+                drawLine(color, Offset(s * 1.6f, s * 1.6f), Offset(s * 3.2f, s * 3.2f), s * 0.8f, cap = StrokeCap.Round)
+                drawLine(color, Offset(s * 3.2f, s * 1.6f), Offset(s * 1.6f, s * 3.2f), s * 0.8f, cap = StrokeCap.Round)
+                drawCircle(color, s * 0.9f, Offset(s * 5f, s * 5f), style = Stroke(s * 0.7f))
+            }
+            BuiltInGame.SUDOKU -> {
+                drawRoundRect(color, Offset(s, s), Size(s * 8f, s * 8f), CornerRadius(s), style = Stroke(s * 0.8f))
+                for (i in 1..2) {
+                    drawLine(color, Offset(s * (1 + i * 8f / 3f), s), Offset(s * (1 + i * 8f / 3f), s * 9f), s * 0.5f)
+                    drawLine(color, Offset(s, s * (1 + i * 8f / 3f)), Offset(s * 9f, s * (1 + i * 8f / 3f)), s * 0.5f)
+                }
+                drawCircle(color, s * 0.7f, Offset(s * 5f, s * 5f))
+            }
+        }
+    }
+}
+
+/** Tam ekran oyun sayfası: başlık, açıklama, tuş ipucu ve oyunun kendisi. Geri tuşu çıkar. */
+@Composable
+fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF0C0E1C), Color(0xFF04050A))))
+    ) {
+        // Oyunun renginde yumuşak bir ışık
+        Canvas(Modifier.fillMaxSize()) {
+            drawCircle(
+                Brush.radialGradient(
+                    listOf(game.top.copy(alpha = 0.22f), Color.Transparent),
+                    center = Offset(size.width * 0.15f, size.height * 0.1f),
+                    radius = size.maxDimension * 0.5f,
+                ),
+                radius = size.maxDimension * 0.5f,
+                center = Offset(size.width * 0.15f, size.height * 0.1f),
+            )
+        }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 44.dp, vertical = 24.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Brush.linearGradient(listOf(game.top, game.bottom))),
+                    contentAlignment = Alignment.Center,
+                ) { GameGlyph(game, 28.dp) }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(game.title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.3).sp)
+                    Text(game.description, color = Color.White.copy(alpha = 0.65f), fontSize = 12.sp)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(game.hint, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                    Text(tx("Geri: oyundan çık", "Back: leave the game"), color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp)
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                when (game) {
+                    BuiltInGame.SNAKE -> SnakeGame(game)
+                    BuiltInGame.BOXES -> BoxPushGame(game)
+                    BuiltInGame.RACER -> RacerGame(game)
+                    BuiltInGame.SOS -> SosGame(game)
+                    BuiltInGame.TICTACTOE -> TicTacToeGame(game)
+                    BuiltInGame.SUDOKU -> SudokuGame(game)
+                }
+            }
+        }
+    }
+}
