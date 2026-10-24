@@ -13,7 +13,7 @@ GAP="${2:-2}"
 mkdir -p "$OUT_DIR"
 
 # Bağlı değilse bağlan
-if ! adb devices | grep -q "^$DEVICE[[:space:]]*device"; then
+if ! adb devices | grep -q "^${DEVICE}[[:space:]]*device"; then
   adb connect "$DEVICE" >/dev/null
 fi
 
