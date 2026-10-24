@@ -1,5 +1,7 @@
 package dev.litedroid.launcher
 
+import dev.litedroid.launcher.data.UsageReport
+import dev.litedroid.launcher.data.UsageRange
 import dev.litedroid.launcher.overlay.RemoteKeyService
 import androidx.compose.runtime.mutableStateListOf
 import dev.litedroid.launcher.data.Speaker
@@ -113,6 +115,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     var mediaAccess by mutableStateOf(false)
         private set
+    /** Ayarlar → İçerik ve gizlilik → Kullanım raporu. İzin yoksa null. */
+    suspend fun usageReport(range: UsageRange): UsageReport? = usageRepo.report(range)
+
     var usageAccess by mutableStateOf(false)
         private set
     var systemSaverReady by mutableStateOf(false)

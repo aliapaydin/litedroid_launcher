@@ -10,6 +10,20 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.3.0",
+                tx("Kullanım raporu", "Usage report"),
+                listOf(
+                    tx("Ayarlar → İçerik ve gizlilik → Kullanım raporu: Bugün, Dün ve Son 7 gün için ekran süresi.",
+                        "Settings → Content and privacy → Usage report: screen time for Today, Yesterday and the Last 7 days."),
+                    tx("Uygulama sıralaması: toplam süre, pay, açılış sayısı, en uzun oturum ve son kullanım.",
+                        "App ranking: total time, share, opens, longest session and last use."),
+                    tx("Saatlere göre ve son 7 güne göre grafikler, en yoğun saat ve düne göre fark.",
+                        "Charts by hour and by day, the busiest hour and the change from yesterday."),
+                    tx("Süreler Android'in ön plan kayıtlarından hesaplanır; ana ekran ve ekran koruyucu sayılmaz.",
+                        "Times come from Android's foreground records; the home screen and screensaver don't count."),
+                ),
+            ),
+            Release(
                 "1.2.0",
                 tx("Her müzik uygulaması, sade alt kısım, sürüm notları", "Every music app, cleaner bottom, release notes"),
                 listOf(

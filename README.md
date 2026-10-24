@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.2.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.3.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -129,6 +129,14 @@ Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
 <p align="center"><img src="docs/screenshots/settings.png" alt="Ayarlar" width="100%"></p>
 
 Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses, Ekran koruyucu, Canlı skorlar, Claude'a sor, İçerik ve gizlilik** ve **Diğer**. Odaktaki satırın açıklaması altta görünür, kumandayla aradığını bulmak kolaydır. **Diğer → Sürüm notları**'nda ilk sürümden bugüne tüm yenilikler sürüm sürüm listelenir.
+
+### 📊 Kullanım raporu
+
+**Ayarlar → İçerik ve gizlilik → Kullanım raporu** (kullanım istatistikleri izni gerekir):
+- **Bugün, Dün ve Son 7 gün** için toplam ekran süresi ve düne göre fark.
+- Uygulama sıralaması: toplam süre, yüzde payı, açılış sayısı, en uzun oturum ve son kullanım saati.
+- Saatlere göre dağılım, son 7 günün grafiği ve en yoğun saat.
+- Ana ekran ve ekran koruyucuda geçen süre sayılmaz.
 
 ### Ve diğerleri
 
