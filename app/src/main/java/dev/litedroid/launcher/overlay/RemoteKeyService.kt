@@ -63,6 +63,22 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     private var menuView: ComposeView? = null
     private var launcherInFront = false
 
+    // Uygulama kilidi: kilit ekranı penceresi, kilitlenen ve PIN'le açılan uygulama
+    private var lockView: ComposeView? = null
+    private var lockedPkg: String? = null
+    private var unlockedPkg: String? = null
+
+    // Mola hatırlatıcısı: öndeki uygulama ve ne zamandan beri önde
+    private var fgPkg: String? = null
+    private var fgSince = 0L
+    private var breakNotified = 0
+    private val breakTick = object : Runnable {
+        override fun run() {
+            checkBreak()
+            handler.postDelayed(this, 60_000)
+        }
+    }
+
     // Çift tıklama durumu
     private var backDownSeen = false
     private var pendingBack = false
@@ -112,6 +128,8 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         Log.i(TAG, "remote shortcut connected, default home: ${defaultHome(force = true)}")
         SleepTimer.onChange = { fromUser -> handler.post { onSleepChanged(fromUser) } }
+        handler.removeCallbacks(breakTick)
+        handler.postDelayed(breakTick, 60_000)
         watchUpdates()
         SleepTimer.load(this)
         onSleepChanged(fromUser = false)
@@ -304,6 +322,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
             openLiteDroidHome()
             return
         }
+        watchForeground(pkg, event.className?.toString())
         if (menuView != null) return
         if (pkg == packageName) {
             // Kendi ana ekranımız öne geldi mi? (Menü penceresi bu bilgiyi bozmasın diye sınıf adına bakılır)
@@ -313,7 +332,134 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         }
     }
 
+    // ------------------------------------------------------------------
+    // Uygulama kilidi ve mola hatırlatıcısı
+    // ------------------------------------------------------------------
+
+    private val imePackages by lazy {
+        runCatching {
+            getSystemService(android.view.inputmethod.InputMethodManager::class.java)?.inputMethodList?.map { it.packageName }?.toSet()
+        }.getOrNull().orEmpty()
+    }
+
+    private fun watchForeground(pkg: String, className: String?) {
+        // Klavye ve sistem arayüzü "uygulama değişti" sayılmaz
+        if (pkg == "com.android.systemui" || pkg in imePackages) return
+        val settings = SettingsRepository(this).load()
+        if (pkg == packageName) {
+            if (className?.contains("MainActivity") == true) {
+                fgPkg = null
+                unlockedPkg = null
+                hideLock()
+            }
+            return
+        }
+        if (pkg != fgPkg) {
+            fgPkg = pkg
+            fgSince = System.currentTimeMillis()
+            breakNotified = 0
+        }
+        if (pkg != unlockedPkg) unlockedPkg = null
+        if (pkg in settings.lockedApps && settings.lockPin.length == 4 && pkg != unlockedPkg) {
+            if (lockedPkg != pkg || lockView == null) showLock(pkg, settings.lockPin)
+        } else if (lockView != null && pkg != lockedPkg) {
+            hideLock()
+        }
+    }
+
+    private fun appLabel(pkg: String): String = runCatching {
+        packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
+    }.getOrDefault(pkg)
+
+    private fun showLock(pkg: String, pin: String) {
+        hideLock()
+        val wm = getSystemService(WindowManager::class.java) ?: return
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.OPAQUE,
+        )
+        val label = appLabel(pkg)
+        val view = ComposeView(this).apply {
+            setViewTreeLifecycleOwner(this@RemoteKeyService)
+            setViewTreeSavedStateRegistryOwner(this@RemoteKeyService)
+            setContent {
+                LiteDroidTheme {
+                    AppLockScreen(label, pin) {
+                        unlockedPkg = pkg
+                        hideLock()
+                    }
+                }
+            }
+        }
+        runCatching { wm.addView(view, params) }
+            .onSuccess {
+                lockView = view
+                lockedPkg = pkg
+                Log.i(TAG, "locked $pkg")
+            }
+            .onFailure { Log.w(TAG, "lock addView failed: ${it.message}") }
+    }
+
+    private fun hideLock() {
+        val v = lockView ?: return
+        lockView = null
+        lockedPkg = null
+        runCatching { getSystemService(WindowManager::class.java)?.removeView(v) }
+    }
+
+    private fun checkBreak() {
+        val pkg = fgPkg ?: return
+        val minutes = SettingsRepository(this).load().breakMinutes
+        if (minutes <= 0) return
+        val interactive = getSystemService(android.os.PowerManager::class.java)?.isInteractive ?: true
+        // Ekran kapalıyken ya da ekran koruyucu açıkken süre sayılmaz
+        if (!interactive || ScoreOverlay.dreaming.value || launcherInFront) {
+            fgSince = System.currentTimeMillis()
+            breakNotified = 0
+            return
+        }
+        val n = ((System.currentTimeMillis() - fgSince) / (minutes * 60_000L)).toInt()
+        if (n > breakNotified) {
+            breakNotified = n
+            val total = n * minutes
+            val time = if (total >= 60) tx("${total / 60} sa ${if (total % 60 > 0) "${total % 60} dk" else ""}", "${total / 60} h ${if (total % 60 > 0) "${total % 60} min" else ""}").trim()
+            else tx("$total dakika", "$total minutes")
+            showNotice(SleepNotice(
+                tx("${appLabel(pkg)} · $time oldu", "${appLabel(pkg)} · $time"),
+                tx("Gözlerini dinlendirmek için kısa bir mola vermeye ne dersin?", "How about a short break to rest your eyes?"),
+                icon = "☕",
+            ))
+        }
+    }
+
+    /** Telefondan gönderilen yazıyı öndeki uygulamanın odaklı yazı kutusuna yazar. */
+    fun typeIntoFocused(text: String): Boolean {
+        val node = runCatching { rootInActiveWindow?.findFocus(android.view.accessibility.AccessibilityNodeInfo.FOCUS_INPUT) }.getOrNull() ?: return false
+        if (!node.isEditable) return false
+        val args = android.os.Bundle().apply {
+            putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
+        }
+        val ok = node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+        // Yazılanı göstermeyiz (şifre olabilir)
+        if (ok) showNotice(SleepNotice(tx("Telefondan yazıldı", "Typed from your phone"), tx("${text.length} karakter", "${text.length} characters"), icon = "📲"))
+        return ok
+    }
+
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        // Kilit ekranı açıkken: Geri ana ekrana döner, diğer tuşlar PIN ekranına gider
+        if (lockView != null) {
+            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                if (event.action == KeyEvent.ACTION_UP) {
+                    hideLock()
+                    performGlobalAction(GLOBAL_ACTION_HOME)
+                }
+                return true
+            }
+            if (event.keyCode != KeyEvent.KEYCODE_HOME) return false
+        }
         // Son 10 saniye: herhangi bir tuş kapanmayı iptal eder (tuş uygulamaya gitmez)
         if (countingDown && event.action == KeyEvent.ACTION_DOWN) {
             cancelCountdown()
@@ -516,7 +662,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
                     bmp.recycle()
                     handler.post {
                         showNotice(
-                            if (ok) SleepNotice(tx("Ekran görüntüsü alındı", "Screenshot saved"), tx("Oyunlar → Araçlar → Ekran görüntüleri", "Games → Tools → Screenshots"), icon = "📸")
+                            if (ok) SleepNotice(tx("Ekran görüntüsü alındı", "Screenshot saved"), tx("Ekstra → Araçlar → Ekran görüntüleri", "Extras → Tools → Screenshots"), icon = "📸")
                             else SleepNotice(tx("Ekran görüntüsü kaydedilemedi", "Couldn't save the screenshot"), "", icon = "📸")
                         )
                     }
@@ -532,6 +678,8 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     override fun onDestroy() {
         if (instance === this) instance = null
+        handler.removeCallbacks(breakTick)
+        hideLock()
         closeMenu(animated = false)
         handler.removeCallbacks(sleepTick)
         SleepTimer.onChange = null

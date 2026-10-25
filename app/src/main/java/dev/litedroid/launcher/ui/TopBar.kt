@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -330,8 +331,8 @@ private fun RoundBarButton(enabled: Boolean, onFocus: () -> Unit, onSelect: () -
             SparkleGlyph(if (focused) Color(0xFFC8553D) else Color(0xFFF2A07B), 19.dp)
         } else {
             Icon(
-                imageVector = Icons.Filled.Settings,
-                contentDescription = tx("Hızlı ayarlar", "Quick settings"),
+                imageVector = Icons.Filled.KeyboardArrowDown,
+                contentDescription = tx("Hızlı panel", "Quick panel"),
                 tint = if (focused) Color(0xFF111114) else Color.White,
                 modifier = Modifier.size(19.dp),
             )

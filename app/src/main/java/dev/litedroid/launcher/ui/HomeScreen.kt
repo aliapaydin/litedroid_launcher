@@ -6,6 +6,7 @@ import dev.litedroid.launcher.data.Updater
 import dev.litedroid.launcher.data.VoiceListener
 import dev.litedroid.launcher.data.GeminiModel
 import dev.litedroid.launcher.data.GeminiVoice
+import dev.litedroid.launcher.data.WifiSecurity
 import dev.litedroid.launcher.data.CanvasCities
 import dev.litedroid.launcher.data.CanvasStyle
 import dev.litedroid.launcher.data.VoiceEngine
@@ -77,6 +78,8 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -125,7 +128,15 @@ import kotlin.math.roundToInt
 
 private data class MenuTarget(val app: LauncherApp, val fromDock: Boolean)
 
-private enum class TextTarget { NAME, CITY, CLAUDE_KEY, GEMINI_KEY, CLAUDE_QUESTION }
+private enum class TextTarget { NAME, CITY, CLAUDE_KEY, GEMINI_KEY, CLAUDE_QUESTION, WIFI_SSID, WIFI_PASS, LOCK_PIN, LOCK_VERIFY }
+
+/** PIN doğrulandıktan (ya da belirlendikten) sonra yapılacak kilit işlemi. */
+private sealed interface LockAction {
+    data class Lock(val pkg: String) : LockAction
+    data class Unlock(val pkg: String) : LockAction
+    data object ChangePin : LockAction
+    data object ClearAll : LockAction
+}
 
 private const val CMD_MEDIA =
     "adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService"
@@ -189,6 +200,10 @@ private fun HomeContent(vm: LauncherViewModel) {
     var teamsOpen by remember { mutableStateOf(false) }
     var sleepDialogOpen by remember { mutableStateOf(false) }
     var updateOpen by remember { mutableStateOf(false) }
+    var wifiOpen by remember { mutableStateOf(false) }
+    var phoneOpen by remember { mutableStateOf(false) }
+    var lockAction by remember { mutableStateOf<LockAction?>(null) }
+    var weatherAlert by remember { mutableStateOf<String?>(null) }
     val updateState by Updater.state.collectAsState()
     val updateReady = updateState is UpdateState.Available || updateState is UpdateState.NeedsConfirm ||
         updateState is UpdateState.Downloading || updateState is UpdateState.Installing
@@ -205,7 +220,8 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || updateOpen || vm.updatePrompt != null || vm.updatedTo != null ||
+    // Yazı penceresi de sayfa sayılır: açıkken ana ekran odağı geri almaya çalışmaz
+    val pageOpen = textTarget != null || storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || updateOpen || wifiOpen || phoneOpen || vm.updatePrompt != null || vm.updatedTo != null ||
         (vm.updateFullScreen && updateState.inProgress) || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
@@ -364,6 +380,36 @@ private fun HomeContent(vm: LauncherViewModel) {
         }
     }
 
+    // Telefondan "TV'de aç" ile bağlantı geldi: tarayıcı açılır (adres BrowserLaunch'ta bekler)
+    LaunchedEffect(vm.openBrowserSignal) {
+        if (vm.openBrowserSignal == 0) return@LaunchedEffect
+        menuFor = null
+        panelOpen = false
+        notifOpen = false
+        settingsOpen = false
+        phoneOpen = false
+        wifiOpen = false
+        askOpen = false
+        lastGame = BuiltInGame.BROWSER
+        gameOpen = BuiltInGame.BROWSER
+    }
+
+    // Sabah hava uyarısı: 06-12 arası, gün içinde yağış bekleniyorsa günde bir kez
+    LaunchedEffect(vm.weather, settings.morningWeather) {
+        val text = vm.weather?.alertText ?: return@LaunchedEffect
+        if (!settings.morningWeather || !settings.weatherEnabled) return@LaunchedEffect
+        val now = java.time.LocalDateTime.now()
+        if (now.hour !in 6..11) return@LaunchedEffect
+        val prefs = context.getSharedPreferences("litedroid_morning", android.content.Context.MODE_PRIVATE)
+        val today = now.toLocalDate().toString()
+        if (prefs.getString("shown", null) == today) return@LaunchedEffect
+        prefs.edit().putString("shown", today).apply()
+        kotlinx.coroutines.delay(2_500)
+        weatherAlert = text
+        kotlinx.coroutines.delay(15_000)
+        weatherAlert = null
+    }
+
     // Yüzen menüden "Claude'a sor" seçildi
     LaunchedEffect(vm.openClaudeSignal) {
         if (vm.openClaudeSignal == 0) return@LaunchedEffect
@@ -385,7 +431,12 @@ private fun HomeContent(vm: LauncherViewModel) {
     BackHandler {
         sounds?.play(Sfx.BACK)
         when {
-            textTarget != null -> textTarget = null
+            textTarget != null -> {
+                textTarget = null
+                lockAction = null
+            }
+            wifiOpen -> wifiOpen = false
+            phoneOpen -> phoneOpen = false
             gameOpen != null -> gameOpen = null
             askOpen && vm.voiceState != VoiceListener.State.IDLE -> vm.cancelVoice()
             askOpen -> {
@@ -647,6 +698,27 @@ private fun HomeContent(vm: LauncherViewModel) {
                                 })
                             }
                         }
+                        if (app.packageName != context.packageName) {
+                            val locked = app.packageName in settings.lockedApps
+                            add(MenuItem(if (locked) tx("Kilidi kaldır", "Remove lock") else tx("Kilitle (PIN)", "Lock with PIN"), Icons.Filled.Lock) {
+                                menuFor = null
+                                when {
+                                    locked -> {
+                                        lockAction = LockAction.Unlock(app.packageName)
+                                        textTarget = TextTarget.LOCK_VERIFY
+                                    }
+                                    settings.lockPin.length != 4 -> {
+                                        lockAction = LockAction.Lock(app.packageName)
+                                        textTarget = TextTarget.LOCK_PIN
+                                    }
+                                    else -> {
+                                        vm.updateSettings { it.copy(lockedApps = it.lockedApps + app.packageName) }
+                                        toast(tx("${app.label} kilitlendi. Açılınca PIN sorulacak.", "${app.label} is locked. The PIN will be asked when it opens."))
+                                        if (!vm.remoteShortcutEnabled()) toast(tx("Kilit için kumanda kısayolu (erişilebilirlik) açık olmalı", "The lock needs the remote shortcut (accessibility) on"))
+                                    }
+                                }
+                            })
+                        }
                         add(MenuItem(tx("Uygulama bilgisi", "App info"), Icons.Filled.Info) {
                             menuFor = null
                             startSafely(
@@ -733,9 +805,6 @@ private fun HomeContent(vm: LauncherViewModel) {
             QuickPanel(
                 vm = vm,
                 tiles = buildList {
-                    add(QuickTile("layout", tx("Arayüz", "Layout"), settings.layout.label, QuickIcons.layout, active = modern) {
-                        vm.updateSettings { it.copy(layout = UiLayout.entries.toList().next(it.layout)) }
-                    })
                     add(QuickTile("sound", tx("Ses efektleri", "Sound effects"), if (settings.soundsEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.sound, active = settings.soundsEnabled) {
                         vm.updateSettings { it.copy(soundsEnabled = !it.soundsEnabled) }
                     })
@@ -774,11 +843,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                         if (showHidden) tx("Gösteriliyor", "Shown") else tx("${hiddenApps.size} gizli", "${hiddenApps.size} hidden"),
                         QuickIcons.hidden, active = showHidden,
                     ) { vm.toggleShowHidden() })
-                    if (modern) {
-                        add(QuickTile("anim", tx("Animasyon", "Animation"), settings.animSpeed.label, QuickIcons.motion, active = settings.animSpeed != AnimSpeed.CALM) {
-                            vm.updateSettings { it.copy(animSpeed = AnimSpeed.entries.toList().next(it.animSpeed)) }
-                        })
-                    } else {
+                    // Arayüz ve animasyon ayarları Ayarlar → Görünüm'de; Casual'da vitrin stili burada kalır
+                    if (!modern) {
                         add(QuickTile("shelf", tx("Vitrin", "Showcase"), vm.shelfStyle.label, QuickIcons.showcase, active = true) { vm.cycleShelfStyle() })
                     }
                 },
@@ -787,13 +853,13 @@ private fun HomeContent(vm: LauncherViewModel) {
                         panelOpen = false
                         settingsOpen = true
                     },
-                    QuickAction(tx("Mağaza", "Store"), QuickIcons.store) {
+                    QuickAction(tx("Misafir Wi-Fi", "Guest Wi-Fi"), QuickIcons.weather) {
                         panelOpen = false
-                        storeOpen = true
+                        wifiOpen = true
                     },
-                    QuickAction(tx("Android", "Android"), QuickIcons.settings) {
+                    QuickAction(tx("Telefondan gönder", "Send from phone"), QuickIcons.sound) {
                         panelOpen = false
-                        startSafely(Intent(Settings.ACTION_SETTINGS))
+                        phoneOpen = true
                     },
                     QuickAction(tx("Hakkında", "About"), QuickIcons.about) {
                         panelOpen = false
@@ -892,6 +958,21 @@ private fun HomeContent(vm: LauncherViewModel) {
                         gamePickerOpen = true
                     },
                     onTestVoice = { vm.testVoice { toast(it) } },
+                    onWifiQr = { wifiOpen = true },
+                    onEditWifi = { textTarget = TextTarget.WIFI_SSID },
+                    onPhoneSend = { phoneOpen = true },
+                    onLockPin = {
+                        if (settings.lockPin.length == 4) {
+                            lockAction = LockAction.ChangePin
+                            textTarget = TextTarget.LOCK_VERIFY
+                        } else textTarget = TextTarget.LOCK_PIN
+                    },
+                    onClearLocks = {
+                        if (settings.lockPin.length == 4) {
+                            lockAction = LockAction.ClearAll
+                            textTarget = TextTarget.LOCK_VERIFY
+                        }
+                    },
                     onOpenStory = {
                         settingsOpen = false
                         lastGame = BuiltInGame.STORY
@@ -958,7 +1039,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                     },
                 ),
                 // Üstte güncelleme penceresi varken arkadaki ayarlar odak alamaz (kumanda arkaya kaçmasın)
-                enabled = textTarget == null && !changelogOpen && !sleepDialogOpen && !updateOpen &&
+                enabled = textTarget == null && !changelogOpen && !sleepDialogOpen && !updateOpen && !wifiOpen && !phoneOpen &&
                     vm.updatePrompt == null && vm.updatedTo == null && !(vm.updateFullScreen && (updateState.inProgress || updateState is UpdateState.Failed)),
                 refocusSignal = settingsRefocus,
             )
@@ -1004,6 +1085,10 @@ private fun HomeContent(vm: LauncherViewModel) {
                         TextTarget.CLAUDE_KEY -> tx("Claude API anahtarı", "Claude API key")
                         TextTarget.GEMINI_KEY -> tx("Gemini API anahtarı", "Gemini API key")
                         TextTarget.CLAUDE_QUESTION -> if (settings.aiProvider == AiProvider.GEMINI) tx("Gemini'ye sor", "Ask Gemini") else tx("Claude'a sor", "Ask Claude")
+                        TextTarget.WIFI_SSID -> tx("Wi-Fi ağ adı", "Wi-Fi network name")
+                        TextTarget.WIFI_PASS -> tx("Wi-Fi şifresi", "Wi-Fi password")
+                        TextTarget.LOCK_PIN -> tx("Yeni kilit PIN'i", "New lock PIN")
+                        TextTarget.LOCK_VERIFY -> tx("Kilit PIN'i", "Lock PIN")
                     },
                     subtitle = when (target) {
                         TextTarget.NAME -> tx("Üst barda ve selamlamada görünür", "Shown in the top bar and greeting")
@@ -1017,6 +1102,10 @@ private fun HomeContent(vm: LauncherViewModel) {
                             "Your key from aistudio.google.com → Get API key (starts with AQ.… or AIza…). You can also send it from a computer: $CMD_GEMINI_KEY",
                         )
                         TextTarget.CLAUDE_QUESTION -> tx("Sorunu yaz, ${settings.aiProvider.label} cevaplasın", "Type your question for ${settings.aiProvider.label}")
+                        TextTarget.WIFI_SSID -> tx("Misafirlerin bağlanacağı ağın adı (büyük/küçük harf önemli). Telefondan da gönderebilirsin: hızlı panel → Telefondan gönder.", "The network guests should join (case-sensitive). You can also send it from your phone: quick panel → Send from phone.")
+                        TextTarget.WIFI_PASS -> tx("Ağın şifresi. Yalnızca bu TV'de saklanır ve QR'da kullanılır.", "The network password. Stored only on this TV and used in the QR.")
+                        TextTarget.LOCK_PIN -> tx("4 rakam yaz. Kilitli uygulamalar açılınca bu PIN sorulur.", "Type 4 digits. Locked apps will ask for this PIN.")
+                        TextTarget.LOCK_VERIFY -> tx("Devam etmek için 4 haneli PIN'i gir.", "Enter the 4-digit PIN to continue.")
                     },
                     initial = when (target) {
                         TextTarget.NAME -> settings.userName
@@ -1024,14 +1113,21 @@ private fun HomeContent(vm: LauncherViewModel) {
                         TextTarget.CLAUDE_KEY -> settings.claudeKey
                         TextTarget.GEMINI_KEY -> settings.geminiKey
                         TextTarget.CLAUDE_QUESTION -> ""
+                        TextTarget.WIFI_SSID -> settings.wifiSsid
+                        TextTarget.WIFI_PASS -> settings.wifiPassword
+                        TextTarget.LOCK_PIN, TextTarget.LOCK_VERIFY -> ""
                     },
-                    allowEmpty = target == TextTarget.CITY || target == TextTarget.CLAUDE_KEY || target == TextTarget.GEMINI_KEY,
+                    allowEmpty = target == TextTarget.CITY || target == TextTarget.CLAUDE_KEY || target == TextTarget.GEMINI_KEY ||
+                        target == TextTarget.WIFI_SSID || target == TextTarget.WIFI_PASS || target == TextTarget.LOCK_PIN || target == TextTarget.LOCK_VERIFY,
                     maxLength = when (target) {
                         TextTarget.NAME -> 20
                         TextTarget.CITY -> 40
                         TextTarget.CLAUDE_KEY -> 400
                         TextTarget.GEMINI_KEY -> 400
                         TextTarget.CLAUDE_QUESTION -> 500
+                        TextTarget.WIFI_SSID -> 32
+                        TextTarget.WIFI_PASS -> 63
+                        TextTarget.LOCK_PIN, TextTarget.LOCK_VERIFY -> 4
                     },
                     onSave = { value ->
                         when (target) {
@@ -1040,14 +1136,82 @@ private fun HomeContent(vm: LauncherViewModel) {
                             TextTarget.CLAUDE_KEY -> vm.updateSettings { it.copy(claudeKey = value.trim()) }
                             TextTarget.GEMINI_KEY -> vm.updateSettings { it.copy(geminiKey = value.trim()) }
                             TextTarget.CLAUDE_QUESTION -> vm.askClaude(value)
+                            TextTarget.WIFI_SSID, TextTarget.WIFI_PASS, TextTarget.LOCK_PIN, TextTarget.LOCK_VERIFY -> Unit
                         }
                         textTarget = null
+                        when (target) {
+                            TextTarget.WIFI_SSID -> {
+                                vm.updateSettings { it.copy(wifiSsid = value) }
+                                // Ağ adından sonra şifre sorulur, sonra QR gösterilir
+                                if (value.isNotBlank() && settings.wifiSecurity != WifiSecurity.OPEN) textTarget = TextTarget.WIFI_PASS
+                                else if (value.isNotBlank()) wifiOpen = true
+                            }
+                            TextTarget.WIFI_PASS -> {
+                                vm.updateSettings { it.copy(wifiPassword = value) }
+                                wifiOpen = true
+                            }
+                            TextTarget.LOCK_PIN -> {
+                                if (value.length != 4 || !value.all { it.isDigit() }) {
+                                    toast(tx("PIN 4 rakam olmalı", "The PIN must be 4 digits"))
+                                    lockAction = null
+                                } else {
+                                    val pending = lockAction
+                                    vm.updateSettings { s -> s.copy(lockPin = value, lockedApps = if (pending is LockAction.Lock) s.lockedApps + pending.pkg else s.lockedApps) }
+                                    toast(if (pending is LockAction.Lock) tx("PIN kaydedildi, uygulama kilitlendi", "PIN saved, app locked") else tx("PIN kaydedildi", "PIN saved"))
+                                    if (!vm.remoteShortcutEnabled()) toast(tx("Kilit için kumanda kısayolu (erişilebilirlik) açık olmalı", "The lock needs the remote shortcut (accessibility) on"))
+                                    lockAction = null
+                                }
+                            }
+                            TextTarget.LOCK_VERIFY -> {
+                                val action = lockAction
+                                lockAction = null
+                                if (value != settings.lockPin) {
+                                    toast(tx("PIN yanlış", "Wrong PIN"))
+                                } else when (action) {
+                                    is LockAction.Unlock -> {
+                                        vm.updateSettings { it.copy(lockedApps = it.lockedApps - action.pkg) }
+                                        toast(tx("Kilit kaldırıldı", "Lock removed"))
+                                    }
+                                    LockAction.ChangePin -> {
+                                        lockAction = LockAction.ChangePin
+                                        textTarget = TextTarget.LOCK_PIN
+                                    }
+                                    LockAction.ClearAll -> {
+                                        vm.updateSettings { it.copy(lockedApps = emptySet(), lockPin = "") }
+                                        toast(tx("Tüm kilitler ve PIN kaldırıldı", "All locks and the PIN were removed"))
+                                    }
+                                    else -> Unit
+                                }
+                            }
+                            else -> Unit
+                        }
                     },
-                    onCancel = { textTarget = null },
+                    onCancel = {
+                        textTarget = null
+                        lockAction = null
+                    },
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
         }
+
+        if (wifiOpen) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)))
+            WifiQrDialog(
+                settings.wifiSsid, settings.wifiPassword, settings.wifiSecurity,
+                onEdit = {
+                    wifiOpen = false
+                    textTarget = TextTarget.WIFI_SSID
+                },
+                onClose = { wifiOpen = false },
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+        if (phoneOpen) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)))
+            PhoneSendDialog(onClose = { phoneOpen = false }, modifier = Modifier.align(Alignment.Center))
+        }
+        weatherAlert?.let { WeatherAlertCard(it, Modifier.align(Alignment.BottomEnd)) }
 
         if (sleepDialogOpen) {
             Box(
@@ -1231,6 +1395,11 @@ private fun settingsEntries(
     onRemoteShortcut: () -> Unit,
     onTestVoice: () -> Unit,
     onOpenStory: () -> Unit,
+    onWifiQr: () -> Unit,
+    onEditWifi: () -> Unit,
+    onPhoneSend: () -> Unit,
+    onLockPin: () -> Unit,
+    onClearLocks: () -> Unit,
 ): List<SettingsEntry> = listOf(
     SettingsEntry.Header(tx("Görünüm", "Appearance")),
     SettingsEntry.Row("language", "Dil / Language", Icons.Filled.Face, settings.language.label,
@@ -1481,8 +1650,8 @@ private fun settingsEntries(
         tx("Seçili Gemini sesiyle kısa bir cümle okur. Çalışmazsa sebebi (anahtar, kota, bağlantı) ekranda yazar.",
             "Reads a short sentence with the selected Gemini voice. If it fails, the reason (key, quota, connection) is shown.")) { onTestVoice() },
     SettingsEntry.Row("story_open", tx("Masal Makinesi", "Story Machine"), Icons.Filled.Star, null,
-        tx("Yapay zekânın yazıp çizdiği, Gemini sesiyle anlattığı, çocuğun seçimleriyle ilerleyen resimli masallar. Oyunlar'da da var.",
-            "Illustrated bedtime stories written, drawn and narrated by AI that follow the child's choices. Also in Games.")) { onOpenStory() },
+        tx("Yapay zekânın yazıp çizdiği, Gemini sesiyle anlattığı, çocuğun seçimleriyle ilerleyen resimli masallar. Ekstra sekmesinde de var.",
+            "Illustrated bedtime stories written, drawn and narrated by AI that follow the child's choices. Also in the Extras tab.")) { onOpenStory() },
     SettingsEntry.Row("claude_web", tx("Web araması", "Web search"), Icons.Filled.Search,
         if (settings.claudeWebSearch) tx("Açık", "On") else tx("Kapalı", "Off"),
         tx("Güncel sorularda (maçlar, haberler, hava) Claude web'de arar ve kaynak gösterir. Arama başına küçük bir ek API ücreti vardır.",
@@ -1507,10 +1676,43 @@ private fun settingsEntries(
     SettingsEntry.Row("clear", tx("İzleme geçmişini temizle", "Clear watch history"), Icons.Filled.Delete, null,
         tx("Kaldığın yerden devam et ve son kullanılanlar listesini sıfırlar.", "Resets the continue-watching and recently used lists.")) { onClearHistory() },
 
+    SettingsEntry.Header(tx("Ev ve aile", "Home and family")),
+    SettingsEntry.Row("wifi_qr", tx("Misafir Wi-Fi QR'ı", "Guest Wi-Fi QR"), Icons.Filled.Share,
+        settings.wifiSsid.ifBlank { tx("Ayarlanmadı", "Not set") },
+        tx("Misafirler telefonla QR'ı okutup Wi-Fi'ye bağlanır, şifre yazdırmaya gerek kalmaz. Hızlı panelde de var.",
+            "Guests scan the QR with their phone to join your Wi-Fi, no typing. Also in the quick panel.")) { onWifiQr() },
+    SettingsEntry.Row("wifi_edit", tx("Wi-Fi ağı ve şifresi", "Wi-Fi network and password"), Icons.Filled.Edit, null,
+        tx("Önce ağ adı, sonra şifre sorulur. Yalnızca bu TV'de saklanır.", "Asks for the network name, then the password. Stored only on this TV.")) { onEditWifi() },
+    SettingsEntry.Row("wifi_sec", tx("Wi-Fi güvenliği", "Wi-Fi security"), Icons.Filled.Lock, settings.wifiSecurity.label,
+        tx("Çoğu modemde WPA'dır. Şifresiz ağlarda QR'da şifre olmaz.", "Most routers use WPA. Open networks have no password in the QR.")) {
+        vm.updateSettings { it.copy(wifiSecurity = WifiSecurity.entries.toList().next(it.wifiSecurity)) }
+    },
+    SettingsEntry.Row("phone_send", tx("Telefondan TV'ye gönder", "Send from your phone"), Icons.Filled.Send, null,
+        tx("QR'ı okutan telefon yazı ya da bağlantı gönderir: yazı TV'de seçili yazı kutusuna gider (Netflix şifresi, YouTube araması…), bağlantı LiteDroid tarayıcısında açılır. Hızlı panelde de var.",
+            "A phone that scans the QR can send text or links: text goes into the selected text box on the TV, links open in LiteDroid's browser. Also in the quick panel.")) { onPhoneSend() },
+    SettingsEntry.Row("morning_weather", tx("Sabah hava uyarısı", "Morning weather alert"), Icons.Filled.Place,
+        if (settings.morningWeather) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Sabah 06-12 arası, gün içinde yağmur, kar ya da fırtına bekleniyorsa ana ekranda kısa bir uyarı çıkar: \"15:00 civarı yağmur, şemsiyeni al\". Günde bir kez.",
+            "Between 6 and 12 in the morning, if rain, snow or a storm is expected later, a short alert shows on the home screen. Once a day.")) {
+        vm.updateSettings { it.copy(morningWeather = !it.morningWeather) }
+    },
+    SettingsEntry.Row("break", tx("Mola hatırlatıcısı", "Break reminder"), Icons.Filled.Notifications,
+        if (settings.breakMinutes == 0) tx("Kapalı", "Off") else tx("${settings.breakMinutes} dk", "${settings.breakMinutes} min"),
+        tx("Bir uygulamada bu kadar süre kesintisiz kalınca köşede nazik bir mola hatırlatması çıkar, sonra aynı aralıkla tekrarlar. Ekran koruyucu ya da ekran kapalıyken süre sayılmaz. Kumanda kısayolu (erişilebilirlik) açık olmalı.",
+            "After this long in one app, a gentle break reminder shows in the corner and repeats at the same interval. Screensaver or screen-off time doesn't count. Needs the remote shortcut (accessibility).")) {
+        vm.updateSettings { it.copy(breakMinutes = listOf(0, 30, 45, 60, 90, 120).let { l -> l[(l.indexOf(it.breakMinutes).coerceAtLeast(0) + 1) % l.size] }) }
+    },
+    SettingsEntry.Row("lock_pin", tx("Uygulama kilidi PIN'i", "App lock PIN"), Icons.Filled.Lock,
+        if (settings.lockPin.length == 4) tx("Ayarlı · ${settings.lockedApps.size} uygulama kilitli", "Set · ${settings.lockedApps.size} apps locked") else tx("Ayarlanmadı", "Not set"),
+        tx("Bir uygulamayı kilitlemek için ana ekranda üstüne gel, Tamam'a basılı tut → \"Kilitle (PIN)\". Kilitli uygulama açılınca 4 haneli PIN sorulur; Geri ana ekrana döner. PIN'i değiştirmek için önce eskisi sorulur. Kumanda kısayolu (erişilebilirlik) açık olmalı.",
+            "To lock an app, hold OK on it on the home screen → \"Lock with PIN\". A locked app asks for the 4-digit PIN; Back returns home. Changing the PIN asks for the old one first. Needs the remote shortcut (accessibility).")) { onLockPin() },
+    SettingsEntry.Row("lock_clear", tx("Tüm kilitleri kaldır", "Remove all locks"), Icons.Filled.Delete, null,
+        tx("PIN sorulur; doğruysa tüm kilitler ve PIN silinir.", "Asks for the PIN; then all locks and the PIN are removed.")) { onClearLocks() },
+
     SettingsEntry.Header(tx("Diğer", "More")),
     SettingsEntry.Row("games", tx("Dahili oyunlar", "Built-in games"), Icons.Filled.PlayArrow, null,
-        tx("Bilgi Yarışması, Yılan, Kutu İtme, Mini Yarış, SOS, XOX, Sudoku ve Mayın Tarlası. Modern arayüzde Oyunlar sekmesinde de var.",
-            "Quiz Night, Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe, Sudoku and Minesweeper. Also in the Games tab of the Modern layout.")) { onGames() },
+        tx("Bilgi Yarışması, Yılan, Kutu İtme, Mini Yarış, SOS, XOX, Sudoku ve Mayın Tarlası. Modern arayüzde Ekstra sekmesinde de var.",
+            "Quiz Night, Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe, Sudoku and Minesweeper. Also in the Extras tab of the Modern layout.")) { onGames() },
     SettingsEntry.Row("hidden", if (vm.showHidden) tx("Gizli uygulamaları sakla", "Conceal hidden apps") else tx("Gizli uygulamaları göster", "Show hidden apps"),
         Icons.Filled.Search, "${vm.hiddenApps.size}", null) { vm.toggleShowHidden() },
     SettingsEntry.Row("store", tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart, null, null) { onOpenStore() },

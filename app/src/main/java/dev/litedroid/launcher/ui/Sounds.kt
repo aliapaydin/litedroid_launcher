@@ -14,6 +14,8 @@ enum class Sfx(@RawRes val res: Int, val gain: Float) {
     BACK(R.raw.sfx_back, 0.8f),
     BUMP(R.raw.sfx_bump, 0.9f),
     OPEN(R.raw.sfx_open, 0.7f),
+    /** Listenin sonuna gelindi: kısık sesli "tok". */
+    EDGE(R.raw.sfx_bump, 0.3f),
 }
 
 /** Arayüz ses efektleri. Ayarlardan kapatılabilir, ses seviyesi seçilebilir. */
@@ -40,7 +42,7 @@ class SoundFx(context: Context) {
         // Tuşa basılı tutup hızla gezerken sesler üst üste binmesin
         val minGap = when (sfx) {
             Sfx.NAV -> 45L
-            Sfx.BUMP -> 250L
+            Sfx.BUMP, Sfx.EDGE -> 250L
             else -> 0L
         }
         if (minGap > 0) {

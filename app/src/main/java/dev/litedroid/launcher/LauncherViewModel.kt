@@ -222,6 +222,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         openClaudeSignal++
     }
 
+    /** Telefondan gelen bağlantı için tarayıcıyı aç. */
+    var openBrowserSignal by mutableIntStateOf(0)
+        private set
+
+    fun requestOpenBrowser() {
+        openBrowserSignal++
+    }
+
     /** Ayarlar başka bir yerden (yüzen menü) değiştiyse yeniden oku. */
     fun reloadSettings() {
         val fresh = settingsRepo.load()

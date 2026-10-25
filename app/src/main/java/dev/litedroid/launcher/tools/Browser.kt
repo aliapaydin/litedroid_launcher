@@ -291,6 +291,15 @@ fun BrowserScreen(modifier: Modifier = Modifier, onExit: () -> Unit) {
         lifecycle.addObserver(obs)
         onDispose { lifecycle.removeObserver(obs) }
     }
+    // Telefondan "TV'de aç" ile gelen bağlantılar
+    LaunchedEffect(Unit) {
+        BrowserLaunch.pending.collect { u ->
+            if (u != null) {
+                BrowserLaunch.pending.value = null
+                go(u)
+            }
+        }
+    }
     LaunchedEffect(toast) {
         if (toast != null) {
             delay(2_500)
@@ -700,6 +709,12 @@ private fun DownloadRow(item: DownloadItem, modifier: Modifier, onOpen: () -> Un
 @Composable
 private fun TextEntry(req: TextRequest, onCancel: () -> Unit, onDone: (String, Boolean) -> Unit) {
     var text by remember { mutableStateOf(req.initial) }
+    // Telefondan gelen yazı da buraya düşer
+    DisposableEffect(Unit) {
+        PhoneBridge.listeners++
+        onDispose { PhoneBridge.listeners-- }
+    }
+    LaunchedEffect(Unit) { PhoneBridge.text.collect { text = it } }
     val field = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {

@@ -110,6 +110,15 @@ enum class GeminiVoice(val id: String, private val tr: String, private val en: S
     val label: String get() = "$id · " + tx(tr, en)
 }
 
+/** Misafir Wi-Fi QR'ı için ağ güvenliği. */
+enum class WifiSecurity(val qr: String, private val tr: String, private val en: String) {
+    WPA("WPA", "WPA/WPA2/WPA3", "WPA/WPA2/WPA3"),
+    WEP("WEP", "WEP (eski)", "WEP (old)"),
+    OPEN("nopass", "Şifresiz", "Open");
+
+    val label: String get() = tx(tr, en)
+}
+
 /** LiteDroid'in kullanıcı tarafından değiştirilebilen tüm ayarları. */
 data class LauncherSettings(
     val language: AppLanguage = AppLanguage.TR,
@@ -166,6 +175,17 @@ data class LauncherSettings(
     val voiceEngine: VoiceEngine = VoiceEngine.GEMINI,
     val geminiVoice: GeminiVoice = GeminiVoice.SULAFAT,
     val updateMode: UpdateMode = UpdateMode.AUTO,
+    /** Misafir Wi-Fi: hızlı paneldeki QR için. */
+    val wifiSsid: String = "",
+    val wifiPassword: String = "",
+    val wifiSecurity: WifiSecurity = WifiSecurity.WPA,
+    /** Sabah (06-12) gün içinde yağmur/kar bekleniyorsa ana ekranda uyarı. */
+    val morningWeather: Boolean = true,
+    /** Bir uygulamada bu kadar dakika kesintisiz kalınca mola hatırlatması (0: kapalı). */
+    val breakMinutes: Int = 0,
+    /** Uygulama kilidi: bu uygulamalar açılınca PIN sorulur. */
+    val lockedApps: Set<String> = emptySet(),
+    val lockPin: String = "",
 ) {
     companion object {
         val SAVER_OPTIONS = listOf(0, 1, 2, 5, 10, 15, 30)
@@ -226,6 +246,13 @@ class SettingsRepository(context: Context) {
         voiceEngine = enumOr(prefs.getString(K_VOICE_ENGINE, null), VoiceEngine.GEMINI),
         geminiVoice = enumOr(prefs.getString(K_GEMINI_VOICE, null), GeminiVoice.SULAFAT),
         updateMode = enumOr(prefs.getString(K_UPDATE_MODE, null), UpdateMode.AUTO),
+        wifiSsid = prefs.getString(K_WIFI_SSID, "").orEmpty(),
+        wifiPassword = prefs.getString(K_WIFI_PASS, "").orEmpty(),
+        wifiSecurity = enumOr(prefs.getString(K_WIFI_SEC, null), WifiSecurity.WPA),
+        morningWeather = prefs.getBoolean(K_MORNING_WEATHER, true),
+        breakMinutes = prefs.getInt(K_BREAK_MINUTES, 0),
+        lockedApps = prefs.getStringSet(K_LOCKED_APPS, emptySet()).orEmpty().toSet(),
+        lockPin = prefs.getString(K_LOCK_PIN, "").orEmpty(),
     )
 
     fun save(s: LauncherSettings) {
@@ -267,6 +294,13 @@ class SettingsRepository(context: Context) {
             .putString(K_VOICE_ENGINE, s.voiceEngine.name)
             .putString(K_GEMINI_VOICE, s.geminiVoice.name)
             .putString(K_UPDATE_MODE, s.updateMode.name)
+            .putString(K_WIFI_SSID, s.wifiSsid)
+            .putString(K_WIFI_PASS, s.wifiPassword)
+            .putString(K_WIFI_SEC, s.wifiSecurity.name)
+            .putBoolean(K_MORNING_WEATHER, s.morningWeather)
+            .putInt(K_BREAK_MINUTES, s.breakMinutes)
+            .putStringSet(K_LOCKED_APPS, s.lockedApps)
+            .putString(K_LOCK_PIN, s.lockPin)
             .apply()
     }
 
@@ -311,6 +345,13 @@ class SettingsRepository(context: Context) {
         const val K_GEMINI_KEY = "gemini_key"
         const val K_GEMINI_MODEL = "gemini_model"
         const val K_VOICE_ENGINE = "voice_engine"
+        const val K_WIFI_SSID = "wifi_ssid"
+        const val K_WIFI_PASS = "wifi_pass"
+        const val K_WIFI_SEC = "wifi_sec"
+        const val K_MORNING_WEATHER = "morning_weather"
+        const val K_BREAK_MINUTES = "break_minutes"
+        const val K_LOCKED_APPS = "locked_apps"
+        const val K_LOCK_PIN = "lock_pin"
         const val K_GEMINI_VOICE = "gemini_voice"
         const val K_UPDATE_MODE = "update_mode"
     }

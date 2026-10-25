@@ -70,6 +70,13 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
+    private fun handleOpenBrowser(intent: Intent?): Boolean {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_BROWSER, false) != true) return false
+        intent.removeExtra(EXTRA_OPEN_BROWSER)
+        viewModel.requestOpenBrowser()
+        return true
+    }
+
     private fun handleOpenClaude(intent: Intent?): Boolean {
         if (intent?.getBooleanExtra(EXTRA_OPEN_CLAUDE, false) != true) return false
         intent.removeExtra(EXTRA_OPEN_CLAUDE)
@@ -129,6 +136,7 @@ class MainActivity : ComponentActivity() {
         ContextCompat.registerReceiver(this, packageReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         handleKeyIntent(intent)
         handleOpenClaude(intent)
+        handleOpenBrowser(intent)
         askContentPermissionOnce()
     }
 
@@ -175,6 +183,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         if (handleKeyIntent(intent)) return
         if (handleOpenClaude(intent)) return
+        if (handleOpenBrowser(intent)) return
         if (intent.hasCategory(Intent.CATEGORY_HOME)) viewModel.onHomePressed()
     }
 
@@ -192,5 +201,8 @@ class MainActivity : ComponentActivity() {
 
         /** Yüzen menüdeki "Claude'a sor" kısayolu LiteDroid'i bu ekranla açar. */
         const val EXTRA_OPEN_CLAUDE = "open_claude"
+
+        /** Telefondan gelen bağlantı: LiteDroid tarayıcısı açılır (adres BrowserLaunch'ta). */
+        const val EXTRA_OPEN_BROWSER = "open_browser"
     }
 }
