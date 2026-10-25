@@ -28,7 +28,29 @@ enum class SaverScene(private val tr: String, private val en: String) {
     CINEMA("Sinema", "Cinema"),
     SPORT("Spor", "Sports"),
     GAMES("Oyun", "Games"),
-    NIGHT("Gece", "Night");
+    NIGHT("Gece", "Night"),
+    CANVAS("Canlı Tablo", "Living Painting");
+
+    val label: String get() = tx(tr, en)
+}
+
+/** Canlı Tablo: hangi şehirler resmedilsin. */
+enum class CanvasCities(private val tr: String, private val en: String) {
+    MIXED("Benim şehrim + dünya", "My city + the world"),
+    HOME("Sadece benim şehrim", "Only my city"),
+    WORLD("Dünya turu", "World tour");
+
+    val label: String get() = tx(tr, en)
+}
+
+/** Canlı Tablo: resim stili (yapay zekâya tarif olarak gider). */
+enum class CanvasStyle(private val tr: String, private val en: String, val prompt: String) {
+    OIL("Yağlıboya", "Oil painting", "Impressionist oil painting with visible brushstrokes, rich luminous color"),
+    WATERCOLOR("Suluboya", "Watercolor", "Delicate watercolor painting, soft washes and paper texture"),
+    VANGOGH("Van Gogh tarzı", "Van Gogh style", "Post-impressionist painting in the style of Vincent van Gogh, swirling expressive brushstrokes"),
+    UKIYOE("Japon baskısı", "Ukiyo-e", "Japanese ukiyo-e woodblock print, flat colors and elegant lines"),
+    PIXEL("Piksel sanatı", "Pixel art", "Detailed 16-bit pixel art scene, cozy retro game look"),
+    PHOTO("Fotoğraf gibi", "Photographic", "Breathtaking cinematic landscape photograph, golden detail, high dynamic range");
 
     val label: String get() = tx(tr, en)
 }
@@ -106,6 +128,10 @@ data class LauncherSettings(
     /** Ekran koruyucunun devreye gireceği süre (dakika). 0 = kapalı. */
     val saverMinutes: Int = 5,
     val saverScene: SaverScene = SaverScene.MIXED,
+    val canvasCities: CanvasCities = CanvasCities.MIXED,
+    val canvasStyle: CanvasStyle = CanvasStyle.OIL,
+    /** Canlı Tablo'da resimler kaç dakikada bir değişsin. */
+    val canvasMinutes: Int = 10,
     val favorites: List<String> = emptyList(),
     val favoritesInitialized: Boolean = false,
     /** Ekran koruyucuda "Şimdi çalıyor" ve skor kartları. */
@@ -165,6 +191,9 @@ class SettingsRepository(context: Context) {
         soundLevel = enumOr(prefs.getString(K_SOUND_LEVEL, null), SoundLevel.MEDIUM),
         saverMinutes = prefs.getInt(K_SAVER_MIN, 5),
         saverScene = enumOr(prefs.getString(K_SAVER_SCENE, null), SaverScene.MIXED),
+        canvasCities = enumOr(prefs.getString(K_CANVAS_CITIES, null), CanvasCities.MIXED),
+        canvasStyle = enumOr(prefs.getString(K_CANVAS_STYLE, null), CanvasStyle.OIL),
+        canvasMinutes = prefs.getInt(K_CANVAS_MINUTES, 10),
         favorites = prefs.getString(K_FAVORITES, "").orEmpty().split(',').filter { it.isNotBlank() },
         favoritesInitialized = prefs.getBoolean(K_FAV_INIT, false),
         saverNowPlaying = prefs.getBoolean(K_SAVER_NP, true),
@@ -214,6 +243,9 @@ class SettingsRepository(context: Context) {
             .putString(K_SOUND_LEVEL, s.soundLevel.name)
             .putInt(K_SAVER_MIN, s.saverMinutes)
             .putString(K_SAVER_SCENE, s.saverScene.name)
+            .putString(K_CANVAS_CITIES, s.canvasCities.name)
+            .putString(K_CANVAS_STYLE, s.canvasStyle.name)
+            .putInt(K_CANVAS_MINUTES, s.canvasMinutes)
             .putString(K_FAVORITES, s.favorites.joinToString(","))
             .putBoolean(K_FAV_INIT, s.favoritesInitialized)
             .putBoolean(K_SAVER_NP, s.saverNowPlaying)
@@ -255,6 +287,9 @@ class SettingsRepository(context: Context) {
         const val K_SOUND_LEVEL = "sound_level"
         const val K_SAVER_MIN = "saver_minutes"
         const val K_SAVER_SCENE = "saver_scene"
+        const val K_CANVAS_CITIES = "canvas_cities"
+        const val K_CANVAS_STYLE = "canvas_style"
+        const val K_CANVAS_MINUTES = "canvas_minutes"
         const val K_FAVORITES = "favorites"
         const val K_FAV_INIT = "favorites_initialized"
         const val K_SAVER_NP = "saver_now_playing"

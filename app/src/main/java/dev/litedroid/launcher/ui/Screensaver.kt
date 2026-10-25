@@ -97,6 +97,23 @@ fun ScreensaverContent(
     showScores: Boolean = true,
     leagues: Set<String>? = null,
 ) {
+    // Canlı Tablo: yapay zekânın gerçek saate ve havaya göre resmettiği şehir manzaraları
+    if (scene == SaverScene.CANVAS) {
+        dev.litedroid.launcher.canvas.LivingCanvas(userName, modifier)
+    } else {
+        ClassicScreensaver(scene, userName, modifier, showNowPlaying, showScores, leagues)
+    }
+}
+
+@Composable
+private fun ClassicScreensaver(
+    scene: SaverScene,
+    userName: String?,
+    modifier: Modifier,
+    showNowPlaying: Boolean,
+    showScores: Boolean,
+    leagues: Set<String>?,
+) {
     var current by remember { mutableStateOf(if (scene == SaverScene.MIXED) SaverScene.CINEMA else scene) }
     LaunchedEffect(scene) {
         if (scene == SaverScene.MIXED) {

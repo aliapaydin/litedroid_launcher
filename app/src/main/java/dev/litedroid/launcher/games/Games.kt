@@ -57,6 +57,8 @@ enum class BuiltInGame(
     private val enDesc: String,
     val top: Color,
     val bottom: Color,
+    /** Oyun değil araç: Oyunlar sekmesinde ayrı "Araçlar" rafında durur. */
+    val isTool: Boolean = false,
 ) {
     STORY("Masal Makinesi", "Story Machine", "Yapay zekâ yazsın, çizsin, anlatsın", "AI writes, draws and tells it", Color(0xFFFFC75A), Color(0xFF3A2A86)),
     QUIZ("Bilgi Yarışması", "Quiz Night", "Telefonlarla katıl, soruları ilk sen bil", "Join with phones, answer first", Color(0xFFFF5C8A), Color(0xFF5B3FE0)),
@@ -66,7 +68,14 @@ enum class BuiltInGame(
     SOS("SOS", "SOS", "S-O-S diz, puanı kap", "Line up S-O-S to score", Color(0xFF4D9BFF), Color(0xFF16408F)),
     TICTACTOE("XOX", "Tic-Tac-Toe", "Üçünü yan yana getir", "Get three in a row", Color(0xFFB06BFF), Color(0xFF4A1D9E)),
     SUDOKU("Sudoku", "Sudoku", "Her satır, sütun ve kutuda 1-9", "1-9 in every row, column and box", Color(0xFF2ED3C8), Color(0xFF0C5E66)),
-    MINES("Mayın Tarlası", "Minesweeper", "Mayınlara basmadan tarlayı temizle", "Clear the field without hitting a mine", Color(0xFFFF8A3D), Color(0xFF8A2E12));
+    MINES("Mayın Tarlası", "Minesweeper", "Mayınlara basmadan tarlayı temizle", "Clear the field without hitting a mine", Color(0xFFFF8A3D), Color(0xFF8A2E12)),
+
+    // ---- Araçlar ----
+    CALC("Hesap Makinesi", "Calculator", "Kumandayla ya da rakam tuşlarıyla hesapla", "Calculate with the remote or number keys", Color(0xFF4D9BFF), Color(0xFF1B3A7A), isTool = true),
+    SPEED("Hız Testi", "Speed Test", "İndirme, yükleme ve ping", "Download, upload and ping", Color(0xFF2ED3C8), Color(0xFF0C4F66), isTool = true),
+    SHOTS("Ekran Görüntüleri", "Screenshots", "Her uygulamada çek, telefona al", "Capture any app, get it on your phone", Color(0xFFFF7AB6), Color(0xFF6B1F55), isTool = true),
+    SYSINFO("Sistem Özellikleri", "System Info", "Donanım, ekran, ağ ve izinler", "Hardware, display, network and permissions", Color(0xFF9AA6C8), Color(0xFF2B3350), isTool = true),
+    AVATAR("Avatar Düzenleyici", "Avatar Maker", "Kendi avatarını yap, profil resmi yap", "Make your avatar, use it as profile picture", Color(0xFFFFB13D), Color(0xFF8E3A9E), isTool = true);
 
     val title: String get() = tx(tr, en)
     val description: String get() = tx(trDesc, enDesc)
@@ -81,6 +90,11 @@ enum class BuiltInGame(
             MINES -> tx("Yön tuşları: gez · Tamam: aç · Basılı tut: bayrak", "Arrows: move · OK: open · Hold: flag")
             QUIZ -> tx("Telefonlarla QR kodu okut · Tamam: devam", "Scan the QR code with phones · OK: continue")
             STORY -> tx("Tamam: duraklat · ▶ sonraki · ◀ önceki", "OK: pause · ▶ next · ◀ previous")
+            CALC -> tx("Yön tuşları: gez · Tamam: bas · Rakam tuşları: yaz", "Arrows: move · OK: press · Number keys: type")
+            SPEED -> tx("Tamam: testi başlat", "OK: start the test")
+            SHOTS -> tx("Yüzen menüde 📸 Görüntü · Tamam: aç", "📸 Capture in the floating menu · OK: open")
+            SYSINFO -> tx("Yön tuşları: kartlar arasında gez", "Arrows: move between cards")
+            AVATAR -> tx("◀ ▶ parçayı değiştir · Tamam: sonraki", "◀ ▶ change the part · OK: next")
         }
 }
 
@@ -262,6 +276,38 @@ fun GameGlyph(game: BuiltInGame, size: Dp, color: Color = Color.White) {
                 drawCircle(color, s * 0.7f, Offset(s * 7.6f, s * 7.4f))
                 drawCircle(color.copy(alpha = 0.7f), s * 0.45f, Offset(s * 8.6f, s * 4.6f))
             }
+            BuiltInGame.CALC -> {
+                drawRoundRect(color, Offset(s * 2f, s * 1f), Size(s * 6f, s * 8f), CornerRadius(s), style = Stroke(s * 0.8f))
+                drawRect(color, Offset(s * 3f, s * 2f), Size(s * 4f, s * 1.6f))
+                for (r in 0..2) for (c in 0..2) drawCircle(color, s * 0.45f, Offset(s * (3.3f + c * 1.7f), s * (5f + r * 1.3f)))
+            }
+            BuiltInGame.SPEED -> {
+                drawArc(color, 160f, 220f, false, Offset(s * 1f, s * 1.5f), Size(s * 8f, s * 8f), style = Stroke(s * 0.9f, cap = StrokeCap.Round))
+                drawLine(color, Offset(s * 5f, s * 5.5f), Offset(s * 7.4f, s * 3.4f), s * 0.9f, cap = StrokeCap.Round)
+                drawCircle(color, s * 0.8f, Offset(s * 5f, s * 5.5f))
+            }
+            BuiltInGame.SHOTS -> {
+                val l = s * 2.4f
+                listOf(Offset(s, s) to Offset(1f, 1f), Offset(s * 9f, s) to Offset(-1f, 1f), Offset(s, s * 9f) to Offset(1f, -1f), Offset(s * 9f, s * 9f) to Offset(-1f, -1f)).forEach { (p, d) ->
+                    drawLine(color, p, Offset(p.x + d.x * l, p.y), s * 0.8f, cap = StrokeCap.Round)
+                    drawLine(color, p, Offset(p.x, p.y + d.y * l), s * 0.8f, cap = StrokeCap.Round)
+                }
+                drawCircle(color, s * 1.6f, Offset(s * 5f, s * 5f))
+            }
+            BuiltInGame.SYSINFO -> {
+                drawRoundRect(color, Offset(s * 2.5f, s * 2.5f), Size(s * 5f, s * 5f), CornerRadius(s * 0.8f), style = Stroke(s * 0.8f))
+                for (i in 0..2) {
+                    val p = s * (3.5f + i * 1.5f)
+                    drawLine(color, Offset(p, s * 0.8f), Offset(p, s * 2.5f), s * 0.6f)
+                    drawLine(color, Offset(p, s * 7.5f), Offset(p, s * 9.2f), s * 0.6f)
+                    drawLine(color, Offset(s * 0.8f, p), Offset(s * 2.5f, p), s * 0.6f)
+                    drawLine(color, Offset(s * 7.5f, p), Offset(s * 9.2f, p), s * 0.6f)
+                }
+            }
+            BuiltInGame.AVATAR -> {
+                drawCircle(color, s * 2.2f, Offset(s * 5f, s * 3.6f))
+                drawArc(color, 180f, 180f, true, Offset(s * 1.6f, s * 6.4f), Size(s * 6.8f, s * 5.6f))
+            }
             BuiltInGame.MINES -> {
                 // Mayın: daire, dikenler ve parıltı
                 val c = Offset(s * 5f, s * 5.2f)
@@ -290,6 +336,10 @@ fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier, onExit: () -> U
     // Bilgi yarışması kendi tam ekran düzenini kullanır
     if (game == BuiltInGame.QUIZ) {
         dev.litedroid.launcher.quiz.QuizScreen(modifier)
+        return
+    }
+    if (game.isTool) {
+        ToolScreen(game, modifier)
         return
     }
     // Masal Makinesi de kendi tam ekranını kullanır
@@ -352,7 +402,53 @@ fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier, onExit: () -> U
                     BuiltInGame.TICTACTOE -> TicTacToeGame(game)
                     BuiltInGame.SUDOKU -> SudokuGame(game)
                     BuiltInGame.MINES -> MinesweeperGame(game)
-                    BuiltInGame.QUIZ, BuiltInGame.STORY -> Unit
+                    else -> Unit
+                }
+            }
+        }
+    }
+}
+
+/** Araç sayfası: oyunlarla aynı çerçeve (başlık, ipucu), içinde aracın kendisi. */
+@Composable
+private fun ToolScreen(tool: BuiltInGame, modifier: Modifier) {
+    Box(
+        modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF0C0E1C), Color(0xFF04050A))))
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            drawCircle(
+                Brush.radialGradient(listOf(tool.top.copy(alpha = 0.2f), Color.Transparent), center = Offset(size.width * 0.12f, size.height * 0.08f), radius = size.maxDimension * 0.5f),
+                radius = size.maxDimension * 0.5f,
+                center = Offset(size.width * 0.12f, size.height * 0.08f),
+            )
+        }
+        Column(Modifier.fillMaxSize().padding(horizontal = 44.dp, vertical = 22.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(42.dp).clip(RoundedCornerShape(13.dp)).background(Brush.linearGradient(listOf(tool.top, tool.bottom))),
+                    contentAlignment = Alignment.Center,
+                ) { GameGlyph(tool, 26.dp) }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(tool.title, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(tool.description, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(tool.hint, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                    Text(tx("Geri: çık", "Back: leave"), color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp)
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                when (tool) {
+                    BuiltInGame.CALC -> dev.litedroid.launcher.tools.CalculatorTool(tool.top)
+                    BuiltInGame.SPEED -> dev.litedroid.launcher.tools.SpeedTestTool(tool.top)
+                    BuiltInGame.SHOTS -> dev.litedroid.launcher.tools.ScreenshotsTool(tool.top)
+                    BuiltInGame.SYSINFO -> dev.litedroid.launcher.tools.SystemInfoTool(tool.top)
+                    BuiltInGame.AVATAR -> dev.litedroid.launcher.tools.AvatarEditorTool(tool.top)
+                    else -> Unit
                 }
             }
         }

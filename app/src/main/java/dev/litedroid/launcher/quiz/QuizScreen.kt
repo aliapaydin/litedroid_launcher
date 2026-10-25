@@ -365,7 +365,7 @@ private fun StartButton(label: String, enabled: Boolean, modifier: Modifier, onC
 
 /** QR kod: ZXing ile üretilir, kare modüller olarak çizilir. */
 @Composable
-private fun QrCode(text: String, size: Dp) {
+fun QrCode(text: String, size: Dp) {
     val matrix = remember(text) {
         runCatching {
             QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, 0, 0, mapOf(EncodeHintType.MARGIN to 0))

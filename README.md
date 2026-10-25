@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.0.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.1.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -128,6 +128,15 @@ Android'deki gibi sağdan kayarak açılan widget tarzı bir panel:
 - **Canlı skor kartı:** Bugünün maçlarını ve gol bildirimlerini gösterir. Ekranı korumak için yavaşça yer değiştirir.
 - İstersen sistem ekran koruyucusu olarak da ayarlayabilirsin.
 
+#### 🎨 Canlı Tablo
+
+Beşinci sahne yapay zekâyla resmediliyor. Ekran koruyucu açıldığında bir şehri **tam şu anki hâliyle** çiziyor: yerel saati, gerçek havası ve mevsimiyle. İstanbul'da akşam yağmur yağıyorsa ıslak sokaklar ve yanan ışıklar, Kyoto'da sabahsa sabah güneşi, Reykjavik'te kar yağıyorsa karlı evler görürsün.
+
+- **Şehirler:** Senin şehrin, 16 şehirlik bir dünya turu (İstanbul, Kapadokya, Paris, Kyoto, Venedik, Santorini, Reykjavik, Banff…) ya da ikisi sırayla.
+- **Stiller:** Yağlıboya, suluboya, Van Gogh tarzı, Japon baskısı, piksel sanatı ya da fotoğraf gibi.
+- Altta şehrin adı, oradaki saat ve hava, sağ üstte senin saatin var. Tablo yavaşça kayar ve yenisine 3 saniyede karışır.
+- Her şehir, gün dilimi, hava ve stil bir kez çizilip saklanır. Aynı koşullar geldiğinde tablo ücretsiz gösterilir. Gemini anahtarı gerekir. Ayarlar → Ekran koruyucu → Sahne: **Canlı Tablo**.
+
 ### 🌙 Masal Makinesi
 
 Yatmadan önce çocuk kahramanı, yeri ve konuyu seçer: *"uçan bir kedi, denizin altında, arkadaşlık üzerine"*. Gerisini yapay zekâ yapar:
@@ -176,6 +185,18 @@ Kahoot tarzı bir yarışma: **Oyunlar → Bilgi Yarışması**.
 | 💣 **Mayın Tarlası** | Kolay, Orta ve Zor seviyeler. Tamam ile açılır, basılı tutunca bayrak konur, ilk kare hep güvenlidir. |
 
 Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
+
+### 🛠 Araçlar
+
+Oyunlar sekmesinde ayrı bir raf:
+
+| | |
+|---|---|
+| 🧮 **Hesap Makinesi** | Kumandayla gezilen tuş takımı. Kumandanın rakam tuşlarıyla da yazılır. Çarpma ve bölme önce yapılır, yazarken sonuç görünür, son işlemler yanda durur. |
+| 🚀 **Hız Testi** | Cloudflare sunucularıyla ping, jitter, indirme ve yükleme ölçer. İbreli gösterge, "4K için yeterli mi?" yorumu ve son 5 test. |
+| 📸 **Ekran Görüntüleri** | Herhangi bir uygulamadayken Geri'ye iki kez bas, yüzen menüden 📸 **Görüntü**'yü seç. Görüntüler TV'de ve Resimler/LiteDroid klasöründe saklanır, QR kodla telefona alınır. Netflix gibi korumalı içerikler siyah çıkar. |
+| 🖥️ **Sistem Özellikleri** | Yonga, RAM, depolama, ekran modları ve HDR, desteklenen video ve ses biçimleri (HEVC, AV1, Dolby Vision, Atmos…), ağ ve LiteDroid izinlerinin durumu. |
+| 🙂 **Avatar Düzenleyici** | Ten, saç, saç rengi, gözler, ağız, aksesuar (gözlük, taç, kulaklık…) ve arka plan seçerek avatar yaparsın. Kaydedilen avatar istersen üst bardaki profil resmin olur. |
 
 ### ⚙️ Sekmeli ayarlar
 

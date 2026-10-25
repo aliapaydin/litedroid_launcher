@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -85,6 +86,7 @@ fun FloatingMenu(
     onClose: () -> Unit,
     onHome: () -> Unit,
     onAskClaude: () -> Unit,
+    onScreenshot: () -> Unit = {},
 ) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
         AnimatedVisibility(
@@ -92,7 +94,7 @@ fun FloatingMenu(
             enter = slideInHorizontally(tween(240)) { it } + fadeIn(tween(200)),
             exit = slideOutHorizontally(tween(220)) { it } + fadeOut(tween(200)),
         ) {
-            MenuCard(sleepEnd, onSleep, onClose, onHome, onAskClaude)
+            MenuCard(sleepEnd, onSleep, onClose, onHome, onAskClaude, onScreenshot)
         }
     }
 }
@@ -104,6 +106,7 @@ private fun MenuCard(
     onClose: () -> Unit,
     onHome: () -> Unit,
     onAskClaude: () -> Unit,
+    onScreenshot: () -> Unit,
 ) {
     val context = LocalContext.current
     val repo = remember { SettingsRepository(context) }
@@ -263,6 +266,7 @@ private fun MenuCard(
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             IconAction(tx("Ana ekran", "Home"), Icons.Filled.Home, Modifier.weight(1f)) { onHome() }
             IconAction("Claude", Icons.Filled.Star, Modifier.weight(1f)) { onAskClaude() }
+            IconAction(tx("Görüntü", "Capture"), Icons.Filled.Share, Modifier.weight(1f)) { onScreenshot() }
             IconAction(tx("Kapat", "Close"), Icons.Filled.Clear, Modifier.weight(1f)) { onClose() }
         }
     }
