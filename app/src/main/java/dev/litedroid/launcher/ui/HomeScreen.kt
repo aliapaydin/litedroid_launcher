@@ -824,7 +824,7 @@ private fun HomeContent(vm: LauncherViewModel) {
             enter = fadeIn() + slideInVertically { it / 10 },
             exit = fadeOut(),
         ) {
-            key(lastGame) { GameScreen(lastGame) }
+            key(lastGame) { GameScreen(lastGame, onExit = { gameOpen = null }) }
         }
 
         AnimatedVisibility(

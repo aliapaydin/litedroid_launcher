@@ -556,7 +556,7 @@ private val Lilac = Color(0xFFB9A8FF)
 
 /** Masal Makinesi: tam ekran. Geri tuşu alt ekranlardan kuruluma, kurulumdan dışarı çıkar. */
 @Composable
-fun StoryScreen(modifier: Modifier = Modifier) {
+fun StoryScreen(modifier: Modifier = Modifier, onExit: () -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val ctrl = remember { StoryController(context.applicationContext, scope) }
@@ -566,10 +566,10 @@ fun StoryScreen(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().background(Night)) {
         Stars(Modifier.fillMaxSize())
         when (val s = ctrl.stage) {
-            Stage.Setup -> SetupView(ctrl)
+            Stage.Setup -> SetupView(ctrl, onExit)
             Stage.Library -> LibraryView(ctrl)
             is Stage.Preparing -> PreparingView(s.title, s.detail)
-            Stage.Playing, is Stage.Choosing, Stage.End -> PlayerView(ctrl, s)
+            Stage.Playing, is Stage.Choosing, Stage.End -> PlayerView(ctrl, s, onExit)
             is Stage.Error -> ErrorView(ctrl, s.message)
         }
     }
@@ -592,7 +592,7 @@ private fun Stars(modifier: Modifier) {
 // ---------------- Kurulum ----------------
 
 @Composable
-private fun SetupView(ctrl: StoryController) {
+private fun SetupView(ctrl: StoryController, onExit: () -> Unit) {
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         delay(120)
@@ -618,6 +618,10 @@ private fun SetupView(ctrl: StoryController) {
                 Pill("📚 " + tx("Kitaplık", "Library") + if (libCount > 0) " ($libCount)" else "", primary = false) {
                     ctrl.savePicks()
                     ctrl.openLibrary()
+                }
+                Pill("✕ " + tx("Çık", "Exit"), primary = false) {
+                    ctrl.savePicks()
+                    onExit()
                 }
             }
         }
@@ -755,7 +759,7 @@ private fun ErrorView(ctrl: StoryController, message: String) {
 // ---------------- Oynatıcı ----------------
 
 @Composable
-private fun PlayerView(ctrl: StoryController, stage: Stage) {
+private fun PlayerView(ctrl: StoryController, stage: Stage, onExit: () -> Unit) {
     val fr = remember { FocusRequester() }
     val playing = stage == Stage.Playing
     LaunchedEffect(playing) {
@@ -825,7 +829,7 @@ private fun PlayerView(ctrl: StoryController, stage: Stage) {
         }
 
         if (stage is Stage.Choosing) ChoiceView(ctrl, stage.choice)
-        if (stage == Stage.End) EndView(ctrl)
+        if (stage == Stage.End) EndView(ctrl, onExit)
     }
 }
 
@@ -954,7 +958,7 @@ private fun ChoiceCard(letter: String, text: String, accent: Color, modifier: Mo
 // ---------------- Son ----------------
 
 @Composable
-private fun BoxScope.EndView(ctrl: StoryController) {
+private fun BoxScope.EndView(ctrl: StoryController, onExit: () -> Unit) {
     val fr = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         delay(400)
@@ -976,6 +980,7 @@ private fun BoxScope.EndView(ctrl: StoryController) {
             Pill(tx("Yeniden dinle", "Listen again"), true, Modifier.focusRequester(fr)) { s?.let { ctrl.replay(it) } }
             Pill(tx("Yeni masal", "New story"), false) { ctrl.back() }
             if (ctrl.sleepAfter) Pill(tx("Kapanmasın", "Keep TV on"), false) { ctrl.cancelSleep() }
+            Pill("✕ " + tx("Çık", "Exit"), false) { onExit() }
         }
     }
 }

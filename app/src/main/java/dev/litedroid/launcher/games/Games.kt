@@ -286,7 +286,7 @@ fun GameGlyph(game: BuiltInGame, size: Dp, color: Color = Color.White) {
 
 /** Tam ekran oyun sayfası: başlık, açıklama, tuş ipucu ve oyunun kendisi. Geri tuşu çıkar. */
 @Composable
-fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier) {
+fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier, onExit: () -> Unit = {}) {
     // Bilgi yarışması kendi tam ekran düzenini kullanır
     if (game == BuiltInGame.QUIZ) {
         dev.litedroid.launcher.quiz.QuizScreen(modifier)
@@ -294,7 +294,7 @@ fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier) {
     }
     // Masal Makinesi de kendi tam ekranını kullanır
     if (game == BuiltInGame.STORY) {
-        dev.litedroid.launcher.story.StoryScreen(modifier)
+        dev.litedroid.launcher.story.StoryScreen(modifier, onExit)
         return
     }
     Box(
