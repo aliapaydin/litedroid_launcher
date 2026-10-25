@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.2.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.3.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -198,6 +198,16 @@ Oyunlar sekmesinde ayrı bir raf:
 | 📸 **Ekran Görüntüleri** | Herhangi bir uygulamadayken Geri'ye iki kez bas, yüzen menüden 📸 **Görüntü**'yü seç. Görüntüler TV'de ve Resimler/LiteDroid klasöründe saklanır, QR kodla telefona alınır. Netflix gibi korumalı içerikler siyah çıkar. |
 | 🖥️ **Sistem Özellikleri** | Yonga, RAM, depolama, ekran modları ve HDR, desteklenen video ve ses biçimleri (HEVC, AV1, Dolby Vision, Atmos…), ağ ve LiteDroid izinlerinin durumu. |
 | 🙂 **Avatar Düzenleyici** | Ten, saç, saç rengi, gözler, ağız, aksesuar (gözlük, taç, kulaklık…) ve arka plan seçerek avatar yaparsın. Kaydedilen avatar istersen üst bardaki profil resmin olur. |
+
+### 🏡 Ev ve aile
+
+| | |
+|---|---|
+| 📶 **Misafir Wi-Fi** | Hızlı panelde Wi-Fi QR'ı: misafir telefonun kamerasıyla okutup bağlanır, şifre yazdırmaya gerek kalmaz. |
+| 📲 **Telefondan TV'ye gönder** | QR'ı okut, telefonda yaz: yazı TV'de seçili yazı kutusuna gider (Netflix şifresi, YouTube araması…), bağlantı LiteDroid tarayıcısında açılır. Kumandayla harf harf yazmak bitti. |
+| ☔ **Sabah hava uyarısı** | Gün içinde yağmur, kar ya da fırtına bekleniyorsa sabah ana ekranda "15:00 civarı yağmur, şemsiyeni al" uyarısı. |
+| ☕ **Mola hatırlatıcısı** | Bir uygulamada seçtiğin süre (30 dk - 2 sa) dolunca köşede nazik bir mola hatırlatması. |
+| 🔒 **Uygulama kilidi** | Seçtiğin uygulamalar açılınca 4 haneli PIN sorulur. Ana ekranda uygulamanın üstünde Tamam'a basılı tut → **Kilitle (PIN)**. |
 
 ### ⚙️ Sekmeli ayarlar
 

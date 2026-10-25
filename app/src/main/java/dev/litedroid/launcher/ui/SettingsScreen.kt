@@ -356,6 +356,12 @@ fun TextInputDialog(
     maxLength: Int = 20,
 ) {
     var text by remember { mutableStateOf(initial) }
+    // Telefondan TV'ye gönder: pencere açıkken telefondan gelen yazı buraya düşer
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        dev.litedroid.launcher.tools.PhoneBridge.listeners++
+        onDispose { dev.litedroid.launcher.tools.PhoneBridge.listeners-- }
+    }
+    LaunchedEffect(Unit) { dev.litedroid.launcher.tools.PhoneBridge.text.collect { text = it.take(maxLength) } }
     val fieldFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {

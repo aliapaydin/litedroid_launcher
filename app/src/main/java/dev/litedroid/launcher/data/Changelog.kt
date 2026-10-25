@@ -10,6 +10,17 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "2.3.0",
+                tx("Ev ve aile araçları", "Home and family tools"),
+                listOf(
+                    tx("📶 Misafir Wi-Fi: hızlı panelde QR; misafir telefonla okutup bağlanır, şifre yazdırmaya gerek yok.", "📶 Guest Wi-Fi: a QR in the quick panel; guests scan it to join, no typing."),
+                    tx("📲 Telefondan TV'ye gönder: QR'ı okut, yazdığın yazı TV'de seçili kutuya gider (Netflix şifresi, YouTube araması), bağlantı tarayıcıda açılır.", "📲 Send from your phone: scan the QR; text goes into the selected box on the TV, links open in the browser."),
+                    tx("☔ Sabah hava uyarısı: gün içinde yağmur ya da kar bekleniyorsa sabah ana ekranda kısa bir uyarı.", "☔ Morning weather alert: a short heads-up on the home screen if rain or snow is expected later."),
+                    tx("☕ Mola hatırlatıcısı: bir uygulamada seçtiğin süre (30 dk - 2 sa) dolunca nazik bir hatırlatma.", "☕ Break reminder: a gentle nudge after the time you choose (30 min - 2 h) in one app."),
+                    tx("🔒 Uygulama kilidi: seçtiğin uygulamalar açılınca 4 haneli PIN sorulur. Ana ekranda uygulamada Tamam'a basılı tut → Kilitle.", "🔒 App lock: chosen apps ask for a 4-digit PIN. Hold OK on an app on the home screen → Lock."),
+                ),
+            ),
+            Release(
                 "2.2.0",
                 tx("Tarayıcı", "Browser"),
                 listOf(
