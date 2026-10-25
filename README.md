@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.9.3-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.0.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -65,6 +65,7 @@ Standart ana ekranın yerine buzlu cam menüler, uygulamalar arası çalışan b
 - Cevap ekranda büyük yazıyla akarak gelir. **İlk cümleden itibaren sesli okunmaya başlar**, sonuna kadar beklemez. Yeni soru sormak için bastığında önceki okuma anında durur.
 - Güncel sorularda (bu akşamın maçları, haberler, hava, vizyondaki filmler) **web'de arar** ve kullandığı **kaynakları** altta gösterir.
 - Takip soruları bağlamı korur. İstersen yazarak da sorabilirsin.
+- **Gemini sesiyle okur:** Gemini anahtarın varsa cevaplar (Claude seçiliyken de) TV'nin düz sesiyle değil, Gemini'nin doğal ve duygulu sesleriyle okunur. Ayarlar → Claude'a sor → **Ses motoru**, **Anlatıcı sesi** (Sulafat, Achernar, Puck…) ve **Sesi dene**.
 - **Claude ya da Gemini:** İkisinin de anahtarını girip Ayarlar → Claude'a sor → Yapay zekâ'dan istediğine geçebilirsin. Claude için Haiku ya da Sonnet, Gemini için Flash-Lite ya da Flash modelini seçebilirsin.
 - Kendi API anahtarınla çalışır. Anahtar sadece TV'de saklanır ve doğrudan `api.anthropic.com`'a ya da Google'a gider. Kurulumu aşağıda: [Claude'a sor kurulumu](#claudea-sor-kurulumu).
 
@@ -126,6 +127,19 @@ Android'deki gibi sağdan kayarak açılan widget tarzı bir panel:
 - **Şimdi çalıyor** kartı: Spotify, YouTube Music, Apple Music, TIDAL, Qobuz, Deezer, fizy… çalan her şeyin kapağı, adı, sanatçısı ve canlı ilerleme çubuğu. Aynı kart hızlı panelde ve yüzen menüde de var.
 - **Canlı skor kartı:** Bugünün maçlarını ve gol bildirimlerini gösterir. Ekranı korumak için yavaşça yer değiştirir.
 - İstersen sistem ekran koruyucusu olarak da ayarlayabilirsin.
+
+### 🌙 Masal Makinesi
+
+Yatmadan önce çocuk kahramanı, yeri ve konuyu seçer: *"uçan bir kedi, denizin altında, arkadaşlık üzerine"*. Gerisini yapay zekâ yapar:
+
+- **Yazar:** Gemini, ortasında bir seçim anı olan iki dallı bir masal yazar. Çocuk kumandayla yolu seçer, hikâye ona göre devam eder.
+- **Çizer:** Her sayfa 16:9 bir resimli kitap sahnesi olarak çizilir. Karakterler her resimde aynı görünür.
+- **Anlatır:** Anlatıcı Gemini sesiyle (varsayılan Sulafat, sıcak bir masalcı) okur; fısıldar, güler, duraksar. Karakterler kendi sesleriyle konuşur.
+- **Film gibi akar:** Resimler yavaşça yakınlaşır, sayfalar yumuşakça geçer. Arkada cihazda anlık üretilen, sayfanın havasına göre değişen bir ninni çalar. Sen bir sayfayı dinlerken sonraki hazırlanır.
+- **Uyutur:** İstersen masal bitince ekran kararır ve TV kendiliğinden kapanır.
+- **Saklar:** Her masal resimleri ve sesleriyle kitaplıkta durur. Yeniden dinlemek ücretsizdir.
+
+Gemini API anahtarı gerekir; kullanım senin hesabından ücretlendirilir. Resim sayısını (her sayfa, iki sayfada bir, sadece kapak, resimsiz) seçerek maliyeti ayarlayabilirsin. **Oyunlar** sekmesinde ya da **Ayarlar → Claude'a sor → Masal Makinesi**'nde.
 
 ### 🧠 Bilgi Yarışması (telefonlarla)
 

@@ -1,6 +1,10 @@
 package dev.litedroid.launcher
 
 import dev.litedroid.launcher.data.UpdateMode
+import dev.litedroid.launcher.data.VoiceEngine
+import dev.litedroid.launcher.data.CloudVoice
+import dev.litedroid.launcher.data.GeminiMedia
+import dev.litedroid.launcher.data.PcmPlayer
 import dev.litedroid.launcher.data.AppRelease
 import dev.litedroid.launcher.data.UpdateState
 import dev.litedroid.launcher.data.Updater
@@ -198,6 +202,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     override fun onCleared() {
         runCatching { connectivity?.unregisterNetworkCallback(networkCallback) }
         speaker.shutdown()
+        voiceTestPlayer.stop()
         voice.cancel()
         super.onCleared()
     }
@@ -239,7 +244,41 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     var claudeStatus by mutableStateOf(ClaudeStatus.IDLE)
         private set
     private var claudeJob: Job? = null
-    private val speaker = Speaker(app)
+    /** Gemini anahtarı varsa ve ses motoru Gemini ise cevaplar Gemini sesiyle okunur. */
+    private val speaker = Speaker(app) {
+        settings.takeIf { it.voiceEngine == VoiceEngine.GEMINI && it.geminiKey.isNotBlank() }
+            ?.let { CloudVoice(it.geminiKey.trim(), it.geminiVoice.id) }
+    }
+    private val voiceTestPlayer = PcmPlayer()
+
+    /** Ayarlar → "Sesi dene": seçili Gemini sesiyle kısa bir cümle okur, sonucu bildirir. */
+    fun testVoice(onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            speaker.stop()
+            voiceTestPlayer.stop()
+            val key = settings.geminiKey.trim()
+            if (key.isEmpty()) {
+                onResult(tx("Önce Gemini API anahtarını gir.", "Add your Gemini API key first."))
+                return@launch
+            }
+            onResult(tx("Ses hazırlanıyor…", "Preparing the voice…"))
+            try {
+                val pcm = GeminiMedia.speak(
+                    app, key,
+                    listOf(GeminiMedia.Turn(null, tx(
+                        "Merhaba! Ben LiteDroid. <short pause> Sorularını ve masallarını artık bu sesle anlatacağım.",
+                        "Hello! I'm LiteDroid. <short pause> From now on I'll answer and tell stories in this voice."), settings.geminiVoice.id, "warm and friendly")),
+                    GeminiMedia.Purpose.CHAT,
+                )
+                onResult(tx("Gemini sesi çalışıyor", "Gemini voice works") + " · ${settings.geminiVoice.id} · ${GeminiMedia.lastVoiceModel ?: ""}")
+                voiceTestPlayer.play(pcm)
+            } catch (c: kotlinx.coroutines.CancellationException) {
+                throw c
+            } catch (t: Throwable) {
+                onResult(tx("Gemini sesi çalışmadı: ", "Gemini voice failed: ") + GeminiMedia.describe(t))
+            }
+        }
+    }
 
     // ---------------- Sesli soru ----------------
 

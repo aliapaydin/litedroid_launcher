@@ -5,6 +5,8 @@ import dev.litedroid.launcher.data.UpdateState
 import dev.litedroid.launcher.data.Updater
 import dev.litedroid.launcher.data.VoiceListener
 import dev.litedroid.launcher.data.GeminiModel
+import dev.litedroid.launcher.data.GeminiVoice
+import dev.litedroid.launcher.data.VoiceEngine
 import dev.litedroid.launcher.data.AiProvider
 import androidx.compose.runtime.collectAsState
 import dev.litedroid.launcher.overlay.SleepTimer
@@ -887,6 +889,12 @@ private fun HomeContent(vm: LauncherViewModel) {
                         settingsOpen = false
                         gamePickerOpen = true
                     },
+                    onTestVoice = { vm.testVoice { toast(it) } },
+                    onOpenStory = {
+                        settingsOpen = false
+                        lastGame = BuiltInGame.STORY
+                        gameOpen = BuiltInGame.STORY
+                    },
                     onFloatingScores = {
                         val turnOn = !settings.floatingScores
                         vm.updateSettings { it.copy(floatingScores = turnOn) }
@@ -1219,6 +1227,8 @@ private fun settingsEntries(
     onFloatingScores: () -> Unit,
     onGames: () -> Unit,
     onRemoteShortcut: () -> Unit,
+    onTestVoice: () -> Unit,
+    onOpenStory: () -> Unit,
 ): List<SettingsEntry> = listOf(
     SettingsEntry.Header(tx("Görünüm", "Appearance")),
     SettingsEntry.Row("language", "Dil / Language", Icons.Filled.Face, settings.language.label,
@@ -1432,9 +1442,28 @@ private fun settingsEntries(
     },
     SettingsEntry.Row("claude_speak", tx("Sesli yanıt", "Spoken replies"), Icons.Filled.Notifications,
         if (settings.claudeSpeak) tx("Açık", "On") else tx("Kapalı", "Off"),
-        tx("Cevap ekrana gelirken ilk cümleden itibaren cihazın metin okuma sesiyle okunur.", "Answers are read aloud with the device's text-to-speech voice as they arrive, from the first sentence.")) {
+        tx("Cevap ekrana gelirken ilk cümleden itibaren sesli okunur. Ses motoru aşağıda seçilir.", "Answers are read aloud as they arrive, from the first sentence. Pick the voice engine below.")) {
         vm.updateSettings { it.copy(claudeSpeak = !it.claudeSpeak) }
     },
+    SettingsEntry.Row("voice_engine", tx("Ses motoru", "Voice engine"), Icons.Filled.Notifications,
+        if (settings.voiceEngine == VoiceEngine.GEMINI && settings.geminiKey.isBlank()) tx("Gemini (anahtar yok → cihaz)", "Gemini (no key → device)") else settings.voiceEngine.label,
+        tx("Gemini sesi: cevaplar (Claude seçiliyken de) ve masallar Gemini'nin doğal, duygulu sesleriyle okunur. Gemini API anahtarı gerekir; kullanım senin hesabından ücretlendirilir. " +
+            "Gemini o an cevap vermezse o cümle cihaz sesiyle okunur. Cihaz sesi: TV'nin kendi metin okuma motoru.",
+            "Gemini voice: answers (even with Claude selected) and stories are read with Gemini's natural, expressive voices. Needs a Gemini API key; usage is billed to your account. " +
+            "If Gemini doesn't answer in time that sentence uses the device voice. Device voice: the TV's own text-to-speech.")) {
+        vm.updateSettings { it.copy(voiceEngine = VoiceEngine.entries.toList().next(it.voiceEngine)) }
+    },
+    SettingsEntry.Row("voice_name", tx("Anlatıcı sesi", "Narrator voice"), Icons.Filled.Face, settings.geminiVoice.label,
+        tx("Cevapları ve masalları okuyan Gemini sesi. Sulafat sıcak bir anlatıcı, Achernar yumuşak, Puck neşeli. Değiştirdikten sonra \"Sesi dene\" ile dinle.",
+            "The Gemini voice for answers and stories. Sulafat is a warm narrator, Achernar soft, Puck upbeat. Use \"Try the voice\" after changing it.")) {
+        vm.updateSettings { it.copy(geminiVoice = GeminiVoice.entries.toList().next(it.geminiVoice)) }
+    },
+    SettingsEntry.Row("voice_test", tx("Sesi dene", "Try the voice"), Icons.Filled.PlayArrow, null,
+        tx("Seçili Gemini sesiyle kısa bir cümle okur. Çalışmazsa sebebi (anahtar, kota, bağlantı) ekranda yazar.",
+            "Reads a short sentence with the selected Gemini voice. If it fails, the reason (key, quota, connection) is shown.")) { onTestVoice() },
+    SettingsEntry.Row("story_open", tx("Masal Makinesi", "Story Machine"), Icons.Filled.Star, null,
+        tx("Yapay zekânın yazıp çizdiği, Gemini sesiyle anlattığı, çocuğun seçimleriyle ilerleyen resimli masallar. Oyunlar'da da var.",
+            "Illustrated bedtime stories written, drawn and narrated by AI that follow the child's choices. Also in Games.")) { onOpenStory() },
     SettingsEntry.Row("claude_web", tx("Web araması", "Web search"), Icons.Filled.Search,
         if (settings.claudeWebSearch) tx("Açık", "On") else tx("Kapalı", "Off"),
         tx("Güncel sorularda (maçlar, haberler, hava) Claude web'de arar ve kaynak gösterir. Arama başına küçük bir ek API ücreti vardır.",

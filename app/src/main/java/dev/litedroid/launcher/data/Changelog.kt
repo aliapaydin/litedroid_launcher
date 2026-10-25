@@ -10,6 +10,18 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "2.0.0",
+                tx("Masal Makinesi 🌙", "Story Machine 🌙"),
+                listOf(
+                    tx("Yeni: Masal Makinesi. Kahramanı, yeri ve konuyu seç; yapay zekâ masalı yazsın, her sayfasını çizsin ve Gemini sesiyle anlatsın.", "New: Story Machine. Pick a hero, a place and a theme; AI writes the story, draws every page and tells it in a Gemini voice."),
+                    tx("Karakterler kendi sesleriyle konuşuyor; anlatıcı fısıldıyor, gülüyor, duraksıyor.", "Characters speak in their own voices; the narrator whispers, laughs and pauses."),
+                    tx("Masalın ortasında çocuk yolu seçiyor, hikâye ona göre devam ediyor.", "Halfway through, the child picks the path and the story follows."),
+                    tx("Sayfalar film gibi akıyor: yavaş yakınlaşan resimler, sayfanın havasına göre değişen ninni müziği.", "Pages flow like a film: slowly zooming pictures and a lullaby that follows the mood."),
+                    tx("Bitince TV kendiliğinden kapanabilir. Masallar kitaplıkta saklanır, yeniden dinlemek ücretsizdir.", "The TV can turn itself off at the end. Stories are kept in a library and replay for free."),
+                    tx("Claude'a sor cevapları artık Gemini sesiyle okunuyor (Claude seçiliyken de). Ayarlar → Claude'a sor → Ses motoru, Anlatıcı sesi, Sesi dene.", "Ask Claude answers are now read in a Gemini voice, even with Claude selected. Settings → Ask Claude → Voice engine, Narrator voice, Try the voice."),
+                ),
+            ),
+            Release(
                 "1.9.3",
                 tx("Güncelleme ekranları ekrana sığıyor", "Update screens fit the screen"),
                 listOf(
