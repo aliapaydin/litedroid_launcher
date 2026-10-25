@@ -10,6 +10,13 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.8.2",
+                tx("Açılış düzeltmesi", "Startup fix"),
+                listOf(
+                    tx("Güncellemeden sonraki ilk açılışta LiteDroid'in siyah ekranda kalması düzeltildi.", "Fixed LiteDroid staying on a black screen on the first start after an update."),
+                ),
+            ),
+            Release(
                 "1.8.1",
                 tx("Güncelleme denetimi düzeltmesi", "Update check fix"),
                 listOf(
