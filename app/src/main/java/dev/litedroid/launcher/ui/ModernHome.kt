@@ -344,6 +344,8 @@ private fun ModernTopBar(
     onAskClaude: () -> Unit,
 ) {
     val now = rememberNow()
+    // Profil seçiliyken selamlama ve ad sağa kadar yayılır, saat ve tarih o sırada gizlenir
+    var profileFocused by remember { mutableStateOf(false) }
     Row(
         Modifier
             .fillMaxWidth()
@@ -387,11 +389,13 @@ private fun ModernTopBar(
             IconCircle(fm, "top_gear", enabled, Icons.Filled.KeyboardArrowDown, tx("Hızlı panel", "Quick panel"), badge = false, onSelect = onSettings)
         }
         Spacer(Modifier.width(10.dp))
-        ProfilePill(fm, enabled, userName, if (showGreeting) greetingFor(now.hour) else null, onProfile)
-        Spacer(Modifier.width(14.dp))
-        BarDivider(32.dp)
-        Spacer(Modifier.width(14.dp))
-        BarClock(now, 24.sp)
+        ProfilePill(fm, enabled, userName, if (showGreeting) greetingFor(now.hour) else null, onProfile) { profileFocused = it }
+        if (!profileFocused) {
+            Spacer(Modifier.width(14.dp))
+            BarDivider(32.dp)
+            Spacer(Modifier.width(14.dp))
+            BarClock(now, 24.sp)
+        }
     }
 }
 
@@ -515,7 +519,7 @@ private fun IconCircle(
 }
 
 @Composable
-private fun ProfilePill(fm: FocusMemory, enabled: Boolean, name: String, greeting: String?, onSelect: () -> Unit) {
+private fun ProfilePill(fm: FocusMemory, enabled: Boolean, name: String, greeting: String?, onSelect: () -> Unit, onFocusChange: (Boolean) -> Unit = {}) {
     val key = "top_profile"
     RegisterKey(fm, key)
     val motion = LocalMotion.current
@@ -536,6 +540,7 @@ private fun ProfilePill(fm: FocusMemory, enabled: Boolean, name: String, greetin
             .track(fm, key)
             .onFocusChanged {
                 if (it.isFocused && !focused) sounds?.play(Sfx.NAV)
+                if (it.isFocused != focused) onFocusChange(it.isFocused)
                 focused = it.isFocused
             }
             .onRemoteSelect(onSelect)

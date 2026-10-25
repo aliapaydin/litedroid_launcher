@@ -7,6 +7,7 @@
 - **Break reminder**: accessibility tracks the foreground app; repeats every N minutes (30/45/60/90/120); screen-off, screensaver and the launcher reset the clock.
 - Games tab renamed **Extras** (Games / Tools shelves); the top-bar quick panel button is a down arrow.
 - Settings: the category column scrolls; first/last rows absorb Up/Down with a bounce (`Sfx.EDGE`, soft) instead of jumping to another category.
+- Modern top bar: while the profile pill is focused the clock/date (and divider) hide so the greeting and name don't squeeze the clock.
 - Text dialogs retry focus until the field has it; an open text dialog counts as a page so the home grid doesn't steal focus.
 - **App lock**: locked packages get a full-screen opaque accessibility overlay with a 4-digit PIN pad (number keys work); Back goes home; unlock lasts until another app or the launcher comes to front. Lock/unlock from the app menu, PIN change and "remove all" require the current PIN.
 

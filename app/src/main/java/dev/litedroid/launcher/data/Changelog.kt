@@ -22,6 +22,7 @@ object Changelog {
                     tx("Üst bardaki hızlı panel düğmesi aşağı ok oldu; tüm ayarlar profil resminde.", "The quick panel button in the top bar is now a down arrow; all settings are under the profile picture."),
                     tx("Ayarlarda sol kategori listesi kayıyor; sağ listenin sonuna gelince başka kategoriye atlamıyor, hafifçe esneyip kısık bir sesle bitişi belli ediyor.", "Settings: the category list scrolls; the end of a list no longer jumps to another category, it bounces with a soft sound."),
                     tx("Yazı pencereleri (Wi-Fi adı, şifre…) açılınca odak artık hep pencerede.", "Text windows (Wi-Fi name, password…) now always get the focus."),
+                    tx("Üst barda profil seçiliyken selamlama ve ad rahatça görünür; saat ve tarih o sırada gizlenir, sıkışmaz.", "With the profile selected in the top bar, the greeting and name have room; the clock hides meanwhile instead of squeezing."),
                 ),
             ),
             Release(
