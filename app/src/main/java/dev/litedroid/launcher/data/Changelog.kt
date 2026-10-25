@@ -10,6 +10,17 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "2.1.0",
+                tx("Canlı Tablo ve Araçlar", "Living Painting and Tools"),
+                listOf(
+                    tx("Yeni ekran koruyucu: Canlı Tablo. Yapay zekâ şehirleri o anki gerçek saatlerine ve havalarına göre resmeder: İstanbul'da yağmurlu akşam, Kyoto'da güneşli sabah.", "New screensaver: Living Painting. AI paints cities at their real local time and weather: a rainy evening in Istanbul, a sunny morning in Kyoto."),
+                    tx("Benim şehrim, dünya turu ya da ikisi; yağlıboya, suluboya, Van Gogh, Japon baskısı, piksel ya da fotoğraf stili. Çizilen tablolar saklanır, tekrar gösterimi ücretsizdir.", "My city, world tour or both; oil, watercolor, Van Gogh, ukiyo-e, pixel or photo style. Paintings are kept, showing them again is free."),
+                    tx("Oyunlar sekmesinde yeni Araçlar rafı: Hesap Makinesi, Hız Testi, Ekran Görüntüleri, Sistem Özellikleri ve Avatar Düzenleyici.", "New Tools shelf in Games: Calculator, Speed Test, Screenshots, System Info and Avatar Maker."),
+                    tx("Ekran görüntüsü: herhangi bir uygulamada Geri'ye iki kez bas → 📸 Görüntü. QR kodla telefona al.", "Screenshots: double-press Back in any app → 📸 Capture. Get them on your phone with a QR code."),
+                    tx("Avatarını yap, üst bardaki profil resmi olsun.", "Make your avatar and use it as the profile picture in the top bar."),
+                ),
+            ),
+            Release(
                 "2.0.0",
                 tx("Masal Makinesi 🌙", "Story Machine 🌙"),
                 listOf(

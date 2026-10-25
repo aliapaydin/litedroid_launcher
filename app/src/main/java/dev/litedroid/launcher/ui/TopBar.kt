@@ -199,21 +199,7 @@ private fun ProfileChip(
             .padding(start = 4.dp, end = 14.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(34.dp)
-                .clip(CircleShape)
-                .background(AVATAR_BRUSH)
-                .border(1.5.dp, Color.White.copy(alpha = 0.75f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = name.take(1).uppercase(I18n.locale),
-                color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.ExtraBold,
-            )
-        }
+        dev.litedroid.launcher.tools.ProfileAvatar(name, 34.dp, 1.5.dp, 15)
         Spacer(Modifier.width(9.dp))
         Column {
             if (greeting != null) {

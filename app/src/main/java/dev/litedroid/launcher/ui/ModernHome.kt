@@ -541,16 +541,7 @@ private fun ProfilePill(fm: FocusMemory, enabled: Boolean, name: String, greetin
             .padding(start = 3.dp, end = if (focused) 12.dp else 3.dp, top = 3.dp, bottom = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(AVATAR_BRUSH)
-                .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(name.take(1).uppercase(I18n.locale), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
-        }
+        dev.litedroid.launcher.tools.ProfileAvatar(name, 36.dp, 2.dp, 16)
         // Ad ve selamlama odaklanınca açılır; bar daralır, saat her zaman sığar
         if (focused) Spacer(Modifier.width(8.dp))
         if (focused) Column {
@@ -1533,8 +1524,20 @@ private fun GamesTab(
                     contentPadding = PaddingValues(horizontal = 28.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    itemsIndexed(BuiltInGame.entries, key = { _, g -> g.name }) { i, g ->
+                    itemsIndexed(BuiltInGame.entries.filter { !it.isTool }, key = { _, g -> g.name }) { i, g ->
                         BuiltInGameCard(g, fm, "bg_$i", enabled) { onPlayGame(g) }
+                    }
+                }
+            }
+        }
+        item(key = "tools") {
+            Section(tx("Araçlar", "Tools")) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 28.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    itemsIndexed(BuiltInGame.entries.filter { it.isTool }, key = { _, g -> g.name }) { i, g ->
+                        BuiltInGameCard(g, fm, "tool_$i", enabled) { onPlayGame(g) }
                     }
                 }
             }
@@ -1629,7 +1632,7 @@ private fun BuiltInGameCard(game: BuiltInGame, fm: FocusMemory, key: String, ena
             contentAlignment = Alignment.Center,
         ) { GameGlyph(game, 20.dp) }
         Text(
-            tx("OYNA", "PLAY"),
+            if (game.isTool) tx("AÇ", "OPEN") else tx("OYNA", "PLAY"),
             color = if (focused) game.bottom else Color.White,
             fontSize = 10.sp,
             fontWeight = FontWeight.ExtraBold,

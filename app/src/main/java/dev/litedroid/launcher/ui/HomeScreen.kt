@@ -6,6 +6,8 @@ import dev.litedroid.launcher.data.Updater
 import dev.litedroid.launcher.data.VoiceListener
 import dev.litedroid.launcher.data.GeminiModel
 import dev.litedroid.launcher.data.GeminiVoice
+import dev.litedroid.launcher.data.CanvasCities
+import dev.litedroid.launcher.data.CanvasStyle
 import dev.litedroid.launcher.data.VoiceEngine
 import dev.litedroid.launcher.data.AiProvider
 import androidx.compose.runtime.collectAsState
@@ -804,10 +806,10 @@ private fun HomeContent(vm: LauncherViewModel) {
         // Dahili oyun seçici (Casual'da hızlı ayarlardan açılır)
         if (gamePickerOpen) {
             GlassMenu(
-                title = tx("Dahili oyunlar", "Built-in games"),
+                title = tx("Oyunlar ve araçlar", "Games and tools"),
                 subtitle = tx("Kumandayla oynanır", "Played with the remote"),
                 items = BuiltInGame.entries.map { g ->
-                    MenuItem("${g.title}  ·  ${g.description}", Icons.Filled.PlayArrow) {
+                    MenuItem((if (g.isTool) "🛠 " else "") + "${g.title}  ·  ${g.description}", Icons.Filled.PlayArrow) {
                         gamePickerOpen = false
                         lastGame = g
                         gameOpen = g
@@ -1323,8 +1325,25 @@ private fun settingsEntries(
         vm.updateSettings { it.copy(saverMinutes = LauncherSettings.SAVER_OPTIONS.next(it.saverMinutes)) }
     },
     SettingsEntry.Row("saver_scene", tx("Sahne", "Scene"), Icons.Filled.Star, settings.saverScene.label,
-        tx("Karışık: sinema salonu, maç günü, retro oyun ve kutup ışıkları sahneleri 40 saniyede bir değişir.", "Mixed: cinema, match day, retro game and aurora scenes rotate every 40 seconds.")) {
+        tx("Karışık: sinema salonu, maç günü, retro oyun ve kutup ışıkları sahneleri 40 saniyede bir değişir. " +
+            "Canlı Tablo: yapay zekâ şehirleri o anki gerçek saatlerine ve havalarına göre resmeder (Gemini anahtarı gerekir).",
+            "Mixed: cinema, match day, retro game and aurora scenes rotate every 40 seconds. " +
+            "Living Painting: AI paints cities as they are right now, at their real local time and weather (needs a Gemini key).")) {
         vm.updateSettings { it.copy(saverScene = SaverScene.entries.toList().next(it.saverScene)) }
+    },
+    SettingsEntry.Row("canvas_cities", tx("Canlı Tablo: şehirler", "Living Painting: cities"), Icons.Filled.Place, settings.canvasCities.label,
+        tx("Benim şehrim: bulunduğun şehir, şu anki saatinde ve havasında. Dünya turu: İstanbul, Kapadokya, Kyoto, Paris, Reykjavik, Santorini ve daha fazlası; her biri kendi yerel saatinde ve gerçek havasında (Kyoto'da sabahsa sabah, Reykjavik'te kar yağıyorsa kar).",
+            "My city: where you are, at its current time and weather. World tour: Istanbul, Cappadocia, Kyoto, Paris, Reykjavik, Santorini and more, each at its own local time and real weather.")) {
+        vm.updateSettings { it.copy(canvasCities = CanvasCities.entries.toList().next(it.canvasCities)) }
+    },
+    SettingsEntry.Row("canvas_style", tx("Canlı Tablo: stil", "Living Painting: style"), Icons.Filled.Create, settings.canvasStyle.label,
+        tx("Tabloların çizim stili. Her şehir, gün dilimi, hava ve stil bir kez çizilip saklanır; aynı koşullar tekrar gelince ücretsiz gösterilir.",
+            "The painting style. Each city, time of day, weather and style is painted once and kept; it's shown for free when the same conditions return.")) {
+        vm.updateSettings { it.copy(canvasStyle = CanvasStyle.entries.toList().next(it.canvasStyle)) }
+    },
+    SettingsEntry.Row("canvas_minutes", tx("Canlı Tablo: değişim", "Living Painting: change every"), Icons.Filled.Refresh, tx("${settings.canvasMinutes} dk", "${settings.canvasMinutes} min"),
+        tx("Tablonun kaç dakikada bir değişeceği. Sık değişim daha çok yeni resim (ve Gemini ücreti) demek.", "How often the painting changes. More often means more new pictures (and Gemini cost).")) {
+        vm.updateSettings { it.copy(canvasMinutes = listOf(5, 10, 20, 30).let { l -> l[(l.indexOf(it.canvasMinutes) + 1) % l.size] }) }
     },
     SettingsEntry.Row("saver_now", tx("Şimdi başlat", "Start now"), Icons.Filled.PlayArrow, null, null) { vm.startScreensaver() },
     SettingsEntry.Row("saver_system", tx("Sistem ekran koruyucusu yap", "Set as system screensaver"), Icons.Filled.Settings,

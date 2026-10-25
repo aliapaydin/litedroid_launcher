@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.0
+- **Living Painting** screensaver (`canvas/LivingCanvas.kt`, scene `CANVAS`): Gemini paints a city at its real local time (Open-Meteo `utc_offset_seconds`), weather (WMO code → prompt phrase), time of day and season, in the chosen style (oil, watercolor, Van Gogh, ukiyo-e, pixel, photo). Cities: home (cached weather city), a 16-city world tour, or alternating. Each city/day-part/weather/season/style combination is painted once and cached (newest 80 kept), so repeats cost nothing. Slow pan, 3 s crossfades, burn-in-safe drifting info. Falls back to cached paintings or the night scene without a key.
+- **Tools** shelf in the Games tab (`BuiltInGame.isTool`, `tools/`):
+  - Calculator: remote-friendly keypad, number keys, × ÷ before + −, live preview, history (BigDecimal).
+  - Speed Test: Cloudflare `speed.cloudflare.com` ping/jitter, 4-stream download and 3-stream upload with warm-up excluded, sqrt-scaled gauge, verdict, last 5 results.
+  - Screenshots: accessibility `takeScreenshot` (Android 11+, `canTakeScreenshot`) from the floating menu or with a 3 s timer; JPEGs in app storage and `Pictures/LiteDroid`; a small LAN web server + QR serves them to phones.
+  - System Info: device, Android, SoC, RAM/storage, display modes and HDR, video/audio decoders, network, LiteDroid permission status.
+  - Avatar Maker: Canvas-drawn avatars (skin, 8 hair styles, hair color, eyes, mouth, 8 accessories, cheeks, background), saved list, random, "use as profile" — the top bar profile badge shows it.
+
 ## 2.0.0
 - **Story Machine** (`story/`): pick hero, place, theme, length, narrator, picture density, music and "turn the TV off at the end". Gemini writes the whole interactive story as JSON in one call (intro pages, a choice, two branches, up to 3 characters with their own Gemini voices and speaking styles, an English image prompt and a mood per page).
 - Pages are illustrated (16:9) and narrated one page ahead while the current one plays; multi-speaker narration (narrator + one character per request, groups joined). Ken Burns zoom, crossfades, a procedurally generated lullaby (`Lullaby.kt`, AudioTrack, mood-driven chords and bells, ducked under narration), title card, choice screen, end screen with optional sleep timer.

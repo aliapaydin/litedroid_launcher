@@ -108,6 +108,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         Log.i(TAG, "remote shortcut connected, default home: ${defaultHome(force = true)}")
         SleepTimer.onChange = { fromUser -> handler.post { onSleepChanged(fromUser) } }
@@ -429,6 +430,11 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
                                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             )
                         },
+                        onScreenshot = {
+                            // Menü kapanıp ekrandan çekilsin diye kısa bekleme
+                            closeMenu(animated = false)
+                            captureScreen(450)
+                        },
                         onAskClaude = {
                             closeMenu()
                             startActivity(
@@ -482,7 +488,50 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         }
     }
 
+    // ------------------------------------------------------------------
+    // Ekran görüntüsü (Android 11+: erişilebilirlik servisinin ekran görüntüsü yetkisi)
+    // ------------------------------------------------------------------
+
+    /** [delayMs] sonra o anki ekranın görüntüsünü alır ve Araçlar → Ekran görüntüleri'ne kaydeder. */
+    fun captureScreen(delayMs: Long) {
+        handler.postDelayed({ takeShot() }, delayMs)
+    }
+
+    private fun takeShot() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            showNotice(SleepNotice(tx("Ekran görüntüsü alınamadı", "Couldn't capture"), tx("Android 11 ve üstü gerekir.", "Needs Android 11 or newer."), icon = "📸"))
+            return
+        }
+        takeScreenshot(android.view.Display.DEFAULT_DISPLAY, mainExecutor, object : AccessibilityService.TakeScreenshotCallback {
+            override fun onSuccess(result: AccessibilityService.ScreenshotResult) {
+                val hb = result.hardwareBuffer
+                val bmp = android.graphics.Bitmap.wrapHardwareBuffer(hb, result.colorSpace)?.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+                hb.close()
+                if (bmp == null) {
+                    showNotice(SleepNotice(tx("Ekran görüntüsü alınamadı", "Couldn't capture"), "", icon = "📸"))
+                    return
+                }
+                lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    val ok = runCatching { dev.litedroid.launcher.tools.ScreenshotStore.save(this@RemoteKeyService, bmp) }.isSuccess
+                    bmp.recycle()
+                    handler.post {
+                        showNotice(
+                            if (ok) SleepNotice(tx("Ekran görüntüsü alındı", "Screenshot saved"), tx("Oyunlar → Araçlar → Ekran görüntüleri", "Games → Tools → Screenshots"), icon = "📸")
+                            else SleepNotice(tx("Ekran görüntüsü kaydedilemedi", "Couldn't save the screenshot"), "", icon = "📸")
+                        )
+                    }
+                }
+            }
+
+            override fun onFailure(errorCode: Int) {
+                Log.w(TAG, "screenshot failed: $errorCode")
+                showNotice(SleepNotice(tx("Ekran görüntüsü alınamadı", "Couldn't capture"), tx("Kumanda kısayolunu kapatıp yeniden açmak gerekebilir (kod $errorCode).", "You may need to turn the remote shortcut off and on again (code $errorCode)."), icon = "📸"))
+            }
+        })
+    }
+
     override fun onDestroy() {
+        if (instance === this) instance = null
         closeMenu(animated = false)
         handler.removeCallbacks(sleepTick)
         SleepTimer.onChange = null
@@ -494,6 +543,10 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     companion object {
         private const val TAG = "LiteDroidRemote"
+
+        /** Çalışan servis (araçlardan ekran görüntüsü istemek için); kapalıysa null. */
+        @Volatile var instance: RemoteKeyService? = null
+            private set
         /** İki basış arasındaki en uzun süre. Tek Geri de bu kadar gecikmeyle uygulamaya gider. */
         private const val DOUBLE_TAP_MS = 320L
         private const val MENU_EXIT_MS = 260L

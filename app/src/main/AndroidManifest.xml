@@ -18,6 +18,8 @@
 
     <!-- Alt çubuktaki bağlantı durumu için -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Sistem özellikleri: Wi-Fi bağlantı hızı ve sinyal -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <!-- "İzlemeye devam et" ve uygulama kanallarını okumak için (cihaz izin verirse) -->
     <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
