@@ -71,6 +71,7 @@ enum class BuiltInGame(
     MINES("Mayın Tarlası", "Minesweeper", "Mayınlara basmadan tarlayı temizle", "Clear the field without hitting a mine", Color(0xFFFF8A3D), Color(0xFF8A2E12)),
 
     // ---- Araçlar ----
+    BROWSER("Tarayıcı", "Browser", "Hafif tarayıcı, kendi indiricisiyle", "A light browser with its own downloader", Color(0xFF3BA7FF), Color(0xFF123A8A), isTool = true),
     CALC("Hesap Makinesi", "Calculator", "Kumandayla ya da rakam tuşlarıyla hesapla", "Calculate with the remote or number keys", Color(0xFF4D9BFF), Color(0xFF1B3A7A), isTool = true),
     SPEED("Hız Testi", "Speed Test", "İndirme, yükleme ve ping", "Download, upload and ping", Color(0xFF2ED3C8), Color(0xFF0C4F66), isTool = true),
     SHOTS("Ekran Görüntüleri", "Screenshots", "Her uygulamada çek, telefona al", "Capture any app, get it on your phone", Color(0xFFFF7AB6), Color(0xFF6B1F55), isTool = true),
@@ -91,6 +92,7 @@ enum class BuiltInGame(
             QUIZ -> tx("Telefonlarla QR kodu okut · Tamam: devam", "Scan the QR code with phones · OK: continue")
             STORY -> tx("Tamam: duraklat · ▶ sonraki · ◀ önceki", "OK: pause · ▶ next · ◀ previous")
             CALC -> tx("Yön tuşları: gez · Tamam: bas · Rakam tuşları: yaz", "Arrows: move · OK: press · Number keys: type")
+            BROWSER -> tx("Yön tuşları: imleç · Tamam: tıkla", "Arrows: pointer · OK: click")
             SPEED -> tx("Tamam: testi başlat", "OK: start the test")
             SHOTS -> tx("Yüzen menüde 📸 Görüntü · Tamam: aç", "📸 Capture in the floating menu · OK: open")
             SYSINFO -> tx("Yön tuşları: kartlar arasında gez", "Arrows: move between cards")
@@ -276,6 +278,13 @@ fun GameGlyph(game: BuiltInGame, size: Dp, color: Color = Color.White) {
                 drawCircle(color, s * 0.7f, Offset(s * 7.6f, s * 7.4f))
                 drawCircle(color.copy(alpha = 0.7f), s * 0.45f, Offset(s * 8.6f, s * 4.6f))
             }
+            BuiltInGame.BROWSER -> {
+                drawCircle(color, s * 4f, Offset(s * 5f, s * 5f), style = Stroke(s * 0.8f))
+                drawOval(color, Offset(s * 3f, s * 1f), Size(s * 4f, s * 8f), style = Stroke(s * 0.7f))
+                drawLine(color, Offset(s * 1f, s * 5f), Offset(s * 9f, s * 5f), s * 0.7f)
+                drawLine(color, Offset(s * 1.7f, s * 3f), Offset(s * 8.3f, s * 3f), s * 0.5f)
+                drawLine(color, Offset(s * 1.7f, s * 7f), Offset(s * 8.3f, s * 7f), s * 0.5f)
+            }
             BuiltInGame.CALC -> {
                 drawRoundRect(color, Offset(s * 2f, s * 1f), Size(s * 6f, s * 8f), CornerRadius(s), style = Stroke(s * 0.8f))
                 drawRect(color, Offset(s * 3f, s * 2f), Size(s * 4f, s * 1.6f))
@@ -336,6 +345,11 @@ fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier, onExit: () -> U
     // Bilgi yarışması kendi tam ekran düzenini kullanır
     if (game == BuiltInGame.QUIZ) {
         dev.litedroid.launcher.quiz.QuizScreen(modifier)
+        return
+    }
+    // Tarayıcı tüm ekranı kullanır
+    if (game == BuiltInGame.BROWSER) {
+        dev.litedroid.launcher.tools.BrowserScreen(modifier, onExit)
         return
     }
     if (game.isTool) {

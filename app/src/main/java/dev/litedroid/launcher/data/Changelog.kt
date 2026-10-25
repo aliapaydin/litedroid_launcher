@@ -10,6 +10,18 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "2.2.0",
+                tx("Tarayıcı", "Browser"),
+                listOf(
+                    tx("Araçlar'a hafif bir tarayıcı geldi: cihazın kendi WebView motoruyla, tek sekme.", "A light browser joins Tools: the device's own WebView engine, single tab."),
+                    tx("Kumandayla fare oku gezdirilir, Tamam tıklar; ekran kenarında sayfa kayar, kanal tuşları hızlı kaydırır.", "Move a pointer with the remote, OK clicks; the page scrolls at the edges, channel keys scroll fast."),
+                    tx("Sayfadaki arama kutularına ve formlara TV klavyesiyle yazılır.", "Type into search boxes and forms with the TV keyboard."),
+                    tx("Kendi indiricisi: ilerleme ve hız görünür, APK'lar tek tuşla kurulur, dosyalar İndirilenler/LiteDroid'e de kaydedilir.", "Its own downloader: progress and speed, one-press APK install, files also saved to Downloads/LiteDroid."),
+                    tx("Kapatınca tarayıcı tamamen bellekten silinir; LiteDroid arkaya geçince sayfalar duraklar.", "Closing frees the browser completely; pages pause when LiteDroid goes to the background."),
+                    tx("Canlı skorlar: gece yarısını geçince akşamki maçlar artık kaybolmuyor. Maç günü sabah 06:00'da değişiyor, canlı maçlar her zaman görünüyor.", "Live scores: evening matches no longer vanish after midnight. The match day now changes at 06:00, and live matches always show."),
+                ),
+            ),
+            Release(
                 "2.1.0",
                 tx("Canlı Tablo ve Araçlar", "Living Painting and Tools"),
                 listOf(

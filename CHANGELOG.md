@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.0
+- **Browser** tool (`tools/Browser.kt`, full screen): single-tab Android System WebView, created lazily and `destroy()`ed on exit; `onPause`/`pauseTimers` when LiteDroid stops. Remote pointer (accelerating on hold), OK sends a synthetic touch, edges and channel keys send mouse-wheel `ACTION_SCROLL` so inner scroll containers work too. Focused page inputs are detected via JS and filled through LiteDroid's own text dialog (value setter + input/change events, optional Enter/submit). Address bar (URL or Google search), back/forward/reload/stop, home page with quick sites and recent history, text zoom, desktop/mobile user agent. Camera/mic/location requests are denied; `intent:` links open the target app.
+- Scores: a "match day" runs 06:00–06:00 local, so a 23:00 kick-off and its final score stay visible after midnight; live matches always show.
+- **Downloader** (`tools/Downloader.kt`): takes over WebView downloads (cookies + UA, manual redirects), live progress/speed, cancel/delete, copies finished files to `Downloads/LiteDroid`, opens or installs APKs via a `FileProvider`.
+
 ## 2.1.0
 - **Living Painting** screensaver (`canvas/LivingCanvas.kt`, scene `CANVAS`): Gemini paints a city at its real local time (Open-Meteo `utc_offset_seconds`), weather (WMO code → prompt phrase), time of day and season, in the chosen style (oil, watercolor, Van Gogh, ukiyo-e, pixel, photo). Cities: home (cached weather city), a 16-city world tour, or alternating. Each city/day-part/weather/season/style combination is painted once and cached (newest 80 kept), so repeats cost nothing. Slow pan, 3 s crossfades, burn-in-safe drifting info. Falls back to cached paintings or the night scene without a key.
 - **Tools** shelf in the Games tab (`BuiltInGame.isTool`, `tools/`):
