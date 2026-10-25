@@ -4,6 +4,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.focus.focusProperties
+import kotlinx.coroutines.launch
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import dev.litedroid.launcher.ui.theme.Jakarta
 import androidx.compose.animation.animateColorAsState
 import dev.litedroid.launcher.tx
@@ -130,7 +141,7 @@ fun SettingsScreen(
             .padding(start = 56.dp, end = 56.dp, top = 30.dp, bottom = 24.dp)
     ) {
         // ---- Sol: başlık ve sekmeler ----
-        Column(Modifier.width(250.dp)) {
+        Column(Modifier.width(250.dp).fillMaxHeight()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.logo_mark), contentDescription = null, modifier = Modifier.size(38.dp))
                 Spacer(Modifier.width(10.dp))
@@ -140,7 +151,14 @@ fun SettingsScreen(
                 }
             }
             Spacer(Modifier.height(18.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Kategoriler ekrana sığmazsa odak indikçe sol panel de kayar
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 sections.forEachIndexed { i, section ->
                     SectionTab(
                         title = section.title,
@@ -173,10 +191,22 @@ fun SettingsScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 8.dp, bottom = 10.dp),
             )
+            // Listenin başında/sonunda yön tuşu başka kategoriye atlamaz: liste esneyip geri döner
+            val bounce = remember { Animatable(0f) }
+            val bounceScope = rememberCoroutineScope()
+            val sounds = LocalSounds.current
+            fun edge(down: Boolean) {
+                sounds?.play(Sfx.EDGE)
+                bounceScope.launch {
+                    bounce.animateTo(if (down) -16f else 16f, tween(90))
+                    bounce.animateTo(0f, spring(dampingRatio = 0.35f, stiffness = 500f))
+                }
+            }
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .graphicsLayer { translationY = bounce.value * density },
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp, start = 8.dp, end = 8.dp),
             ) {
@@ -189,6 +219,9 @@ fun SettingsScreen(
                         focusRequester = if (i == 0) firstRow else null,
                         leftTarget = tabRequesters.getOrNull(selected),
                         onFocus = { hint = row.hint },
+                        onEdge = if (i == 0 || i == rows.lastIndex) ({ d: Boolean -> edge(d) }) else null,
+                        edgeUp = i == 0,
+                        edgeDown = i == rows.lastIndex,
                     )
                 }
             }
@@ -278,6 +311,10 @@ private fun SettingRowView(
     focusRequester: FocusRequester?,
     leftTarget: FocusRequester?,
     onFocus: () -> Unit,
+    /** İlk/son satırda yukarı/aşağı basılınca (true: aşağı). Null ise normal gezinme. */
+    onEdge: ((Boolean) -> Unit)? = null,
+    edgeUp: Boolean = false,
+    edgeDown: Boolean = false,
 ) {
     val motion = LocalMotion.current
     val sounds = LocalSounds.current
@@ -305,6 +342,17 @@ private fun SettingRowView(
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             // Sola basınca her zaman seçili sekmeye dön (başka sekmeye atlamasın)
             .then(if (leftTarget != null) Modifier.focusProperties { left = leftTarget } else Modifier)
+            .then(
+                if (onEdge == null) Modifier else Modifier.onPreviewKeyEvent { e ->
+                    if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    when (e.key) {
+                        // Yalnızca gerçekten kenardaki yön yutulur; diğer yön normal gezinir
+                        Key.DirectionDown -> if (edgeDown) { onEdge(true); true } else false
+                        Key.DirectionUp -> if (edgeUp) { onEdge(false); true } else false
+                        else -> false
+                    }
+                }
+            )
             .onFocusChanged {
                 if (it.isFocused && !focused) {
                     sounds?.play(Sfx.NAV)
@@ -364,9 +412,14 @@ fun TextInputDialog(
     LaunchedEffect(Unit) { dev.litedroid.launcher.tools.PhoneBridge.text.collect { text = it.take(maxLength) } }
     val fieldFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    var fieldFocused by remember { mutableStateOf(false) }
+    // Arkadaki ekran kapanırken odağı geri almaya çalışabilir: alan odak alana kadar birkaç kez istenir
     LaunchedEffect(Unit) {
-        delay(80)
-        runCatching { fieldFocus.requestFocus() }
+        for (wait in listOf(80L, 220L, 450L, 800L)) {
+            delay(wait)
+            if (fieldFocused) break
+            runCatching { fieldFocus.requestFocus() }
+        }
         keyboard?.show()
     }
 
@@ -397,6 +450,7 @@ fun TextInputDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(fieldFocus)
+                .onFocusChanged { fieldFocused = it.isFocused }
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color.Black.copy(alpha = 0.3f))
                 .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(14.dp))

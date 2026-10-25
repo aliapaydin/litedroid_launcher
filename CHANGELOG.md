@@ -1,10 +1,13 @@
 # Changelog
 
-## 2.3.0
+## 2.4.0
 - **Guest Wi-Fi QR** (`ui/HomeExtras.kt`): `WIFI:T:…;S:…;P:…;;` payload with escaping, from the quick panel or Settings → Home and family; SSID → password → QR flow.
 - **Send from phone** (`tools/PhoneBridge.kt`): LAN page (ports 8791-8799, stops after 30 min idle). Links open in the LiteDroid browser (`BrowserLaunch` + `EXTRA_OPEN_BROWSER`); text fills an open LiteDroid text dialog, otherwise the focused input of the foreground app via `AccessibilityNodeInfo.ACTION_SET_TEXT` (accessibility now `canRetrieveWindowContent`, used only for that).
 - **Morning weather alert**: Open-Meteo hourly code + precipitation probability; first wet hour ≥ 50 % from now; card once a day between 06 and 12.
 - **Break reminder**: accessibility tracks the foreground app; repeats every N minutes (30/45/60/90/120); screen-off, screensaver and the launcher reset the clock.
+- Games tab renamed **Extras** (Games / Tools shelves); the top-bar quick panel button is a down arrow.
+- Settings: the category column scrolls; first/last rows absorb Up/Down with a bounce (`Sfx.EDGE`, soft) instead of jumping to another category.
+- Text dialogs retry focus until the field has it; an open text dialog counts as a page so the home grid doesn't steal focus.
 - **App lock**: locked packages get a full-screen opaque accessibility overlay with a 4-digit PIN pad (number keys work); Back goes home; unlock lasts until another app or the launcher comes to front. Lock/unlock from the app menu, PIN change and "remove all" require the current PIN.
 
 ## 2.2.0

@@ -662,7 +662,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
                     bmp.recycle()
                     handler.post {
                         showNotice(
-                            if (ok) SleepNotice(tx("Ekran görüntüsü alındı", "Screenshot saved"), tx("Oyunlar → Araçlar → Ekran görüntüleri", "Games → Tools → Screenshots"), icon = "📸")
+                            if (ok) SleepNotice(tx("Ekran görüntüsü alındı", "Screenshot saved"), tx("Ekstra → Araçlar → Ekran görüntüleri", "Extras → Tools → Screenshots"), icon = "📸")
                             else SleepNotice(tx("Ekran görüntüsü kaydedilemedi", "Couldn't save the screenshot"), "", icon = "📸")
                         )
                     }

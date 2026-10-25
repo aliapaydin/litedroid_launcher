@@ -62,6 +62,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -115,7 +116,7 @@ import java.time.format.DateTimeFormatter
 enum class ModernTab(private val tr: String, private val en: String) {
     HOME("Ana sayfa", "Home"),
     APPS("Uygulamalar", "Apps"),
-    GAMES("Oyunlar", "Games"),
+    GAMES("Ekstra", "Extras"),
     STORE("Mağaza", "Store");
 
     val label: String get() = tx(tr, en)
@@ -382,7 +383,8 @@ private fun ModernTopBar(
             IconCircle(fm, "top_claude", enabled, Icons.Filled.Search, tx("Claude'a sor", "Ask Claude"), badge = false, onSelect = onAskClaude, accent = true)
             IconCircle(fm, "top_search", enabled, Icons.Filled.Search, tx("Ara", "Search"), badge = false, onSelect = onSearch)
             IconCircle(fm, "top_bell", enabled, Icons.Filled.Notifications, tx("Bildirimler", "Notifications"), badge = notificationCount > 0, onSelect = onNotifications)
-            IconCircle(fm, "top_gear", enabled, Icons.Filled.Settings, tx("Hızlı ayarlar", "Quick settings"), badge = false, onSelect = onSettings)
+            // Açılır hızlı panel: aşağı ok (tüm ayarlar profil resminde)
+            IconCircle(fm, "top_gear", enabled, Icons.Filled.KeyboardArrowDown, tx("Hızlı panel", "Quick panel"), badge = false, onSelect = onSettings)
         }
         Spacer(Modifier.width(10.dp))
         ProfilePill(fm, enabled, userName, if (showGreeting) greetingFor(now.hour) else null, onProfile)
@@ -1519,7 +1521,7 @@ private fun GamesTab(
         modifier = Modifier.fillMaxSize(),
     ) {
         item(key = "builtin") {
-            Section(tx("Dahili oyunlar", "Built-in games")) {
+            Section(tx("Oyunlar", "Games")) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 28.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -1543,7 +1545,7 @@ private fun GamesTab(
             }
         }
         item(key = "installed") {
-            Section(tx("Mağazadan indirdiklerin", "Downloaded games")) {
+            Section(tx("Mağazadan indirdiğin oyunlar", "Downloaded games")) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 28.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),

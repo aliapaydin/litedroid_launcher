@@ -220,7 +220,8 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || updateOpen || wifiOpen || phoneOpen || vm.updatePrompt != null || vm.updatedTo != null ||
+    // Yazı penceresi de sayfa sayılır: açıkken ana ekran odağı geri almaya çalışmaz
+    val pageOpen = textTarget != null || storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || updateOpen || wifiOpen || phoneOpen || vm.updatePrompt != null || vm.updatedTo != null ||
         (vm.updateFullScreen && updateState.inProgress) || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
@@ -1663,8 +1664,8 @@ private fun settingsEntries(
         tx("Seçili Gemini sesiyle kısa bir cümle okur. Çalışmazsa sebebi (anahtar, kota, bağlantı) ekranda yazar.",
             "Reads a short sentence with the selected Gemini voice. If it fails, the reason (key, quota, connection) is shown.")) { onTestVoice() },
     SettingsEntry.Row("story_open", tx("Masal Makinesi", "Story Machine"), Icons.Filled.Star, null,
-        tx("Yapay zekânın yazıp çizdiği, Gemini sesiyle anlattığı, çocuğun seçimleriyle ilerleyen resimli masallar. Oyunlar'da da var.",
-            "Illustrated bedtime stories written, drawn and narrated by AI that follow the child's choices. Also in Games.")) { onOpenStory() },
+        tx("Yapay zekânın yazıp çizdiği, Gemini sesiyle anlattığı, çocuğun seçimleriyle ilerleyen resimli masallar. Ekstra sekmesinde de var.",
+            "Illustrated bedtime stories written, drawn and narrated by AI that follow the child's choices. Also in the Extras tab.")) { onOpenStory() },
     SettingsEntry.Row("claude_web", tx("Web araması", "Web search"), Icons.Filled.Search,
         if (settings.claudeWebSearch) tx("Açık", "On") else tx("Kapalı", "Off"),
         tx("Güncel sorularda (maçlar, haberler, hava) Claude web'de arar ve kaynak gösterir. Arama başına küçük bir ek API ücreti vardır.",
@@ -1724,8 +1725,8 @@ private fun settingsEntries(
 
     SettingsEntry.Header(tx("Diğer", "More")),
     SettingsEntry.Row("games", tx("Dahili oyunlar", "Built-in games"), Icons.Filled.PlayArrow, null,
-        tx("Bilgi Yarışması, Yılan, Kutu İtme, Mini Yarış, SOS, XOX, Sudoku ve Mayın Tarlası. Modern arayüzde Oyunlar sekmesinde de var.",
-            "Quiz Night, Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe, Sudoku and Minesweeper. Also in the Games tab of the Modern layout.")) { onGames() },
+        tx("Bilgi Yarışması, Yılan, Kutu İtme, Mini Yarış, SOS, XOX, Sudoku ve Mayın Tarlası. Modern arayüzde Ekstra sekmesinde de var.",
+            "Quiz Night, Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe, Sudoku and Minesweeper. Also in the Extras tab of the Modern layout.")) { onGames() },
     SettingsEntry.Row("hidden", if (vm.showHidden) tx("Gizli uygulamaları sakla", "Conceal hidden apps") else tx("Gizli uygulamaları göster", "Show hidden apps"),
         Icons.Filled.Search, "${vm.hiddenApps.size}", null) { vm.toggleShowHidden() },
     SettingsEntry.Row("store", tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart, null, null) { onOpenStore() },

@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.3.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.4.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -152,7 +152,7 @@ Gemini API anahtarı gerekir; kullanım senin hesabından ücretlendirilir. Resi
 
 ### 🧠 Bilgi Yarışması (telefonlarla)
 
-Kahoot tarzı bir yarışma: **Oyunlar → Bilgi Yarışması**.
+Kahoot tarzı bir yarışma: **Ekstra → Bilgi Yarışması**.
 - TV'de bir QR kod çıkar. Telefonlar kamerayla okutup katılır. Android ve iPhone'da tarayıcıda açılır, uygulama gerekmez. Telefonlar TV ile aynı Wi-Fi ağında olmalı.
 - Herkes adını ve avatarını seçer, en fazla 8 kişi oynayabilir.
 - **12 kategori:** Genel kültür, Tarih, Coğrafya, Bilim, Teknoloji, Sinema, Müzik, Kitaplar, Sanat, Spor, Arabalar ve Oyun dünyası. **3 seviye:** Başlangıç, Orta, Zor. Sorular 388 soruluk havuzdan rastgele seçilir.
@@ -188,7 +188,7 @@ Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
 
 ### 🛠 Araçlar
 
-Oyunlar sekmesinde ayrı bir raf:
+**Ekstra** sekmesinde, Oyunlar rafının altında ayrı bir raf:
 
 | | |
 |---|---|
