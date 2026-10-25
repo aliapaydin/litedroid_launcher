@@ -95,6 +95,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Tarayıcının indirdiği dosyaları (APK kurulumu dahil) başka uygulamalara açmak için -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Güncelleme: paket yükleyicinin sonucu ve kurulumdan sonra yeniden açılış -->
         <receiver
             android:name=".data.UpdateReceiver"

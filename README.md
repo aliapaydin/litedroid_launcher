@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.1.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.2.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -192,6 +192,7 @@ Oyunlar sekmesinde ayrı bir raf:
 
 | | |
 |---|---|
+| 🌐 **Tarayıcı** | Cihazın kendi WebView motoruyla tek sekmeli, hafif bir tarayıcı. Kumandayla fare oku gezdirilir, Tamam tıklar, kenarlarda sayfa kayar. Sayfadaki arama kutularına TV klavyesiyle yazılır. **Kendi indiricisi** var: ilerleme ve hız görünür, APK'lar tek tuşla kurulur. Kapatınca bellekten tamamen silinir. |
 | 🧮 **Hesap Makinesi** | Kumandayla gezilen tuş takımı. Kumandanın rakam tuşlarıyla da yazılır. Çarpma ve bölme önce yapılır, yazarken sonuç görünür, son işlemler yanda durur. |
 | 🚀 **Hız Testi** | Cloudflare sunucularıyla ping, jitter, indirme ve yükleme ölçer. İbreli gösterge, "4K için yeterli mi?" yorumu ve son 5 test. |
 | 📸 **Ekran Görüntüleri** | Herhangi bir uygulamadayken Geri'ye iki kez bas, yüzen menüden 📸 **Görüntü**'yü seç. Görüntüler TV'de ve Resimler/LiteDroid klasöründe saklanır, QR kodla telefona alınır. Netflix gibi korumalı içerikler siyah çıkar. |
