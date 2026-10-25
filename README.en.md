@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.7.0-ff5c8a?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.7.1-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -33,8 +33,18 @@ LiteDroid started as a weekend question — *"can my Chromecast with Google TV f
 | Modern home | Apps |
 |---|---|
 | ![Modern home](docs/screenshots/modern-home.png) | ![Apps](docs/screenshots/apps.png) |
-| **Ask Claude** | **Quick panel** |
-| ![Ask Claude](docs/screenshots/ask-claude.png) | ![Quick panel](docs/screenshots/quick-panel.png) |
+| **Ask Gemini / Claude (listening)** | **Answer** |
+| ![Listening](docs/screenshots/ask-listening.png) | ![Gemini answer](docs/screenshots/ask-gemini.png) |
+| **Floating menu over Prime Video** | **Sleep timer** |
+| ![Floating menu](docs/screenshots/floating-menu.png) | ![Sleep timer](docs/screenshots/sleep-timer.png) |
+| **Quiz Night lobby** | **Quiz question** |
+| ![Quiz lobby](docs/screenshots/quiz-lobby.png) | ![Quiz question](docs/screenshots/quiz-question.png) |
+| **Leaderboard** | **Podium** |
+| ![Leaderboard](docs/screenshots/quiz-board.png) | ![Podium](docs/screenshots/quiz-podium.png) |
+| **Team picker** | **Usage report** |
+| ![Teams](docs/screenshots/teams.png) | ![Usage report](docs/screenshots/usage-report.png) |
+| **Quick panel** | **Release notes** |
+| ![Quick panel](docs/screenshots/quick-panel.png) | ![Release notes](docs/screenshots/release-notes.png) |
 | **Score strip over Prime Video** | **Screensaver widgets** |
 | ![Score strip](docs/screenshots/score-strip-context.png) | ![Screensaver](docs/screenshots/screensaver.png) |
 | **Built-in games** | **Sudoku** |

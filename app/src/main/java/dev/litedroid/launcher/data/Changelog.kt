@@ -10,6 +10,15 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.7.1",
+                tx("Gemini anahtarları ve yeni ekran görüntüleri", "Gemini keys and new screenshots"),
+                listOf(
+                    tx("Google'ın yeni \"AQ.\" ile başlayan Gemini anahtarları için ipuçları güncellendi, anlaşılır hata mesajı eklendi.",
+                        "Hints updated for Google's new Gemini keys starting with \"AQ.\", with a clear error message."),
+                    tx("GitHub sayfası yeni ekran görüntüleri ve kapak görseliyle güncellendi.", "The GitHub page got new screenshots and a new cover image."),
+                ),
+            ),
+            Release(
                 "1.7.0",
                 tx("Daha akıcı sesli soru ve Gemini", "Smoother voice questions and Gemini"),
                 listOf(

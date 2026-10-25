@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.7.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.7.1-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -28,7 +28,7 @@
 
 LiteDroid bir hafta sonu sorusuyla başladı: *"Chromecast with Google TV'm Apple TV gibi hissettirebilir mi?"* Sonra Kotlin ve Jetpack Compose ile sıfırdan yazılmış tam bir launcher'a dönüştü.
 
-Standart ana ekranın yerine buzlu cam menüler, uygulamalar arası çalışan bir "kaldığın yerden devam et" rafı, sesle soru sorabildiğin bir yapay zekâ asistanı, maç izlerken köşede duran canlı skorlar, kumandayla oynanan oyunlar ve kodla çizilmiş bir ekran koruyucu getiriyor. Bunların hepsini mütevazı TV donanımında akıcı kalarak yapıyor.
+Standart ana ekranın yerine buzlu cam menüler, uygulamalar arası çalışan bir "kaldığın yerden devam et" rafı, sesle soru sorabildiğin bir yapay zekâ asistanı (Claude ya da Gemini), maç izlerken köşede duran canlı skorlar, telefonlarla oynanan bir bilgi yarışması, uyku zamanlayıcısı, kumandayla oynanan oyunlar ve kodla çizilmiş bir ekran koruyucu getiriyor. Bunların hepsini mütevazı TV donanımında akıcı kalarak yapıyor.
 
 ## ✨ Özellikler
 
@@ -54,22 +54,26 @@ Standart ana ekranın yerine buzlu cam menüler, uygulamalar arası çalışan b
   - YouTube videoyu **kaldığı saniyeden** açar.
   - Tam içerik bağlantısı olmayan uygulamalar **temiz bir başlangıçla** açılır, yarım kalmış bir ekrana takılmazsın.
 
-### ✨ Claude'a sor
+### ✨ Claude'a / Gemini'ye sor
 
-<p align="center"><img src="docs/screenshots/ask-claude.png" alt="Claude'a sor" width="100%"></p>
+| Konuşurken | Cevap |
+|---|---|
+| ![Dinliyor](docs/screenshots/ask-listening.png) | ![Gemini cevabı](docs/screenshots/ask-gemini.png) |
 
 - Üst bardaki ✦ düğmesine bas. Mikrofon hazır olunca **"Şimdi konuş"** yazar ve söylediklerin konuşurken ekranda canlı görünür.
 - Cevap ekranda büyük yazıyla akarak gelir. **İlk cümleden itibaren sesli okunmaya başlar**, sonuna kadar beklemez. Yeni soru sormak için bastığında önceki okuma anında durur.
 - Güncel sorularda (bu akşamın maçları, haberler, hava, vizyondaki filmler) **web'de arar** ve kullandığı **kaynakları** altta gösterir.
 - Takip soruları bağlamı korur. İstersen yazarak da sorabilirsin.
 - **Claude ya da Gemini:** İkisinin de anahtarını girip Ayarlar → Claude'a sor → Yapay zekâ'dan istediğine geçebilirsin. Claude için Haiku ya da Sonnet, Gemini için Flash-Lite ya da Flash modelini seçebilirsin.
-- Kendi Anthropic API anahtarınla çalışır. Anahtar sadece TV'de saklanır ve doğrudan `api.anthropic.com`'a gider. Kurulumu aşağıda: [Claude'a sor kurulumu](#claudea-sor-kurulumu).
+- Kendi API anahtarınla çalışır. Anahtar sadece TV'de saklanır ve doğrudan `api.anthropic.com`'a ya da Google'a gider. Kurulumu aşağıda: [Claude'a sor kurulumu](#claudea-sor-kurulumu).
 
 ### ⚽ Canlı skorlar
 
 Süper Lig, Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, **Şampiyonlar Ligi, Avrupa Ligi ve Konferans Ligi** varsayılan olarak takipte. Hangi ligleri izleyeceğini ayarlardan seçersin.
 
 **Takımları seç:** Ayarlar → Canlı skorlar → Takımları seç. Her ligden yalnızca istediğin takımları takip edebilirsin, mesela Süper Lig'den Beşiktaş ve Galatasaray, LaLiga'dan Real Madrid. Tümünü seçebilir, seçimi kaldırabilir ya da tek tek seçebilirsin. Skor kartı, şerit, menü, ekran koruyucu ve gol bildirimleri sadece bu takımların maçlarını gösterir.
+
+<p align="center"><img src="docs/screenshots/teams.png" alt="Takım seçici" width="100%"></p>
 
 <p align="center"><img src="docs/screenshots/score-strip-context.png" alt="Prime Video izlerken köşedeki skor şeridi" width="80%"></p>
 
@@ -84,12 +88,16 @@ Süper Lig, Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, **Şampiyonlar
 
 ### 🎛️ Her uygulamanın üstünde yüzen menü
 
+<p align="center"><img src="docs/screenshots/floating-menu.png" alt="Prime Video'nun üstünde yüzen menü" width="100%"></p>
+
 - Netflix, YouTube ya da başka bir şey açıkken kumandada **Geri'ye iki kez hızlıca bas**.
 - Sağdan kayarak sade bir LiteDroid menüsü açılır. İçinde saat, hava durumu, çalan müziğin kontrolleri, uyku zamanlayıcısı, skor şeridi ayarları, bugünün maçları ve Ana ekran / Claude / Kapat kısayolları var.
 - **Tek basış normal Geri olarak çalışmaya devam eder.**
 - Bir kez açman gerekiyor: **Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu**. Servis yalnızca tuş basışlarını ve öndeki uygulamanın adını görür.
 
 ### 😴 Uyku zamanlayıcısı
+
+<p align="center"><img src="docs/screenshots/sleep-timer.png" alt="Uyku zamanlayıcısı kuruldu bildirimi" width="100%"></p>
 
 - Ayarlar → Uyku zamanlayıcısı'ndan **süreyle** (15–120 dk) ya da **belirli bir saatte** kapan. Yüzen menüden ve hızlı panelden de tek tuşla kurulur.
 - Kapanmaya 45, 30, 15 ve 5 dakika kala sağ altta 5 saniyelik bir uyarı çıkar.
@@ -128,6 +136,14 @@ Kahoot tarzı bir yarışma: **Oyunlar → Bilgi Yarışması**.
 - Kimin cevapladığı anlık görünür. Hızlı ve doğru cevap daha çok puan getirir, üst üste doğru bilenlere seri bonusu var.
 - Her sorudan sonra puan tablosu kayarak yeniden sıralanır, en sonda kürsü ve konfeti var.
 
+| Lobi: QR kodla katıl | Soru |
+|---|---|
+| ![Yarışma lobisi](docs/screenshots/quiz-lobby.png) | ![Soru](docs/screenshots/quiz-question.png) |
+| **Puan durumu** | **Kürsü** |
+| ![Puan durumu](docs/screenshots/quiz-board.png) | ![Kürsü](docs/screenshots/quiz-podium.png) |
+
+<p align="center"><img src="docs/screenshots/quiz-phones.png" alt="Telefondan katılma, cevap verme ve sonuç" width="85%"></p>
+
 ### 🎮 Kumandaya göre yapılmış altı oyun
 
 | Oyunlar | Yılan | Sudoku |
@@ -151,6 +167,8 @@ Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
 
 Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses, Ekran koruyucu, Canlı skorlar, Claude'a sor, İçerik ve gizlilik** ve **Diğer**. Odaktaki satırın açıklaması altta görünür, kumandayla aradığını bulmak kolaydır. **Diğer → Sürüm notları**'nda ilk sürümden bugüne tüm yenilikler sürüm sürüm listelenir.
 
+<p align="center"><img src="docs/screenshots/release-notes.png" alt="Sürüm notları" width="100%"></p>
+
 ### 📊 Kullanım raporu
 
 **Ayarlar → İçerik ve gizlilik → Kullanım raporu** (kullanım istatistikleri izni gerekir):
@@ -158,6 +176,10 @@ Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses,
 - Uygulama sıralaması: toplam süre, yüzde payı, açılış sayısı, en uzun oturum ve son kullanım saati.
 - Saatlere göre dağılım, son 7 günün grafiği ve en yoğun saat.
 - Ana ekran ve ekran koruyucuda geçen süre sayılmaz.
+
+| Özet ve grafikler | Uygulamalar |
+|---|---|
+| ![Kullanım raporu](docs/screenshots/usage-report.png) | ![Uygulama kartları](docs/screenshots/usage-report-apps.png) |
 
 ### Ve diğerleri
 
@@ -246,9 +268,9 @@ Android TV bu izinleri arayüzünde göstermediği için bir kez adb ile verilir
    İstersen **Ayarlar → Claude'a sor → API anahtarı**'ndan da girebilirsin.
 3. Üst bardaki ✦ düğmesine bas ve sor. İlk seferde mikrofon izni sorulur, **İzin ver** de. İstersen izni komutla da verebilirsin: `adb shell pm grant dev.litedroid.launcher android.permission.RECORD_AUDIO`
 
-**Gemini kullanmak için:** [aistudio.google.com](https://aistudio.google.com) → **Get API key** ile bir anahtar al (`AIza…`). Anahtarı şu komutla gönder, sonra Ayarlar → Claude'a sor → **Yapay zekâ: Gemini** seç:
+**Gemini kullanmak için:** [aistudio.google.com](https://aistudio.google.com) → **Get API key** ile bir anahtar al. Yeni anahtarlar `AQ.` ile, eskiler `AIza` ile başlar, ikisi de çalışır. Anahtarı şu komutla gönder, sonra Ayarlar → Claude'a sor → **Yapay zekâ: Gemini** seç:
 ```bash
-adb shell am start -n dev.litedroid.launcher/.MainActivity --es gemini_key "AIza..."
+adb shell am start -n dev.litedroid.launcher/.MainActivity --es gemini_key "AQ.Ab..."
 ```
 
 > Anahtarını kimseyle paylaşma. Ekran görüntüsünde ya da bir yerde göründüyse konsoldan silip yenisini oluştur.
