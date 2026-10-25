@@ -115,7 +115,10 @@ fun UpdateDialog(
             )
             Spacer(Modifier.width(10.dp))
             Text(
-                if (release != null) tx("Yeni sürüm · şu an v$current", "New version · you have v$current") else tx("Güncellemeler", "Updates"),
+                if (release != null) {
+                    tx("Yeni sürüm · şu an v$current", "New version · you have v$current") +
+                        (if (release.apkSize > 0) " · %.1f MB".format(release.apkSize / 1_048_576f) else "")
+                } else tx("Güncellemeler", "Updates"),
                 color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp,
             )
         }
