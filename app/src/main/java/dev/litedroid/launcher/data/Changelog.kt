@@ -10,6 +10,16 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.9.2",
+                tx("Güncelleme penceresi düzeltmeleri", "Update window fixes"),
+                listOf(
+                    tx("Ekranda artık aynı anda tek güncelleme penceresi açılıyor; elle denetleyince de aynı soru geliyor.", "Only one update window opens at a time; checking by hand shows the same prompt."),
+                    tx("Güncelleme penceresi açıkken kumanda arkadaki ayarlara kaçmıyor.", "The remote no longer jumps to the settings behind the update window."),
+                    tx("Güncelleme düğmeleri daha belirgin, yazıları her zaman okunuyor.", "Update buttons stand out more and their labels are always readable."),
+                    tx("Kurma izni yoksa \"Şimdi güncelle\" izin ekranını açıyor ve ne yapılacağını yazıyor.", "Without install permission, \"Update now\" opens the permission screen and explains what to do."),
+                ),
+            ),
+            Release(
                 "1.9.1",
                 tx("Güncelleme boyutu", "Update size"),
                 listOf(

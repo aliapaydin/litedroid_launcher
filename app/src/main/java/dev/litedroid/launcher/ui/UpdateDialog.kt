@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -208,9 +209,10 @@ private fun DialogPill(label: String, primary: Boolean, modifier: Modifier, onCl
                 when {
                     focused -> Color.White
                     primary -> Color(0xFF6B4DFF)
-                    else -> Color.White.copy(alpha = 0.1f)
+                    else -> Color(0xFF3A3658)
                 }
             )
+            .border(1.dp, if (focused) Color.White else Color.White.copy(alpha = 0.22f), RoundedCornerShape(50))
             .onFocusChanged { focused = it.isFocused }
             .onRemoteSelect(onClick)
             .focusable()

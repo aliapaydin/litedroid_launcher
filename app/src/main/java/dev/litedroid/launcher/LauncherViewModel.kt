@@ -626,6 +626,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     /** Güncelleme ilerlemesi tam ekranda mı (değilse sağ altta küçük kart). */
     var updateFullScreen by mutableStateOf(false)
 
+    /**
+     * Ayarlar ya da çan menüsünden açılan güncelleme penceresi açık mı. Açıkken otomatik soru
+     * gelmez: ekranda aynı anda tek güncelleme penceresi olur, kumanda arkaya kaçmaz.
+     */
+    var updateDialogOpen by mutableStateOf(false)
+
+    /** Kurma izni yok: soruda izin açıklaması ve komut gösterilir. */
+    var installPermissionHint by mutableStateOf(false)
+
     /** Sadece haber ver modunda köşede birkaç saniye görünen bildirim. */
     var updateCornerNotice by mutableStateOf<AppRelease?>(null)
         private set
@@ -666,6 +675,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 delay(5_000)
                 val release = (Updater.state.value as? UpdateState.Available)?.release ?: continue
                 if (!resumed || screensaverActive) continue
+                // Başka bir güncelleme penceresi ya da ekranı açıkken üstüne ikinci pencere açılmaz
+                if (updateDialogOpen || updatedTo != null || updateFullScreen) continue
                 when (settings.updateMode) {
                     // Ertelendiyse süre dolunca yeniden sorulur
                     UpdateMode.AUTO -> if (updatePrompt == null && !Updater.isSnoozed(app, release.version)) {
@@ -685,7 +696,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     /** Sorudaki "Şimdi güncelle": indirme başlar, ilerleme tam ekranda görünür. */
     fun startUpdate(release: AppRelease) {
+        if (!Updater.canInstall(app)) {
+            // Kurma izni yok: izin ekranını açmayı dene (Google TV'de çoğunlukla var), soru açık kalsın
+            installPermissionHint = true
+            if (updatePrompt == null) updatePrompt = release
+            runCatching {
+                app.startActivity(
+                    android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:${app.packageName}"))
+                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
+            return
+        }
+        installPermissionHint = false
         updatePrompt = null
+        updateDialogOpen = false
         updateFullScreen = true
         viewModelScope.launch { Updater.downloadAndInstall(app, release, byUser = true) }
     }
@@ -694,7 +719,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun snoozeUpdate(hours: Int) {
         val r = updatePrompt ?: return
         Updater.snooze(app, r.version, hours)
+        installPermissionHint = false
         updatePrompt = null
+    }
+
+    /**
+     * Elle açılan soru (Ayarlar → Güncellemeleri denetle ya da çan menüsü): ertelenmiş olsa da gösterilir.
+     * Otomatik modda yeni sürüm için tek pencere budur.
+     */
+    fun showUpdatePrompt(release: AppRelease) {
+        updateDialogOpen = false
+        updatePrompt = release
     }
 
     /** Geri ile kapatıldı: bir saat sonra yeniden sorulur. */

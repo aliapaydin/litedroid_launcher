@@ -85,9 +85,12 @@ fun UpdatePrompt(
     onUpdate: () -> Unit,
     onSnooze: (hours: Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** Kurma izni yok: açıklama ve tek seferlik komut gösterilir. */
+    permissionHint: Boolean = false,
 ) {
     val primary = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
+    // Açılınca ve izin ekranından dönünce odak "Şimdi güncelle"de olsun
+    LaunchedEffect(release.version, permissionHint) {
         delay(120)
         runCatching { primary.requestFocus() }
     }
@@ -111,6 +114,14 @@ fun UpdatePrompt(
         Spacer(Modifier.height(10.dp))
         Notes(release.notes.take(5))
         Spacer(Modifier.height(22.dp))
+        if (permissionHint) {
+            Text(
+                tx("LiteDroid'in uygulama kurmasına izin ver: açılan ekranda LiteDroid'i aç (Ayarlar → Uygulamalar → Güvenlik ve kısıtlamalar → Bilinmeyen kaynaklar), sonra yeniden \"Şimdi güncelle\" de. O ekran yoksa bilgisayardan bir kez:\n$CMD_INSTALL",
+                    "Allow LiteDroid to install apps: turn LiteDroid on in the screen that opened (Settings → Apps → Security & restrictions → Unknown sources), then choose \"Update now\" again. If there's no such screen, run once from a computer:\n$CMD_INSTALL"),
+                color = Color(0xFFFFB4A8), fontSize = 13.sp, lineHeight = 18.sp,
+                modifier = Modifier.padding(bottom = 14.dp),
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             UPill(tx("Şimdi güncelle", "Update now"), primary = true, modifier = Modifier.focusRequester(primary), onClick = onUpdate)
             UPill(tx("1 saat sonra", "In 1 hour"), primary = false, onClick = { onSnooze(1) })
@@ -364,9 +375,10 @@ private fun UPill(label: String, primary: Boolean, modifier: Modifier = Modifier
                 when {
                     focused -> Color.White
                     primary -> UAccent
-                    else -> Color.White.copy(alpha = 0.1f)
+                    else -> Color(0xFF3A3658)
                 }
             )
+            .border(1.dp, if (focused) Color.White else Color.White.copy(alpha = 0.22f), RoundedCornerShape(50))
             .onFocusChanged { focused = it.isFocused }
             .onRemoteSelect(onClick)
             .focusable()
