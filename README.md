@@ -183,9 +183,12 @@ Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses,
 
 ### 🔄 Kendi kendine güncelleme
 
-- LiteDroid yarım saatte bir GitHub'daki son sürüme bakar. Yeni sürüm varsa çan menüsünde **"Güncelleme var"** görünür. Oradan yenilikleri görüp **Şimdi güncelle** diyebilirsin.
-- **Otomatik** modda yeni sürüm TV boştayken (ekran koruyucu açıkken) indirilip kurulur, izlerken araya girmez.
-- İlk güncellemede Android bir kez onay ister, sonrakiler onaysız kurulur. Güncellemeden sonra LiteDroid kendiliğinden açılır ve yenilikleri gösterir.
+- LiteDroid yarım saatte bir GitHub'daki son sürüme bakar.
+- **Otomatik kur** modunda ekrana **"Yeni sürüm hazır"** sorusu gelir. **Şimdi güncelle**, **1 saat sonra** ya da **3 saat sonra** diyebilirsin.
+- Güncelleme tam ekranda ilerleme çubuğuyla izlenir: İndir → Kur → Yeniden başlat. **Arka planda devam et** dersen sağ altta küçük bir kartta sürer. Çan menüsünden tekrar tam ekrana geçebilirsin.
+- Bitince LiteDroid kendiliğinden yeniden açılır ve **"LiteDroid X sürümüne güncellendi"** ekranında yenilikleri gösterir.
+- **Sadece haber ver** modunda yalnızca köşede bildirim çıkar, kurulum seçeneği yoktur. **Kapalı** modda hiç bakılmaz.
+- İlk güncellemede Android bir kez onay ister, sonrakiler onaysız kurulur.
 - Ayarlar → Diğer: **Güncellemeleri denetle** ve **Güncellemeler** (Otomatik kur / Sadece haber ver / Kapalı).
 - Kurabilmesi için bir kez: `adb shell appops set dev.litedroid.launcher REQUEST_INSTALL_PACKAGES allow`
 

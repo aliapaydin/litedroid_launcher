@@ -201,7 +201,8 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || updateOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
+    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || updateOpen || vm.updatePrompt != null || vm.updatedTo != null ||
+        (vm.updateFullScreen && updateState.inProgress) || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
 
@@ -390,6 +391,9 @@ private fun HomeContent(vm: LauncherViewModel) {
             gamePickerOpen -> gamePickerOpen = false
             movingPkg != null -> movingPkg = null
             aboutOpen -> aboutOpen = false
+            vm.updatedTo != null -> vm.updatedShown()
+            vm.updatePrompt != null -> vm.dismissUpdatePrompt()
+            vm.updateFullScreen && (updateState.inProgress || updateState is UpdateState.Failed) -> vm.updateFullScreen = false
             updateOpen -> updateOpen = false
             sleepDialogOpen -> {
                 sleepDialogOpen = false
@@ -662,8 +666,7 @@ private fun HomeContent(vm: LauncherViewModel) {
             LaunchedEffect(Unit) { vm.markContinueSeen() }
             val byPkg = remember(vm.installed) { vm.installed.associateBy { it.packageName } }
             val items = vm.played.take(7)
-            val updateItem = (updateState as? UpdateState.Available)?.release ?: (updateState as? UpdateState.NeedsConfirm)?.release
-                ?: (updateState as? UpdateState.Downloading)?.release
+            val updateItem = updateState.releaseOrNull()?.takeIf { updateState !is UpdateState.Failed || vm.settings.updateMode == UpdateMode.AUTO }
             GlassMenu(
                 title = tx("İzlemeye devam et", "Continue watching"),
                 subtitle = when {
@@ -672,9 +675,18 @@ private fun HomeContent(vm: LauncherViewModel) {
                     else -> tx("${items.size} yarım kalan video", "${items.size} unfinished videos")
                 },
                 items = listOfNotNull(updateItem?.let { r ->
-                    MenuItem(tx("Güncelleme var: v${r.version} · yenilikleri gör", "Update available: v${r.version} · see what's new"), Icons.Filled.Refresh) {
-                        notifOpen = false
-                        updateOpen = true
+                    val s = updateState
+                    if (s.inProgress) {
+                        val pct = (s as? UpdateState.Downloading)?.progress?.let { " %${(it * 100).toInt()}" } ?: ""
+                        MenuItem(tx("Güncelleniyor: v${r.version}$pct · tam ekran", "Updating to v${r.version}$pct · full screen"), Icons.Filled.Refresh) {
+                            notifOpen = false
+                            vm.updateFullScreen = true
+                        }
+                    } else {
+                        MenuItem(tx("Yeni sürüm: v${r.version} · yenilikleri gör", "New version: v${r.version} · see what's new"), Icons.Filled.Refresh) {
+                            notifOpen = false
+                            updateOpen = true
+                        }
                     }
                 }) + when {
                     !vm.mediaAccess -> listOf(
@@ -1044,16 +1056,71 @@ private fun HomeContent(vm: LauncherViewModel) {
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.55f))
             )
-            UpdateDialog(vm, onClose = { updateOpen = false }, modifier = Modifier.align(Alignment.Center))
+            UpdateDialog(
+                vm,
+                allowInstall = settings.updateMode == UpdateMode.AUTO,
+                onClose = { updateOpen = false },
+                onStarted = { updateOpen = false },
+                modifier = Modifier.align(Alignment.Center),
+            )
         }
 
-        // Güncelleme kurulduktan sonraki ilk açılışta yenilikler bir kez gösterilir
-        LaunchedEffect(vm.showWhatsNew) {
-            if (vm.showWhatsNew) {
-                delay(1_200)
-                changelogOpen = true
-                vm.whatsNewShown()
-            }
+        // ---- Güncelleme: soru, ilerleme (tam ekran ya da köşe), köşe bildirimi, "güncellendi" ----
+        vm.updatePrompt?.let { r ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+            )
+            UpdatePrompt(
+                release = r,
+                current = vm.appVersion,
+                onUpdate = { vm.startUpdate(r) },
+                onSnooze = { h ->
+                    vm.snoozeUpdate(h)
+                    toast(tx("$h saat sonra yeniden sorulacak", "We'll ask again in $h h"))
+                },
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+        val showProgress = updateState.inProgress || (updateState is UpdateState.Failed && vm.updateFullScreen)
+        if (showProgress && vm.updateFullScreen) {
+            UpdateProgressScreen(
+                state = updateState,
+                onMinimize = { vm.updateFullScreen = false },
+                onConfirm = { Updater.confirmPending(context) },
+                onRetry = { updateState.releaseOrNull()?.let { vm.startUpdate(it) } },
+            )
+        } else if (updateState.inProgress) {
+            val r = updateState.releaseOrNull()
+            UpdateCornerCard(
+                title = tx("LiteDroid ${r?.version ?: ""} güncelleniyor", "Updating LiteDroid ${r?.version ?: ""}"),
+                text = when (val s = updateState) {
+                    is UpdateState.Downloading -> tx("İndiriliyor %${(s.progress * 100).toInt()} · tam ekran için çan menüsü", "Downloading ${(s.progress * 100).toInt()}% · bell menu for full screen")
+                    is UpdateState.NeedsConfirm -> tx("Onay bekliyor · çan menüsünden aç", "Waiting for confirmation · open from the bell menu")
+                    else -> tx("Kuruluyor, birazdan yeniden başlayacak", "Installing, restarting soon")
+                },
+                progress = (updateState as? UpdateState.Downloading)?.progress ?: 1f,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
+        }
+        vm.updateCornerNotice?.let { r ->
+            UpdateCornerCard(
+                title = tx("LiteDroid ${r.version} çıktı", "LiteDroid ${r.version} is out"),
+                text = r.title + tx(" · yenilikler çan menüsünde", " · see the bell menu"),
+                progress = null,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
+        }
+        vm.updatedTo?.let { v ->
+            UpdatedScreen(
+                version = v,
+                onClose = { vm.updatedShown() },
+                onAllNotes = {
+                    vm.updatedShown()
+                    changelogOpen = true
+                },
+            )
         }
 
         if (changelogOpen) {
@@ -1404,10 +1471,10 @@ private fun settingsEntries(
         if (Updater.state.value is UpdateState.Available || Updater.state.value is UpdateState.NeedsConfirm) onUpdates() else onCheckUpdates()
     },
     SettingsEntry.Row("updates_mode", tx("Güncellemeler", "Updates"), Icons.Filled.Settings, settings.updateMode.label,
-        tx("Otomatik: yeni sürüm TV boştayken (ekran koruyucu açıkken) indirilip kurulur, izlerken araya girmez. İlk güncellemede Android bir kez onay ister. " +
-            "Sadece haber ver: çan menüsünde gösterilir, kurulumu sen başlatırsın. Kendi kendine kurabilmesi için bir kez:\n\n$CMD_INSTALL",
-            "Automatic: a new version is downloaded and installed while the TV is idle (screensaver on), never while you watch. Android asks once on the first update. " +
-            "Notify only: shown in the bell menu, you start the install. To let it install, run once:\n\n$CMD_INSTALL")) {
+        tx("Otomatik kur: yeni sürüm çıkınca ekranda sorulur (Şimdi güncelle / 1 saat / 3 saat sonra), ilerleme tam ekranda ya da köşede görünür, bitince yeniden başlar. " +
+            "İlk güncellemede Android bir kez onay ister. Sadece haber ver: yalnızca köşede bildirim. Kapalı: hiç bakılmaz. Kurabilmesi için bir kez:\n\n$CMD_INSTALL",
+            "Automatic: you're asked when a new version is out (Update now / in 1 h / in 3 h), progress shows full screen or in the corner, and it restarts when done. " +
+            "Android asks once on the first update. Notify only: just a corner notice. Off: never checks. To let it install, run once:\n\n$CMD_INSTALL")) {
         vm.updateSettings { it.copy(updateMode = UpdateMode.entries.toList().next(it.updateMode)) }
     },
     SettingsEntry.Row("changelog", tx("Sürüm notları", "Release notes"), Icons.Filled.List, "v" + Changelog.releases.first().version,

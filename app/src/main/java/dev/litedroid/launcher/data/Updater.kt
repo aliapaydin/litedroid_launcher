@@ -146,6 +146,27 @@ object Updater {
         return false
     }
 
+    // ------------------------------------------------------------------
+    // Erteleme ("1 saat sonra hatırlat")
+    // ------------------------------------------------------------------
+
+    private fun prefs(context: Context) = context.getSharedPreferences("litedroid_update", Context.MODE_PRIVATE)
+
+    /** Bu sürüm için soru şu ana kadar ertelendi mi. */
+    fun isSnoozed(context: Context, version: String): Boolean {
+        val p = prefs(context)
+        return p.getString("snooze_version", null) == version && System.currentTimeMillis() < p.getLong("snooze_until", 0L)
+    }
+
+    fun snooze(context: Context, version: String, hours: Int) {
+        prefs(context).edit()
+            .putString("snooze_version", version)
+            .putLong("snooze_until", System.currentTimeMillis() + hours * 3_600_000L)
+            .apply()
+    }
+
+    fun snoozedUntil(context: Context): Long = prefs(context).getLong("snooze_until", 0L)
+
     /** Bilinmeyen kaynaktan kurma izni var mı (kendi kendini güncellemek için gerekli). */
     fun canInstall(context: Context): Boolean =
         runCatching { context.packageManager.canRequestPackageInstalls() }.getOrDefault(false)

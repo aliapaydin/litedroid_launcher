@@ -1,5 +1,10 @@
 package dev.litedroid.launcher.overlay
 
+import dev.litedroid.launcher.data.UpdateMode
+import dev.litedroid.launcher.data.UpdateState
+import dev.litedroid.launcher.data.Updater
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import dev.litedroid.launcher.tx
 import dev.litedroid.launcher.media.LiveMediaHub
 import androidx.compose.runtime.collectAsState
@@ -106,8 +111,36 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         Log.i(TAG, "remote shortcut connected, default home: ${defaultHome(force = true)}")
         SleepTimer.onChange = { fromUser -> handler.post { onSleepChanged(fromUser) } }
+        watchUpdates()
         SleepTimer.load(this)
         onSleepChanged(fromUser = false)
+    }
+
+    // ------------------------------------------------------------------
+    // Güncelleme bildirimi: başka bir uygulama açıkken sağ altta
+    // ------------------------------------------------------------------
+
+    private var announcedUpdate: String? = null
+
+    /** Yeni sürüm bulununca (LiteDroid önde değilse) köşede bir kez haber verir. */
+    private fun watchUpdates() {
+        lifecycleScope.launch {
+            Updater.state.collect { s ->
+                val r = (s as? UpdateState.Available)?.release ?: return@collect
+                if (announcedUpdate == r.version || launcherInFront || ScoreOverlay.launcherVisible.value) return@collect
+                val mode = runCatching { SettingsRepository(this@RemoteKeyService).load().updateMode }.getOrDefault(UpdateMode.AUTO)
+                if (mode == UpdateMode.OFF) return@collect
+                announcedUpdate = r.version
+                showNotice(
+                    SleepNotice(
+                        tx("LiteDroid ${r.version} çıktı", "LiteDroid ${r.version} is out"),
+                        if (mode == UpdateMode.AUTO) tx("Ana ekrana dönünce güncellemek isteyip istemediğin sorulacak.", "You'll be asked to update when you're back on the home screen.")
+                        else r.title,
+                        icon = "⬆",
+                    )
+                )
+            }
+        }
     }
 
     // ------------------------------------------------------------------

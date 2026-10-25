@@ -52,7 +52,15 @@ const val CMD_INSTALL = "adb shell appops set dev.litedroid.launcher REQUEST_INS
  * Kurulumdan sonra LiteDroid kendiliğinden yeniden açılır. Geri kapatır.
  */
 @Composable
-fun UpdateDialog(vm: LauncherViewModel, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun UpdateDialog(
+    vm: LauncherViewModel,
+    /** Sadece haber ver modunda false: yenilikler gösterilir, kurulum düğmesi olmaz. */
+    allowInstall: Boolean,
+    onClose: () -> Unit,
+    /** Güncelleme başladı: pencere kapanır, ilerleme tam ekrana geçer. */
+    onStarted: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val state by Updater.state.collectAsState()
     val current = remember { Updater.currentVersion(context) }
@@ -87,6 +95,7 @@ fun UpdateDialog(vm: LauncherViewModel, onClose: () -> Unit, modifier: Modifier 
             return
         }
         vm.installUpdate(r)
+        onStarted()
     }
 
     Column(
@@ -156,8 +165,13 @@ fun UpdateDialog(vm: LauncherViewModel, onClose: () -> Unit, modifier: Modifier 
             )
         }
 
+        if (!allowInstall && release != null) {
+            Status(tx("Kurmak için Ayarlar → Diğer → Güncellemeler'i \"Otomatik kur\" yap.", "To install, set Settings → More → Updates to Automatic."))
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            when (val s = state) {
+            if (!allowInstall && release != null) {
+                DialogPill(tx("Tamam", "OK"), true, Modifier.focusRequester(primary)) { onClose() }
+            } else when (val s = state) {
                 is UpdateState.Available -> DialogPill(tx("Şimdi güncelle", "Update now"), true, Modifier.focusRequester(primary)) { update(s.release) }
                 is UpdateState.Failed -> s.release?.let { r -> DialogPill(tx("Tekrar dene", "Try again"), true, Modifier.focusRequester(primary)) { update(r) } }
                     ?: DialogPill(tx("Tekrar denetle", "Check again"), true, Modifier.focusRequester(primary)) { vm.checkForUpdateNow { } }
@@ -165,7 +179,7 @@ fun UpdateDialog(vm: LauncherViewModel, onClose: () -> Unit, modifier: Modifier 
                 is UpdateState.Downloading, is UpdateState.Installing -> DialogPill(tx("Arka planda devam et", "Continue in background"), true, Modifier.focusRequester(primary)) { onClose() }
                 else -> DialogPill(tx("Şimdi denetle", "Check now"), true, Modifier.focusRequester(primary)) { vm.checkForUpdateNow { } }
             }
-            DialogPill(tx("Kapat", "Close"), false, Modifier) { onClose() }
+            if (allowInstall || release == null) DialogPill(tx("Kapat", "Close"), false, Modifier) { onClose() }
         }
     }
 }
