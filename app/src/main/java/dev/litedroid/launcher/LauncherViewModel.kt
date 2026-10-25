@@ -193,8 +193,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
         ScoresHub.configure(settings)
         ScoreOverlay.sync(app, settings)
-        startUpdateChecks()
-        detectFreshUpdate()
     }
 
     override fun onCleared() {
@@ -641,6 +639,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private var notifiedVersion: String? = null
+
+    // Güncelleme durumları yukarıda tanımlandıktan sonra başlatılır (sınıf alanları sırayla
+    // oluşturulur; daha önce çağrılınca "güncellendi" bilgisi henüz oluşmamış alana yazılıp çöküyordu).
+    init {
+        detectFreshUpdate()
+        startUpdateChecks()
+    }
 
     /**
      * Açılıştan kısa süre sonra ve yarım saatte bir GitHub'daki son sürüme bakar.

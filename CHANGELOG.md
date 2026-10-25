@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.2
+- Fix a startup crash after updating: the view model set `updatedTo` from its first `init` block before that property was initialized (Kotlin initializes members in order). Update checks now start from an `init` block placed after the update properties.
+
 ## 1.8.1
 - Update check: a 404 from `releases/latest` (nothing published yet) counts as up to date instead of a connection error.
 
