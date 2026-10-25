@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.9.1-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.9.3-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -21,6 +21,7 @@
   <a href="#-özellikler">Özellikler</a> ·
   <a href="#-kaputun-altında">Kaputun altında</a> ·
   <a href="#-kurulum">Kurulum</a> ·
+  <a href="docs/KURULUM.md"><b>📘 Resimli kurulum rehberi</b></a> ·
   <a href="CHANGELOG.md">Sürüm notları</a>
 </p>
 
@@ -238,37 +239,61 @@ TV çipleri, launcher'ların en sevdiği şeylerde zorlanır: tam ekran bulanık
 
 ## 📦 Kurulum
 
-**Gerekenler:** Android TV ya da Google TV cihazı (Chromecast with Google TV, Android 14 üzerinde test edildi), `adb` kurulu bir bilgisayar ve JDK 17.
+> ### 📘 [Adım adım resimli kurulum ve güncelleme rehberi → docs/KURULUM.md](docs/KURULUM.md)
+> Geliştirici modunu açmaktan IP/portu bulmaya, eşlemeden izinlere, ana ekran yapmaktan güncellemelere kadar her şey ekran görselleriyle anlatılıyor. İlk kez kuruyorsan oradan başla.
+
+<p align="center"><a href="docs/KURULUM.md"><img src="docs/kurulum/00-genel-akis.png" alt="Kurulumun 8 adımı" width="100%"></a></p>
+
+### Hızlı kurulum (adb'yi biliyorsan)
+
+**Gerekenler:** Android TV ya da Google TV (Android 8+; Chromecast with Google TV ve Botech Wzone'da denendi) ve `adb` kurulu bir bilgisayar.
+
+1. TV'de **Geliştirici seçenekleri → Kablosuz hata ayıklama**'yı aç.
+2. [Releases](https://github.com/aliapaydin/litedroid_launcher/releases/latest) sayfasından son `LiteDroid-X.Y.Z.apk`'yı indir.
+3. Eşle, bağlan, kur ve izinleri ver:
+
+```bash
+adb pair  <TV_IP>:<EŞLEŞME_PORTU>     # sadece ilk sefer, TV'deki 6 haneli kodu sorar
+adb connect <TV_IP>:<PORT>
+adb install -r LiteDroid-X.Y.Z.apk
+
+adb shell appops set dev.litedroid.launcher REQUEST_INSTALL_PACKAGES allow
+adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService
+adb shell appops set dev.litedroid.launcher GET_USAGE_STATS allow
+adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow
+adb shell pm grant dev.litedroid.launcher android.permission.RECORD_AUDIO
+adb shell pm grant dev.litedroid.launcher android.permission.WRITE_SECURE_SETTINGS
+adb shell appops set dev.litedroid.launcher WRITE_SETTINGS allow
+adb shell settings put secure enabled_accessibility_services dev.litedroid.launcher/dev.litedroid.launcher.overlay.RemoteKeyService
+adb shell settings put secure accessibility_enabled 1
+```
+
+4. Kumandada **Home**'a bas ve **LiteDroid Launcher → Her zaman**'ı seç. Google TV'de seçim çıkmaz, aşağıdaki "Tek ana ekran yap" komutlarını kullan. Kutu buna da izin vermiyorsa **Ayarlar → Canlı skorlar → Home tuşunu LiteDroid'e yönlendir** açık kalsın.
+
+| İzin | Ne işe yarar |
+|---|---|
+| `REQUEST_INSTALL_PACKAGES` | Kendi kendine güncelleme (TV menüsünden de verilebilir: Bilinmeyen kaynaklar) |
+| Bildirim dinleyici | Kaldığın yerden devam, şimdi çalıyor kartları |
+| `GET_USAGE_STATS` | Gerçek "son kullanılanlar" ve kullanım raporu |
+| `SYSTEM_ALERT_WINDOW` | Yüzen skor şeridi ve uygulamaların üstündeki bildirimler |
+| `RECORD_AUDIO` | Sesli soru (ilk kullanımda Android de sorar) |
+| `WRITE_SECURE_SETTINGS`, `WRITE_SETTINGS` | LiteDroid'i sistem ekran koruyucusu yapmak |
+| Erişilebilirlik servisi | Yüzen menü, uyku zamanlayıcısı, Home yönlendirme |
+
+### 🔄 Güncellemeler
+
+LiteDroid yarım saatte bir GitHub Releases'e bakar. **Ayarlar → Diğer → Güncellemeler**: **Otomatik kur** (ekrana "Şimdi güncelle · 1 saat · 3 saat sonra" sorusu gelir, ilerleme tam ekranda ya da köşede görünür, bitince kendiliğinden yeniden açılır), **Sadece haber ver** ya da **Kapalı**. İlk güncellemede Android bir kez onay ister; Play Protect uyarırsa **Yine de yükle**. Ayrıntılar [rehberin 8. bölümünde](docs/KURULUM.md#8-güncellemeler).
+
+<details>
+<summary>Kaynaktan derle (geliştirici için)</summary>
 
 ```bash
 git clone https://github.com/aliapaydin/litedroid_launcher.git
 cd litedroid_launcher
 ./gradlew assembleRelease        # JDK 17 gerekir (macOS: export JAVA_HOME=$(/usr/libexec/java_home -v 17))
-```
-
-TV'de **Geliştirici seçenekleri → Kablosuz hata ayıklama**'yı aç, sonra:
-
-```bash
-adb pair  <TV_IP>:<EŞLEŞME_PORTU>     # sadece ilk sefer
-adb connect <TV_IP>:<PORT>
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
-
-Kumandada **Ana ekran** tuşuna bas ve **LiteDroid Launcher → Her zaman**'ı seç.
-
-### Tek seferlik izinler
-
-Android TV bu izinleri arayüzünde göstermediği için bir kez adb ile verilir:
-
-| İzin | Ne işe yarar | Komut |
-|---|---|---|
-| Bildirim dinleyici | Kaldığın yerden devam, şimdi çalıyor kartları | `adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService` |
-| Kullanım istatistikleri | Gerçek "son kullanılanlar" listesi | `adb shell appops set dev.litedroid.launcher GET_USAGE_STATS allow` |
-| Diğer uygulamaların üstünde gösterme | Yüzen skor şeridi | `adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow` |
-| Güvenli ayarlar | LiteDroid'i sistem ekran koruyucusu yapmak | `adb shell pm grant dev.litedroid.launcher android.permission.WRITE_SECURE_SETTINGS` |
-| Sistem ayarları | Aynı amaçla | `adb shell appops set dev.litedroid.launcher WRITE_SETTINGS allow` |
-
-**Yüzen menü** için ayrıca TV'de: **Ayarlar → Sistem → Erişilebilirlik → LiteDroid kumanda kısayolu → Aç**.
+</details>
 
 ### Claude'a sor kurulumu
 

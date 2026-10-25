@@ -10,6 +10,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -96,6 +98,8 @@ fun UpdatePrompt(
     }
     Column(
         modifier
+            // Chromecast ekranı ~540 dp yüksek: pencere taşmasın, düğmeler hep görünsün
+            .padding(vertical = 20.dp)
             .width(780.dp)
             .glass(RoundedCornerShape(30.dp), strong = true)
             .padding(30.dp),
@@ -112,7 +116,7 @@ fun UpdatePrompt(
         Spacer(Modifier.height(16.dp))
         Text(release.title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
-        Notes(release.notes.take(5))
+        Notes(release.notes.take(5), Modifier.weight(1f, fill = false))
         Spacer(Modifier.height(22.dp))
         if (permissionHint) {
             Text(
@@ -298,26 +302,28 @@ fun UpdatedScreen(version: String, onClose: () -> Unit, onAllNotes: () -> Unit, 
     }
     val pop by rememberInfiniteTransition(label = "pop").animateFloat(0.96f, 1.04f, infiniteRepeatable(tween(1400), RepeatMode.Reverse), label = "s")
     Box(modifier.fillMaxSize().background(UBg), contentAlignment = Alignment.Center) {
-        Column(Modifier.widthIn(max = 900.dp).padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Ekran yüksekliğine sığar: yenilikler kutusu daralır, düğmeler her zaman ekranda kalır
+        Column(Modifier.widthIn(max = 900.dp).padding(horizontal = 40.dp, vertical = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(contentAlignment = Alignment.BottomEnd) {
-                Image(painterResource(R.drawable.ic_launcher), null, Modifier.size(96.dp).graphicsLayer { scaleX = pop; scaleY = pop }.clip(RoundedCornerShape(26.dp)))
+                Image(painterResource(R.drawable.ic_launcher), null, Modifier.size(76.dp).graphicsLayer { scaleX = pop; scaleY = pop }.clip(RoundedCornerShape(26.dp)))
                 Box(
                     Modifier.size(34.dp).clip(CircleShape).background(Color(0xFF3BE07F)).border(3.dp, Color(0xFF0B0B1A), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) { Text("✓", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold) }
             }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(12.dp))
             Text(tx("Güncellendi!", "Updated!"), color = Color(0xFF7CF0A8), fontSize = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Text(
                 tx("LiteDroid $version sürümüne güncellendi", "LiteDroid was updated to $version"),
-                color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center,
+                color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center,
             )
             if (release != null) {
                 Spacer(Modifier.height(6.dp))
                 Text(release.title, color = Color.White.copy(alpha = 0.7f), fontSize = 18.sp, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(22.dp))
+                Spacer(Modifier.height(16.dp))
                 Column(
                     Modifier
+                        .weight(1f, fill = false)
                         .widthIn(max = 760.dp)
                         .clip(RoundedCornerShape(22.dp))
                         .background(Color.White.copy(alpha = 0.05f))
@@ -328,7 +334,7 @@ fun UpdatedScreen(version: String, onClose: () -> Unit, onAllNotes: () -> Unit, 
                     Notes(release.items.take(6))
                 }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 UPill(tx("Harika, devam", "Great, continue"), true, Modifier.focusRequester(ok), onClose)
                 UPill(tx("Tüm sürüm notları", "All release notes"), false, Modifier, onAllNotes)
@@ -342,8 +348,9 @@ fun UpdatedScreen(version: String, onClose: () -> Unit, onAllNotes: () -> Unit, 
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun Notes(items: List<String>) {
-    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+private fun Notes(items: List<String>, modifier: Modifier = Modifier) {
+    // Yer kalmazsa kesilmek yerine kaydırılabilir kutuda kalır
+    Column(modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
         items.forEach { n ->
             Row {
                 Box(Modifier.padding(top = 7.dp).size(6.dp).clip(CircleShape).background(UBar))

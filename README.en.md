@@ -153,6 +153,8 @@ Other bits worth a look:
 
 ## 📦 Install
 
+> 📘 An illustrated, step-by-step setup and update guide (in Turkish, the commands are universal): [docs/KURULUM.md](docs/KURULUM.md)
+
 **Requirements:** an Android TV / Google TV device (tested on Chromecast with Google TV, Android 14), a computer with `adb`, JDK 17.
 
 ```bash

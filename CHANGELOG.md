@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.3
+- Update screens fit a 540 dp-tall TV screen: the release-notes area takes the leftover height (`weight(fill = false)` + scroll) so the buttons on the "Updated" screen, the prompt and the update window never slip off the bottom edge.
+- Illustrated Turkish setup and update guide: `docs/KURULUM.md` with images in `docs/kurulum/`.
+
+## 1.9.2
+- One update window at a time: a manual check or the bell menu opens the prompt directly in Automatic mode, and the background prompt never opens over the update window.
+- Settings can't take focus while any update window is open (the remote no longer jumps behind it).
+- Secondary update buttons get a solid fill and border so their labels stay readable.
+- Without install permission, "Update now" opens the unknown-sources screen and shows the one-time adb command.
+
 ## 1.9.1
 - Update prompt and window show the APK download size.
 

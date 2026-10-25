@@ -10,6 +10,15 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.9.3",
+                tx("Güncelleme ekranları ekrana sığıyor", "Update screens fit the screen"),
+                listOf(
+                    tx("\"Güncellendi\" ekranında ve güncelleme penceresinde alttaki düğmeler artık ekranın dışına taşmıyor, yazıları görünüyor.", "On the \"Updated\" screen and the update window the buttons no longer slip off the bottom edge; their labels are visible."),
+                    tx("Yenilikler uzunsa liste kısalıyor, düğmeler hep ekranda kalıyor.", "Long release notes shrink to fit so the buttons always stay on screen."),
+                    tx("GitHub'a resimli kurulum rehberi eklendi (docs/KURULUM.md).", "Added an illustrated setup guide to GitHub (docs/KURULUM.md)."),
+                ),
+            ),
+            Release(
                 "1.9.2",
                 tx("Güncelleme penceresi düzeltmeleri", "Update window fixes"),
                 listOf(
