@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0c0d1c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>LiteDroid Yarışma</title>
+<style>
+  :root {
+    --bg1: #15172e; --bg2: #07080f; --ink: #fff; --soft: rgba(255,255,255,.65); --muted: rgba(255,255,255,.4);
+    --card: rgba(255,255,255,.07); --line: rgba(255,255,255,.12); --accent: #6b4dff;
+    --a0: #e5374f; --a1: #2f6fdc; --a2: #e0a100; --a3: #2c9a3f; --ok: #2ecc71; --bad: #ff5c6e;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink); background: radial-gradient(120% 80% at 20% 0%, #2a2160 0%, var(--bg1) 35%, var(--bg2) 100%) fixed;
+    min-height: 100%; overscroll-behavior: none; user-select: none; -webkit-user-select: none;
+  }
+  .wrap { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+  .top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .me-av { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 24px; background: var(--card); border: 2px solid var(--line); }
+  .me-name { font-weight: 800; font-size: 16px; line-height: 1.1; }
+  .me-sub { color: var(--soft); font-size: 12px; }
+  .score { margin-left: auto; text-align: right; }
+  .score b { font-size: 20px; display: block; }
+  .score span { color: var(--muted); font-size: 11px; }
+  h1 { font-size: 26px; margin: 8px 0 4px; letter-spacing: -.3px; }
+  .sub { color: var(--soft); font-size: 14px; margin: 0 0 18px; }
+  .brand { display: flex; align-items: center; gap: 8px; color: var(--soft); font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+  label { display: block; font-size: 12px; color: var(--soft); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin: 14px 0 8px; }
+  input[type=text] {
+    width: 100%; font-size: 20px; font-weight: 700; color: var(--ink); background: var(--card); border: 2px solid var(--line);
+    border-radius: 16px; padding: 14px 16px; outline: none; -webkit-user-select: text; user-select: text;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+  .avatars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .av { aspect-ratio: 1; border-radius: 16px; background: var(--card); border: 2px solid transparent; font-size: 30px; display: grid; place-items: center; cursor: pointer; transition: transform .12s; }
+  .av:active { transform: scale(.94); }
+  .av.sel { border-color: var(--accent); background: rgba(107,77,255,.25); }
+  .av.taken { opacity: .25; pointer-events: none; }
+  .btn {
+    margin-top: 20px; width: 100%; border: 0; border-radius: 18px; padding: 17px; font-size: 18px; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, #7b5cff, #5a3df0); box-shadow: 0 10px 30px rgba(107,77,255,.35); cursor: pointer;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .5; }
+  .center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+  .big-av { font-size: 84px; line-height: 1; animation: bob 2.2s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-8px); } }
+  .pill { display: inline-block; padding: 6px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-size: 13px; color: var(--soft); }
+  .players { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
+  .chip { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--card); font-size: 14px; font-weight: 700; }
+  .qmeta { display: flex; justify-content: space-between; color: var(--soft); font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .qtext { font-size: 19px; font-weight: 800; line-height: 1.3; margin-bottom: 12px; }
+  .bar { height: 8px; border-radius: 99px; background: var(--card); overflow: hidden; margin-bottom: 14px; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg, #ffcf5c, #ff5c8a); border-radius: 99px; transition: width .45s linear; }
+  .answers { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 10px; min-height: 52vh; }
+  .ans {
+    border: 0; border-radius: 22px; color: #fff; font-size: 17px; font-weight: 800; padding: 14px 12px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px; text-align: center; cursor: pointer; box-shadow: inset 0 -6px 0 rgba(0,0,0,.18);
+    transition: transform .1s, opacity .2s;
+  }
+  .ans:active { transform: scale(.97); }
+  .ans .shape { font-size: 34px; line-height: 1; opacity: .95; }
+  .a0 { background: var(--a0); } .a1 { background: var(--a1); } .a2 { background: var(--a2); } .a3 { background: var(--a3); }
+  .ans.dim { opacity: .25; }
+  .ans.pick { outline: 4px solid #fff; outline-offset: -4px; }
+  .result { font-size: 64px; line-height: 1; }
+  .result-title { font-size: 30px; font-weight: 900; }
+  .gain { font-size: 22px; font-weight: 800; color: #ffd35c; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  .flash-ok { animation: fok .6s ease; } .flash-bad { animation: fbad .5s ease; }
+  @keyframes fok { 0% { transform: scale(.6); opacity: 0 } 60% { transform: scale(1.15) } 100% { transform: scale(1); opacity: 1 } }
+  @keyframes fbad { 0%,100% { transform: translateX(0) } 20% { transform: translateX(-12px) } 40% { transform: translateX(12px) } 60% { transform: translateX(-8px) } 80% { transform: translateX(8px) } }
+  .board { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: var(--card); }
+  .row.me { background: rgba(107,77,255,.3); border: 1px solid rgba(160,140,255,.6); }
+  .row .rk { width: 26px; font-weight: 900; color: var(--soft); }
+  .row .av2 { font-size: 24px; }
+  .row .nm { flex: 1; font-weight: 800; text-align: left; }
+  .row .sc { font-weight: 900; }
+  .count { font-size: 120px; font-weight: 900; line-height: 1; animation: pop 1s ease infinite; }
+  @keyframes pop { 0% { transform: scale(.7); opacity: .3 } 30% { transform: scale(1.05); opacity: 1 } 100% { transform: scale(1); } }
+  .err { position: fixed; left: 16px; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); padding: 12px 14px; border-radius: 14px; background: rgba(255,92,110,.18); border: 1px solid rgba(255,92,110,.5); font-size: 14px; display: none; }
+  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .confetti i { position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="err" id="err">TV ile bağlantı koptu, yeniden deneniyor…</div>
+<div class="confetti" id="confetti"></div>
+<script>
+(function () {
+  "use strict";
+  var SHAPES = ["▲", "◆", "●", "■"];
+  var app = document.getElementById("app");
+  var errBox = document.getElementById("err");
+  var store = {
+    get: function (k) { try { return localStorage.getItem("ldq_" + k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem("ldq_" + k, v); } catch (e) {} }
+  };
+  var pid = store.get("pid");
+  var myName = store.get("name") || "";
+  var myAvatar = store.get("avatar") || "";
+  var state = null, lastKey = "", sending = false, fails = 0, lastPhase = "", lastIndex = -1, pickedLocal = -1;
+
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+
+  function api(method, path, body) {
+    var opts = { method: method, cache: "no-store", headers: {} };
+    if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+    return fetch(path, opts).then(function (r) { return r.json(); });
+  }
+
+  function poll() {
+    api("GET", "/api/state?pid=" + encodeURIComponent(pid || "")).then(function (s) {
+      fails = 0; errBox.style.display = "none";
+      state = s; render();
+    }).catch(function () {
+      fails++; if (fails > 3) errBox.style.display = "block";
+    }).then(function () { setTimeout(poll, state && state.phase === "QUESTION" ? 350 : 600); });
+  }
+
+  function header() {
+    var m = state && state.me;
+    if (!m) return "";
+    return '<div class="top"><div class="me-av" style="border-color:' + m.color + '">' + esc(m.avatar) + '</div>' +
+      '<div><div class="me-name">' + esc(m.name) + '</div><div class="me-sub">' + (m.rank ? m.rank + ". sıra" : "") + (m.streak > 1 ? " · 🔥 " + m.streak + " seri" : "") + '</div></div>' +
+      '<div class="score"><b>' + m.score + '</b><span>PUAN</span></div></div>';
+  }
+
+  function renderJoin() {
+    var taken = (state && state.takenAvatars) || [];
+    var avatars = (state && state.avatars) || ["🦊", "🐼", "🐯", "🦁", "🐸"];
+    if (!myAvatar || taken.indexOf(myAvatar) >= 0) myAvatar = avatars.filter(function (a) { return taken.indexOf(a) < 0; })[0] || avatars[0];
+    var full = state && state.full;
+    var html = '<div class="brand"><span class="dot"></span>LiteDroid · Bilgi yarışması</div>' +
+      '<h1>Yarışmaya katıl</h1><p class="sub">Adını yaz, bir avatar seç. Sorular TV\'de çıkacak, cevabı buradan vereceksin.</p>' +
+      '<label>Adın</label><input type="text" id="name" maxlength="16" placeholder="Örn. Ali" value="' + esc(myName) + '" autocomplete="off">' +
+      '<label>Avatarın</label><div class="avatars">' +
+      avatars.map(function (a) {
+        return '<div class="av' + (a === myAvatar ? " sel" : "") + (taken.indexOf(a) >= 0 ? " taken" : "") + '" data-av="' + esc(a) + '">' + esc(a) + '</div>';
+      }).join("") + '</div>' +
+      '<button class="btn" id="join"' + (full ? " disabled" : "") + '>' + (full ? "Yarışma dolu" : "Katıl") + '</button>';
+    app.innerHTML = html;
+    var nameEl = document.getElementById("name");
+    nameEl.addEventListener("input", function () { myName = nameEl.value; });
+    Array.prototype.forEach.call(app.querySelectorAll(".av"), function (el) {
+      el.addEventListener("click", function () {
+        myAvatar = el.getAttribute("data-av");
+        Array.prototype.forEach.call(app.querySelectorAll(".av"), function (x) { x.classList.toggle("sel", x === el); });
+      });
+    });
+    document.getElementById("join").addEventListener("click", function () {
+      var n = (nameEl.value || "").trim();
+      if (!n) { nameEl.focus(); return; }
+      this.disabled = true;
+      api("POST", "/api/join", { name: n, avatar: myAvatar, pid: pid || "" }).then(function (r) {
+        if (r.pid) { pid = r.pid; store.set("pid", pid); store.set("name", n); store.set("avatar", myAvatar); myName = n; vibrate(30); lastKey = ""; }
+        else alert("Yarışma dolu.");
+      }).catch(function () { alert("TV'ye ulaşılamadı. Aynı Wi-Fi ağında mısın?"); })
+        .then(function () { var b = document.getElementById("join"); if (b) b.disabled = false; });
+    });
+  }
+
+  function playersChips() {
+    return '<div class="players">' + (state.players || []).map(function (p) {
+      return '<span class="chip"><span>' + esc(p.avatar) + '</span>' + esc(p.name) + '</span>';
+    }).join("") + '</div>';
+  }
+
+  function boardRows(limit) {
+    var me = state.me;
+    return '<div class="board">' + (state.players || []).slice(0, limit).map(function (p, i) {
+      var isMe = me && p.name === me.name && p.avatar === me.avatar;
+      return '<div class="row' + (isMe ? " me" : "") + '"><span class="rk">' + (i + 1) + '</span><span class="av2">' + esc(p.avatar) + '</span><span class="nm">' + esc(p.name) + '</span><span class="sc">' + p.score + '</span></div>';
+    }).join("") + '</div>';
+  }
+
+  function confetti() {
+    var box = document.getElementById("confetti");
+    var colors = ["#ff5c8a", "#ffd35c", "#4d9bff", "#3be07f", "#b06bff"];
+    for (var i = 0; i < 70; i++) {
+      var c = document.createElement("i");
+      c.style.left = Math.random() * 100 + "vw";
+      c.style.background = colors[i % colors.length];
+      c.style.animationDuration = (2 + Math.random() * 2.5) + "s";
+      c.style.animationDelay = (Math.random() * .8) + "s";
+      box.appendChild(c);
+    }
+    setTimeout(function () { box.innerHTML = ""; }, 5500);
+  }
+
+  function render() {
+    if (!state) return;
+    if (!state.joined) {
+      // Katılma formu: kullanıcı yazarken yeniden çizme
+      if (lastKey !== "join" || !document.getElementById("name")) { lastKey = "join"; renderJoin(); }
+      return;
+    }
+    var s = state, q = s.question || {}, me = s.me || {};
+    var phaseChanged = s.phase !== lastPhase || s.index !== lastIndex;
+    if (phaseChanged) {
+      if (s.phase === "QUESTION") pickedLocal = -1;
+      if (s.phase === "REVEAL") { if (me.lastCorrect === 1) vibrate([40, 60, 40]); else vibrate(180); }
+      if (s.phase === "FINISHED" && me.rank === 1) confetti();
+      lastPhase = s.phase; lastIndex = s.index;
+    }
+    var choice = me.choice >= 0 ? me.choice : pickedLocal;
+    var key = [s.phase, s.index, choice, me.score, me.rank, s.answeredCount, s.playerCount, (s.players || []).length, Math.ceil(s.remainingMs / 1000)].join("|");
+    if (key === lastKey && s.phase !== "QUESTION") return;
+    var pct = s.phaseMs ? Math.max(0, Math.min(100, s.remainingMs / s.phaseMs * 100)) : 0;
+
+    if (s.phase === "QUESTION" && key.split("|").slice(0, 3).join("|") === lastKey.split("|").slice(0, 3).join("|")) {
+      // Aynı soru: yalnızca süre çubuğunu ve sayacı güncelle
+      var bar = document.getElementById("tbar"); if (bar) bar.style.width = pct + "%";
+      var cnt = document.getElementById("acount"); if (cnt) cnt.textContent = s.answeredCount + "/" + s.playerCount + " cevapladı";
+      lastKey = key; return;
+    }
+    lastKey = key;
+
+    var html = header();
+    if (s.phase === "LOBBY") {
+      html += '<div class="center"><div class="big-av">' + esc(me.avatar) + '</div><h1>Hazırsın!</h1>' +
+        '<p class="sub">Yarışmanın TV\'de başlamasını bekle.</p><span class="pill">' + esc(s.category) + ' · ' + esc(s.level) + '</span>' + playersChips() + '</div>';
+    } else if (s.phase === "GET_READY") {
+      html += '<div class="center"><span class="pill">Soru ' + (s.index + 1) + '/' + s.total + '</span><div style="font-size:54px">' + esc(q.emoji || "❓") + '</div>' +
+        '<h1>' + esc(q.category || "") + '</h1><div class="count">' + Math.max(1, Math.ceil(s.remainingMs / 1000)) + '</div><p class="sub">Hazır ol!</p></div>';
+    } else if (s.phase === "QUESTION") {
+      var opts = q.options || [];
+      html += '<div class="qmeta"><span>Soru ' + (s.index + 1) + '/' + s.total + '</span><span id="acount">' + s.answeredCount + '/' + s.playerCount + ' cevapladı</span></div>' +
+        '<div class="qtext">' + esc(q.text) + '</div><div class="bar"><i id="tbar" style="width:' + pct + '%"></i></div>';
+      if (choice >= 0) {
+        html += '<div class="center"><div class="ans a' + choice + ' pick" style="width:70%;max-width:280px;min-height:150px"><span class="shape">' + SHAPES[choice] + '</span>' + esc(opts[choice] || "") + '</div>' +
+          '<h1>Cevabın alındı</h1><p class="sub">Diğerlerini bekliyoruz…</p></div>';
+      } else {
+        html += '<div class="answers">' + opts.map(function (o, i) {
+          return '<button class="ans a' + i + '" data-i="' + i + '"><span class="shape">' + SHAPES[i] + '</span><span>' + esc(o) + '</span></button>';
+        }).join("") + '</div>';
+      }
+    } else if (s.phase === "REVEAL") {
+      var opts2 = q.options || [], corr = q.correct;
+      var res = me.lastCorrect === 1
+        ? '<div class="result flash-ok">✅</div><div class="result-title ok">Doğru!</div><div class="gain">+' + me.lastGain + ' puan</div>'
+        : me.lastCorrect === 0
+          ? '<div class="result flash-bad">❌</div><div class="result-title bad">Yanlış</div>'
+          : '<div class="result">⏱️</div><div class="result-title">Süre doldu</div>';
+      html += '<div class="center">' + res +
+        '<p class="sub">Doğru cevap:</p><div class="ans a' + corr + '" style="width:80%;max-width:320px;min-height:90px"><span class="shape">' + SHAPES[corr] + '</span>' + esc(opts2[corr] || "") + '</div>' +
+        '<span class="pill">' + me.rank + '. sıradasın · ' + me.score + ' puan</span></div>';
+    } else if (s.phase === "SCOREBOARD") {
+      html += '<div class="center"><h1>Puan durumu</h1><p class="sub">Soru ' + (s.index + 1) + '/' + s.total + ' sonrası</p>' + boardRows(8) + '</div>';
+    } else if (s.phase === "FINISHED") {
+      var medal = ["🥇", "🥈", "🥉"][me.rank - 1] || "🎉";
+      html += '<div class="center"><div class="result flash-ok">' + medal + '</div><h1>' + (me.rank === 1 ? "Şampiyon sensin!" : me.rank + ". oldun") + '</h1>' +
+        '<p class="sub">' + me.score + ' puan topladın</p>' + boardRows(8) + '<p class="sub" style="margin-top:14px">Yeni yarışma TV\'den başlatılabilir.</p></div>';
+    }
+    app.innerHTML = html;
+    Array.prototype.forEach.call(app.querySelectorAll(".answers .ans"), function (el) {
+      el.addEventListener("click", function () {
+        if (sending || pickedLocal >= 0) return;
+        var i = parseInt(el.getAttribute("data-i"), 10);
+        pickedLocal = i; sending = true; vibrate(25); lastKey = ""; render();
+        api("POST", "/api/answer", { pid: pid, index: state.index, choice: i })
+          .catch(function () { pickedLocal = -1; lastKey = ""; })
+          .then(function () { sending = false; });
+      });
+    });
+  }
+
+  poll();
+})();
+</script>
+</body>
+</html>

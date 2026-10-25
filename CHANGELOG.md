@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0
+- **Quiz Night** (Games → Quiz Night): a Kahoot-style quiz played with phones. The TV runs a tiny HTTP server (`quiz/QuizServer.kt`, ports 8765–8775) and shows a QR code (ZXing) with its LAN address; Android and iPhone browsers open a self-contained page (`assets/quiz/index.html`) to join with a name and avatar (up to 8 players) and answer.
+- 12 categories × 3 levels (Beginner / Medium / Hard, or mixed), 388 Turkish questions in `assets/quiz/questions.json`, options shuffled per game, recently asked questions avoided.
+- Flow: lobby → 3-2-1 → question with countdown ring and who-answered badges (ends early when everyone answered) → reveal with each player's pick and points (500–1000 by speed + streak bonus) → leaderboard where rows slide from old to new rank and scores count up → podium with confetti. OK skips waits, Back returns to the lobby.
+
 ## 1.5.0
 - **UEFA competitions:** Champions League (`uefa.champions`), Europa League (`uefa.europa`) and Conference League (`uefa.europa.conf`), on by default (also for existing installs, via a "known leagues" migration) and switchable like the others.
 - **Team follow:** Settings → Live scores → Pick teams. Leagues on the left, the league's teams (ESPN `/teams`) as a logo grid on the right, with Select all / Clear / one-by-one. A league with no customization follows every team; otherwise only matches involving the selected teams reach the scores card, strip, menu, screensaver and goal alerts.

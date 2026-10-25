@@ -12,8 +12,8 @@ android {
         applicationId = "dev.litedroid.launcher"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "1.5.0"
+        versionCode = 22
+        versionName = "1.6.0"
     }
 
     buildTypes {
@@ -61,4 +61,6 @@ dependencies {
     // "Devam et" ve uygulama içerik görselleri için
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+    // Bilgi yarışması: telefonların okutacağı QR kod
+    implementation("com.google.zxing:core:3.5.3")
 }

@@ -10,6 +10,20 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.6.0",
+                tx("Bilgi Yarışması", "Quiz Night"),
+                listOf(
+                    tx("Kahoot tarzı bilgi yarışması: Oyunlar → Bilgi Yarışması. Telefonlar TV'deki QR kodu okutup katılır, uygulama gerekmez (Android ve iPhone).",
+                        "Kahoot-style quiz: Games → Quiz Night. Phones join by scanning the QR code on the TV, no app needed (Android and iPhone)."),
+                    tx("Her oyuncu adını ve avatarını seçer; en fazla 8 kişi.", "Everyone picks a name and an avatar; up to 8 players."),
+                    tx("12 kategori, 3 zorluk (Başlangıç, Orta, Zor) ve 388 soruluk havuzdan rastgele sorular.",
+                        "12 categories, 3 levels (Beginner, Medium, Hard) and random questions from a pool of 388."),
+                    tx("Geri sayım, kimin cevapladığı, doğru cevap ve hızlı cevaba göre puan; her sorudan sonra kayarak yer değiştiren canlı puan tablosu.",
+                        "Countdown, who answered, the right answer and points for speed; a live leaderboard that slides into place after each question."),
+                    tx("Sonda kürsü ve konfeti, tek tuşla tekrar oyna.", "A podium with confetti at the end, and play again with one press."),
+                ),
+            ),
+            Release(
                 "1.5.0",
                 tx("Avrupa kupaları, takım takibi, uyku zamanlayıcısı", "European cups, team follow, sleep timer"),
                 listOf(
