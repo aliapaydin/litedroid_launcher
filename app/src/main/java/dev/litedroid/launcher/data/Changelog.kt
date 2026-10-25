@@ -10,6 +10,14 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.9.1",
+                tx("Güncelleme boyutu", "Update size"),
+                listOf(
+                    tx("Güncelleme penceresinde indirilecek dosyanın boyutu da yazıyor.", "The update window now shows the download size."),
+                    tx("Bu sürüm, kendi kendine güncellemenin ilk gerçek denemesi.", "This version is the first real test of self-update."),
+                ),
+            ),
+            Release(
                 "1.9.0",
                 tx("Mayın Tarlası", "Minesweeper"),
                 listOf(
