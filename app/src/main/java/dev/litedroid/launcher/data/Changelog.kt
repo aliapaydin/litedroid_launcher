@@ -10,6 +10,21 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.8.0",
+                tx("Kendi kendine güncelleme", "Self-update"),
+                listOf(
+                    tx("LiteDroid yarım saatte bir yeni sürüm var mı diye bakar.", "LiteDroid checks for a new version every half hour."),
+                    tx("Otomatik modda ekrana \"Yeni sürüm hazır\" sorusu gelir: Şimdi güncelle, 1 saat sonra ya da 3 saat sonra.",
+                        "In automatic mode a \"New version ready\" prompt appears: Update now, in 1 hour or in 3 hours."),
+                    tx("Güncelleme tam ekranda ilerleme çubuğuyla izlenir; istersen arka plana alıp köşedeki küçük karttan takip edersin.",
+                        "Follow the update full screen with a progress bar, or send it to the background and watch the small corner card."),
+                    tx("Bitince LiteDroid kendiliğinden yeniden açılır ve \"şu sürüme güncellendi, yenilikler şunlar\" ekranını gösterir.",
+                        "When done LiteDroid restarts and shows which version it was updated to and what's new."),
+                    tx("Sadece haber ver modunda yalnızca köşede bildirim çıkar; Kapalı modda hiç bakılmaz.",
+                        "Notify only shows a corner notice; Off never checks."),
+                ),
+            ),
+            Release(
                 "1.7.1",
                 tx("Gemini anahtarları ve yeni ekran görüntüleri", "Gemini keys and new screenshots"),
                 listOf(

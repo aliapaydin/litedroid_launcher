@@ -1,5 +1,7 @@
 package dev.litedroid.launcher.overlay
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -147,6 +149,10 @@ data class SleepNotice(
     /** Geri sayım (saniye); null ise normal uyarı. */
     val countdown: Int? = null,
     val id: Long = System.nanoTime(),
+    /** Soldaki simge (uyku: ay, güncelleme: ok). */
+    val icon: String = "☾",
+    /** 0..1 arası ilerleme çubuğu (güncelleme indirilirken), yoksa null. */
+    val progress: Float? = null,
 )
 
 /** Bildirim penceresinin içeriği: sağdan kayarak girer ve çıkar. */
@@ -199,12 +205,18 @@ fun SleepNoticeView(notice: SleepNotice?) {
                         .clip(RoundedCornerShape(14.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFF3A3F8F), Color(0xFF6B4DFF)))),
                     contentAlignment = Alignment.Center,
-                ) { Text("☾", color = Color.White, fontSize = 22.sp) }
+                ) { Text(n.icon, color = Color.White, fontSize = 22.sp) }
             }
             Spacer(Modifier.width(14.dp))
             Column {
                 Text(n.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Text(n.text, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, lineHeight = 16.sp)
+                n.progress?.let { p ->
+                    Spacer(Modifier.height(8.dp))
+                    Box(Modifier.width(260.dp).height(5.dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.12f))) {
+                        Box(Modifier.fillMaxWidth(p.coerceIn(0.02f, 1f)).height(5.dp).clip(RoundedCornerShape(50)).background(Color(0xFF8E7BFF)))
+                    }
+                }
             }
         }
     }

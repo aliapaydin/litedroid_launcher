@@ -1,5 +1,8 @@
 package dev.litedroid.launcher.ui
 
+import dev.litedroid.launcher.data.UpdateMode
+import dev.litedroid.launcher.data.UpdateState
+import dev.litedroid.launcher.data.Updater
 import dev.litedroid.launcher.data.VoiceListener
 import dev.litedroid.launcher.data.GeminiModel
 import dev.litedroid.launcher.data.AiProvider
@@ -181,6 +184,10 @@ private fun HomeContent(vm: LauncherViewModel) {
     var usageOpen by remember { mutableStateOf(false) }
     var teamsOpen by remember { mutableStateOf(false) }
     var sleepDialogOpen by remember { mutableStateOf(false) }
+    var updateOpen by remember { mutableStateOf(false) }
+    val updateState by Updater.state.collectAsState()
+    val updateReady = updateState is UpdateState.Available || updateState is UpdateState.NeedsConfirm ||
+        updateState is UpdateState.Downloading || updateState is UpdateState.Installing
     val sleepEnd by SleepTimer.endAt.collectAsState()
     var settingsRefocus by remember { mutableIntStateOf(0) }
     var settingsOpen by remember { mutableStateOf(false) }
@@ -194,7 +201,8 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
+    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || updateOpen || vm.updatePrompt != null || vm.updatedTo != null ||
+        (vm.updateFullScreen && updateState.inProgress) || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
 
@@ -383,6 +391,10 @@ private fun HomeContent(vm: LauncherViewModel) {
             gamePickerOpen -> gamePickerOpen = false
             movingPkg != null -> movingPkg = null
             aboutOpen -> aboutOpen = false
+            vm.updatedTo != null -> vm.updatedShown()
+            vm.updatePrompt != null -> vm.dismissUpdatePrompt()
+            vm.updateFullScreen && (updateState.inProgress || updateState is UpdateState.Failed) -> vm.updateFullScreen = false
+            updateOpen -> updateOpen = false
             sleepDialogOpen -> {
                 sleepDialogOpen = false
                 settingsRefocus++
@@ -654,6 +666,7 @@ private fun HomeContent(vm: LauncherViewModel) {
             LaunchedEffect(Unit) { vm.markContinueSeen() }
             val byPkg = remember(vm.installed) { vm.installed.associateBy { it.packageName } }
             val items = vm.played.take(7)
+            val updateItem = updateState.releaseOrNull()?.takeIf { updateState !is UpdateState.Failed || vm.settings.updateMode == UpdateMode.AUTO }
             GlassMenu(
                 title = tx("İzlemeye devam et", "Continue watching"),
                 subtitle = when {
@@ -661,7 +674,21 @@ private fun HomeContent(vm: LauncherViewModel) {
                     items.isEmpty() -> tx("Yarım kalan video yok", "Nothing to continue")
                     else -> tx("${items.size} yarım kalan video", "${items.size} unfinished videos")
                 },
-                items = when {
+                items = listOfNotNull(updateItem?.let { r ->
+                    val s = updateState
+                    if (s.inProgress) {
+                        val pct = (s as? UpdateState.Downloading)?.progress?.let { " %${(it * 100).toInt()}" } ?: ""
+                        MenuItem(tx("Güncelleniyor: v${r.version}$pct · tam ekran", "Updating to v${r.version}$pct · full screen"), Icons.Filled.Refresh) {
+                            notifOpen = false
+                            vm.updateFullScreen = true
+                        }
+                    } else {
+                        MenuItem(tx("Yeni sürüm: v${r.version} · yenilikleri gör", "New version: v${r.version} · see what's new"), Icons.Filled.Refresh) {
+                            notifOpen = false
+                            updateOpen = true
+                        }
+                    }
+                }) + when {
                     !vm.mediaAccess -> listOf(
                         MenuItem(tx("İzni aç (Ayarlar → Medya geçmişi)", "Enable access (Settings → Media history)"), Icons.Filled.Lock) {
                             notifOpen = false
@@ -876,6 +903,15 @@ private fun HomeContent(vm: LauncherViewModel) {
                         aboutOpen = true
                     },
                     onChangelog = { changelogOpen = true },
+                    onUpdates = { updateOpen = true },
+                    onCheckUpdates = {
+                        toast(tx("Güncelleme denetleniyor…", "Checking for updates…"))
+                        vm.checkForUpdateNow { r ->
+                            if (r != null) updateOpen = true
+                            else if (Updater.state.value is UpdateState.UpToDate) toast(tx("LiteDroid güncel (v${Updater.currentVersion(context)})", "LiteDroid is up to date (v${Updater.currentVersion(context)})"))
+                            else updateOpen = true
+                        }
+                    },
                     onTeams = {
                         settingsOpen = false
                         teamsOpen = true
@@ -1014,6 +1050,79 @@ private fun HomeContent(vm: LauncherViewModel) {
             )
         }
 
+        if (updateOpen) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f))
+            )
+            UpdateDialog(
+                vm,
+                allowInstall = settings.updateMode == UpdateMode.AUTO,
+                onClose = { updateOpen = false },
+                onStarted = { updateOpen = false },
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
+        // ---- Güncelleme: soru, ilerleme (tam ekran ya da köşe), köşe bildirimi, "güncellendi" ----
+        vm.updatePrompt?.let { r ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+            )
+            UpdatePrompt(
+                release = r,
+                current = vm.appVersion,
+                onUpdate = { vm.startUpdate(r) },
+                onSnooze = { h ->
+                    vm.snoozeUpdate(h)
+                    toast(tx("$h saat sonra yeniden sorulacak", "We'll ask again in $h h"))
+                },
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+        val showProgress = updateState.inProgress || (updateState is UpdateState.Failed && vm.updateFullScreen)
+        if (showProgress && vm.updateFullScreen) {
+            UpdateProgressScreen(
+                state = updateState,
+                onMinimize = { vm.updateFullScreen = false },
+                onConfirm = { Updater.confirmPending(context) },
+                onRetry = { updateState.releaseOrNull()?.let { vm.startUpdate(it) } },
+            )
+        } else if (updateState.inProgress) {
+            val r = updateState.releaseOrNull()
+            UpdateCornerCard(
+                title = tx("LiteDroid ${r?.version ?: ""} güncelleniyor", "Updating LiteDroid ${r?.version ?: ""}"),
+                text = when (val s = updateState) {
+                    is UpdateState.Downloading -> tx("İndiriliyor %${(s.progress * 100).toInt()} · tam ekran için çan menüsü", "Downloading ${(s.progress * 100).toInt()}% · bell menu for full screen")
+                    is UpdateState.NeedsConfirm -> tx("Onay bekliyor · çan menüsünden aç", "Waiting for confirmation · open from the bell menu")
+                    else -> tx("Kuruluyor, birazdan yeniden başlayacak", "Installing, restarting soon")
+                },
+                progress = (updateState as? UpdateState.Downloading)?.progress ?: 1f,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
+        }
+        vm.updateCornerNotice?.let { r ->
+            UpdateCornerCard(
+                title = tx("LiteDroid ${r.version} çıktı", "LiteDroid ${r.version} is out"),
+                text = r.title + tx(" · yenilikler çan menüsünde", " · see the bell menu"),
+                progress = null,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
+        }
+        vm.updatedTo?.let { v ->
+            UpdatedScreen(
+                version = v,
+                onClose = { vm.updatedShown() },
+                onAllNotes = {
+                    vm.updatedShown()
+                    changelogOpen = true
+                },
+            )
+        }
+
         if (changelogOpen) {
             Box(
                 Modifier
@@ -1087,6 +1196,8 @@ private fun settingsEntries(
     onOpenStore: () -> Unit,
     onOpenAbout: () -> Unit,
     onChangelog: () -> Unit,
+    onUpdates: () -> Unit,
+    onCheckUpdates: () -> Unit,
     onUsageReport: () -> Unit,
     onTeams: () -> Unit,
     onAndroidSettings: () -> Unit,
@@ -1348,6 +1459,24 @@ private fun settingsEntries(
         Icons.Filled.Search, "${vm.hiddenApps.size}", null) { vm.toggleShowHidden() },
     SettingsEntry.Row("store", tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart, null, null) { onOpenStore() },
     SettingsEntry.Row("android", tx("Android ayarları", "Android settings"), Icons.Filled.Build, null, null) { onAndroidSettings() },
+    SettingsEntry.Row("updates_check", tx("Güncellemeleri denetle", "Check for updates"), Icons.Filled.Refresh,
+        when (val s = Updater.state.value) {
+            is UpdateState.Available -> tx("v${s.release.version} hazır", "v${s.release.version} ready")
+            is UpdateState.NeedsConfirm -> tx("Onay bekliyor", "Waiting for confirmation")
+            is UpdateState.Downloading -> tx("İndiriliyor", "Downloading")
+            else -> "v" + vm.appVersion
+        },
+        tx("Yeni sürümler GitHub'da yayınlanır. LiteDroid yarım saatte bir kendisi de bakar; yeni sürüm varsa çan menüsünde görünür.",
+            "New versions are published on GitHub. LiteDroid also checks every half hour; a new version shows up in the bell menu.")) {
+        if (Updater.state.value is UpdateState.Available || Updater.state.value is UpdateState.NeedsConfirm) onUpdates() else onCheckUpdates()
+    },
+    SettingsEntry.Row("updates_mode", tx("Güncellemeler", "Updates"), Icons.Filled.Settings, settings.updateMode.label,
+        tx("Otomatik kur: yeni sürüm çıkınca ekranda sorulur (Şimdi güncelle / 1 saat / 3 saat sonra), ilerleme tam ekranda ya da köşede görünür, bitince yeniden başlar. " +
+            "İlk güncellemede Android bir kez onay ister. Sadece haber ver: yalnızca köşede bildirim. Kapalı: hiç bakılmaz. Kurabilmesi için bir kez:\n\n$CMD_INSTALL",
+            "Automatic: you're asked when a new version is out (Update now / in 1 h / in 3 h), progress shows full screen or in the corner, and it restarts when done. " +
+            "Android asks once on the first update. Notify only: just a corner notice. Off: never checks. To let it install, run once:\n\n$CMD_INSTALL")) {
+        vm.updateSettings { it.copy(updateMode = UpdateMode.entries.toList().next(it.updateMode)) }
+    },
     SettingsEntry.Row("changelog", tx("Sürüm notları", "Release notes"), Icons.Filled.List, "v" + Changelog.releases.first().version,
         tx("İlk sürümden bugüne LiteDroid'e gelen tüm yenilikler, sürüm sürüm.", "Everything new in LiteDroid since the first version, release by release.")) { onChangelog() },
     SettingsEntry.Row("about", tx("Hakkında", "About"), Icons.Filled.Info, null, null) { onOpenAbout() },

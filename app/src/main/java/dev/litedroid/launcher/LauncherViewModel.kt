@@ -1,5 +1,9 @@
 package dev.litedroid.launcher
 
+import dev.litedroid.launcher.data.UpdateMode
+import dev.litedroid.launcher.data.AppRelease
+import dev.litedroid.launcher.data.UpdateState
+import dev.litedroid.launcher.data.Updater
 import androidx.compose.runtime.mutableFloatStateOf
 import dev.litedroid.launcher.data.AiProvider
 import dev.litedroid.launcher.data.GeminiClient
@@ -189,6 +193,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
         ScoresHub.configure(settings)
         ScoreOverlay.sync(app, settings)
+        startUpdateChecks()
+        detectFreshUpdate()
     }
 
     override fun onCleared() {
@@ -604,6 +610,100 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             publishRecent()
         }
     }
+
+    // ---------------- Güncellemeler ----------------
+
+    /** Güncelleme kurulduktan sonraki ilk açılış: "şu sürüme güncellendi" ekranı bir kez gösterilir. */
+    var updatedTo by mutableStateOf<String?>(null)
+        private set
+
+    fun updatedShown() {
+        updatedTo = null
+    }
+
+    /** Otomatik modda yeni sürüm bulununca ekrana gelen soru ("Şimdi güncelle / 1 saat / 3 saat ertele"). */
+    var updatePrompt by mutableStateOf<AppRelease?>(null)
+        private set
+
+    /** Güncelleme ilerlemesi tam ekranda mı (değilse sağ altta küçük kart). */
+    var updateFullScreen by mutableStateOf(false)
+
+    /** Sadece haber ver modunda köşede birkaç saniye görünen bildirim. */
+    var updateCornerNotice by mutableStateOf<AppRelease?>(null)
+        private set
+
+    private fun detectFreshUpdate() {
+        val prefs = app.getSharedPreferences("litedroid_update", android.content.Context.MODE_PRIVATE)
+        val current = Updater.currentVersion(app)
+        val last = prefs.getString("last_run_version", null)
+        if (last != null && last != current && Updater.isNewer(current, last)) updatedTo = current
+        prefs.edit().putString("last_run_version", current).apply()
+    }
+
+    private var notifiedVersion: String? = null
+
+    /**
+     * Açılıştan kısa süre sonra ve yarım saatte bir GitHub'daki son sürüme bakar.
+     * Otomatik: LiteDroid öndeyken sorar (ertelenmediyse). Sadece haber ver: köşede bildirim.
+     * Kapalı: hiç bakmaz.
+     */
+    private fun startUpdateChecks() {
+        viewModelScope.launch {
+            delay(20_000)
+            while (true) {
+                if (settings.updateMode != UpdateMode.OFF) Updater.check(app)
+                delay(30 * 60_000L)
+            }
+        }
+        // Soru ve köşe bildirimi: uygun an gelince (LiteDroid öndeyken, ekran koruyucu kapalıyken)
+        viewModelScope.launch {
+            while (true) {
+                delay(5_000)
+                val release = (Updater.state.value as? UpdateState.Available)?.release ?: continue
+                if (!resumed || screensaverActive) continue
+                when (settings.updateMode) {
+                    // Ertelendiyse süre dolunca yeniden sorulur
+                    UpdateMode.AUTO -> if (updatePrompt == null && !Updater.isSnoozed(app, release.version)) {
+                        updatePrompt = release
+                    }
+                    UpdateMode.NOTIFY -> if (notifiedVersion != release.version) {
+                        notifiedVersion = release.version
+                        updateCornerNotice = release
+                        delay(10_000)
+                        updateCornerNotice = null
+                    }
+                    UpdateMode.OFF -> Unit
+                }
+            }
+        }
+    }
+
+    /** Sorudaki "Şimdi güncelle": indirme başlar, ilerleme tam ekranda görünür. */
+    fun startUpdate(release: AppRelease) {
+        updatePrompt = null
+        updateFullScreen = true
+        viewModelScope.launch { Updater.downloadAndInstall(app, release, byUser = true) }
+    }
+
+    /** "1 saat sonra" / "3 saat sonra". */
+    fun snoozeUpdate(hours: Int) {
+        val r = updatePrompt ?: return
+        Updater.snooze(app, r.version, hours)
+        updatePrompt = null
+    }
+
+    /** Geri ile kapatıldı: bir saat sonra yeniden sorulur. */
+    fun dismissUpdatePrompt() = snoozeUpdate(1)
+
+    /** Ayarlardan "Şimdi denetle". */
+    fun checkForUpdateNow(onDone: (AppRelease?) -> Unit) {
+        viewModelScope.launch { onDone(Updater.check(app, quiet = false)) }
+    }
+
+    fun installUpdate(release: AppRelease) = startUpdate(release)
+
+    /** Kurulu sürüm (ör. "1.8.0"). */
+    val appVersion: String get() = Updater.currentVersion(app)
 
     // ---------------- Çan: izlemeye devam et ----------------
 

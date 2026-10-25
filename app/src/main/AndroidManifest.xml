@@ -10,6 +10,8 @@
 
     <!-- İçerik görsellerini (poster, kapak) internetten yüklemek için -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Kendi kendini güncelleme (GitHub Releases'ten indirilen APK) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Claude'a sor: uygulama içi sesli soru (konuşurken yazı canlı görünür) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
@@ -90,6 +92,18 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Güncelleme: paket yükleyicinin sonucu ve kurulumdan sonra yeniden açılış -->
+        <receiver
+            android:name=".data.UpdateReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".data.PackageReplacedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Son oynatılanları (medya oturumları) takip eder -->
         <service

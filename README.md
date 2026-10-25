@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.7.1-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.8.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -181,6 +181,17 @@ Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses,
 |---|---|
 | ![Kullanım raporu](docs/screenshots/usage-report.png) | ![Uygulama kartları](docs/screenshots/usage-report-apps.png) |
 
+### 🔄 Kendi kendine güncelleme
+
+- LiteDroid yarım saatte bir GitHub'daki son sürüme bakar.
+- **Otomatik kur** modunda ekrana **"Yeni sürüm hazır"** sorusu gelir. **Şimdi güncelle**, **1 saat sonra** ya da **3 saat sonra** diyebilirsin.
+- Güncelleme tam ekranda ilerleme çubuğuyla izlenir: İndir → Kur → Yeniden başlat. **Arka planda devam et** dersen sağ altta küçük bir kartta sürer. Çan menüsünden tekrar tam ekrana geçebilirsin.
+- Bitince LiteDroid kendiliğinden yeniden açılır ve **"LiteDroid X sürümüne güncellendi"** ekranında yenilikleri gösterir.
+- **Sadece haber ver** modunda yalnızca köşede bildirim çıkar, kurulum seçeneği yoktur. **Kapalı** modda hiç bakılmaz.
+- İlk güncellemede Android bir kez onay ister, sonrakiler onaysız kurulur.
+- Ayarlar → Diğer: **Güncellemeleri denetle** ve **Güncellemeler** (Otomatik kur / Sadece haber ver / Kapalı).
+- Kurabilmesi için bir kez: `adb shell appops set dev.litedroid.launcher REQUEST_INSTALL_PACKAGES allow`
+
 ### Ve diğerleri
 
 - **Mağaza:** Yayın platformları, yerli platformlar, müzik, oynatıcılar ve araçlardan seçilmiş uygulamalar. *Çok sevilen / Ücretsiz / Yerli* etiketleri var. Kurulum ve güncellemeler Google Play üzerinden yapılır, LiteDroid APK yüklemez.
@@ -285,6 +296,19 @@ adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
 adb shell pm enable com.google.android.apps.tv.launcherx
 adb shell pm enable com.google.android.tungsten.setupwraith
 ```
+</details>
+
+<details>
+<summary>Yeni sürüm yayınla (geliştirici için)</summary>
+
+`app/build.gradle.kts`'te `versionCode` ve `versionName`'i artır, `Changelog.kt`'ye yeni sürümün notlarını ekle, sonra:
+
+```bash
+brew install gh && gh auth login      # sadece ilk sefer
+./tools/release.sh
+```
+
+Betik APK'yı derler, notları `Changelog.kt`'den alır ve GitHub'da `vX.Y.Z` adıyla yayınlar. TV'lerdeki LiteDroid yarım saat içinde görür. APK, TV'lere ilk kurulumu yaptığın bilgisayarda derlenmeli. Android yalnızca aynı anahtarla imzalanmış güncellemeyi kabul eder.
 </details>
 
 <details>
