@@ -805,9 +805,6 @@ private fun HomeContent(vm: LauncherViewModel) {
             QuickPanel(
                 vm = vm,
                 tiles = buildList {
-                    add(QuickTile("layout", tx("Arayüz", "Layout"), settings.layout.label, QuickIcons.layout, active = modern) {
-                        vm.updateSettings { it.copy(layout = UiLayout.entries.toList().next(it.layout)) }
-                    })
                     add(QuickTile("sound", tx("Ses efektleri", "Sound effects"), if (settings.soundsEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.sound, active = settings.soundsEnabled) {
                         vm.updateSettings { it.copy(soundsEnabled = !it.soundsEnabled) }
                     })
@@ -846,11 +843,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                         if (showHidden) tx("Gösteriliyor", "Shown") else tx("${hiddenApps.size} gizli", "${hiddenApps.size} hidden"),
                         QuickIcons.hidden, active = showHidden,
                     ) { vm.toggleShowHidden() })
-                    if (modern) {
-                        add(QuickTile("anim", tx("Animasyon", "Animation"), settings.animSpeed.label, QuickIcons.motion, active = settings.animSpeed != AnimSpeed.CALM) {
-                            vm.updateSettings { it.copy(animSpeed = AnimSpeed.entries.toList().next(it.animSpeed)) }
-                        })
-                    } else {
+                    // Arayüz ve animasyon ayarları Ayarlar → Görünüm'de; Casual'da vitrin stili burada kalır
+                    if (!modern) {
                         add(QuickTile("shelf", tx("Vitrin", "Showcase"), vm.shelfStyle.label, QuickIcons.showcase, active = true) { vm.cycleShelfStyle() })
                     }
                 },
@@ -858,14 +852,6 @@ private fun HomeContent(vm: LauncherViewModel) {
                     QuickAction(tx("Tüm ayarlar", "All settings"), QuickIcons.settings) {
                         panelOpen = false
                         settingsOpen = true
-                    },
-                    QuickAction(tx("Mağaza", "Store"), QuickIcons.store) {
-                        panelOpen = false
-                        storeOpen = true
-                    },
-                    QuickAction(tx("Android", "Android"), QuickIcons.settings) {
-                        panelOpen = false
-                        startSafely(Intent(Settings.ACTION_SETTINGS))
                     },
                     QuickAction(tx("Misafir Wi-Fi", "Guest Wi-Fi"), QuickIcons.weather) {
                         panelOpen = false

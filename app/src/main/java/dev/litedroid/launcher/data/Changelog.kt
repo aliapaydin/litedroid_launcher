@@ -2,11 +2,14 @@ package dev.litedroid.launcher.data
 
 import dev.litedroid.launcher.tx
 
-/** Ayarlar → Diğer → Sürüm notları: LiteDroid'in ilk günden bugüne tüm sürümleri. */
+/** Ayarlar → Diğer → Sürüm notları: LiteDroid'in önemli sürümleri, özetle. */
 data class Release(val version: String, val title: String, val items: List<String>)
 
 object Changelog {
-    /** En yeni sürüm en üstte. Dil değişince yeniden okunur (tx o anki dile göre döner). */
+    /**
+     * En yeni sürüm en üstte. Ara sürümler (düzeltmeler, küçük iyileştirmeler) bir üstündeki
+     * büyük sürümün altında toplanır. Dil değişince yeniden okunur (tx o anki dile göre döner).
+     */
     val releases: List<Release>
         get() = listOf(
             Release(
@@ -18,341 +21,58 @@ object Changelog {
                     tx("☔ Sabah hava uyarısı: gün içinde yağmur ya da kar bekleniyorsa sabah ana ekranda kısa bir uyarı.", "☔ Morning weather alert: a short heads-up on the home screen if rain or snow is expected later."),
                     tx("☕ Mola hatırlatıcısı: bir uygulamada seçtiğin süre (30 dk - 2 sa) dolunca nazik bir hatırlatma.", "☕ Break reminder: a gentle nudge after the time you choose (30 min - 2 h) in one app."),
                     tx("🔒 Uygulama kilidi: seçtiğin uygulamalar açılınca 4 haneli PIN sorulur. Ana ekranda uygulamada Tamam'a basılı tut → Kilitle.", "🔒 App lock: chosen apps ask for a 4-digit PIN. Hold OK on an app on the home screen → Lock."),
-                    tx("Oyunlar sekmesinin adı artık Ekstra; içinde Oyunlar ve Araçlar rafları var.", "The Games tab is now Extras, with Games and Tools shelves."),
-                    tx("Üst bardaki hızlı panel düğmesi aşağı ok oldu; tüm ayarlar profil resminde.", "The quick panel button in the top bar is now a down arrow; all settings are under the profile picture."),
-                    tx("Ayarlarda sol kategori listesi kayıyor; sağ listenin sonuna gelince başka kategoriye atlamıyor, hafifçe esneyip kısık bir sesle bitişi belli ediyor.", "Settings: the category list scrolls; the end of a list no longer jumps to another category, it bounces with a soft sound."),
-                    tx("Yazı pencereleri (Wi-Fi adı, şifre…) açılınca odak artık hep pencerede.", "Text windows (Wi-Fi name, password…) now always get the focus."),
-                    tx("Üst barda profil seçiliyken selamlama ve ad rahatça görünür; saat ve tarih o sırada gizlenir, sıkışmaz.", "With the profile selected in the top bar, the greeting and name have room; the clock hides meanwhile instead of squeezing."),
+                    tx("İyileştirmeler: Oyunlar sekmesi artık Ekstra (Oyunlar ve Araçlar rafları), hızlı panel sadeleşti, üst bardaki düğmesi aşağı ok oldu; ayarlarda kategoriler kayıyor, liste sonu esneyerek belli oluyor.", "Improvements: the Games tab is now Extras (Games and Tools shelves), the quick panel is simpler with a down-arrow button; settings categories scroll and list ends bounce."),
+                    tx("Düzeltmeler: yazı pencereleri hep odağı alıyor; profil seçiliyken saat sıkışmıyor.", "Fixes: text windows always get the focus; the clock no longer squeezes next to the profile."),
                 ),
             ),
             Release(
                 "2.2.0",
-                tx("Tarayıcı", "Browser"),
+                tx("Tarayıcı, Canlı Tablo ve Araçlar", "Browser, Living Painting and Tools"),
                 listOf(
-                    tx("Araçlar'a hafif bir tarayıcı geldi: cihazın kendi WebView motoruyla, tek sekme.", "A light browser joins Tools: the device's own WebView engine, single tab."),
-                    tx("Kumandayla fare oku gezdirilir, Tamam tıklar; ekran kenarında sayfa kayar, kanal tuşları hızlı kaydırır.", "Move a pointer with the remote, OK clicks; the page scrolls at the edges, channel keys scroll fast."),
-                    tx("Sayfadaki arama kutularına ve formlara TV klavyesiyle yazılır.", "Type into search boxes and forms with the TV keyboard."),
-                    tx("Kendi indiricisi: ilerleme ve hız görünür, APK'lar tek tuşla kurulur, dosyalar İndirilenler/LiteDroid'e de kaydedilir.", "Its own downloader: progress and speed, one-press APK install, files also saved to Downloads/LiteDroid."),
-                    tx("Kapatınca tarayıcı tamamen bellekten silinir; LiteDroid arkaya geçince sayfalar duraklar.", "Closing frees the browser completely; pages pause when LiteDroid goes to the background."),
-                    tx("Canlı skorlar: gece yarısını geçince akşamki maçlar artık kaybolmuyor. Maç günü sabah 06:00'da değişiyor, canlı maçlar her zaman görünüyor.", "Live scores: evening matches no longer vanish after midnight. The match day now changes at 06:00, and live matches always show."),
-                ),
-            ),
-            Release(
-                "2.1.0",
-                tx("Canlı Tablo ve Araçlar", "Living Painting and Tools"),
-                listOf(
-                    tx("Yeni ekran koruyucu: Canlı Tablo. Yapay zekâ şehirleri o anki gerçek saatlerine ve havalarına göre resmeder: İstanbul'da yağmurlu akşam, Kyoto'da güneşli sabah.", "New screensaver: Living Painting. AI paints cities at their real local time and weather: a rainy evening in Istanbul, a sunny morning in Kyoto."),
-                    tx("Benim şehrim, dünya turu ya da ikisi; yağlıboya, suluboya, Van Gogh, Japon baskısı, piksel ya da fotoğraf stili. Çizilen tablolar saklanır, tekrar gösterimi ücretsizdir.", "My city, world tour or both; oil, watercolor, Van Gogh, ukiyo-e, pixel or photo style. Paintings are kept, showing them again is free."),
-                    tx("Oyunlar sekmesinde yeni Araçlar rafı: Hesap Makinesi, Hız Testi, Ekran Görüntüleri, Sistem Özellikleri ve Avatar Düzenleyici.", "New Tools shelf in Games: Calculator, Speed Test, Screenshots, System Info and Avatar Maker."),
-                    tx("Ekran görüntüsü: herhangi bir uygulamada Geri'ye iki kez bas → 📸 Görüntü. QR kodla telefona al.", "Screenshots: double-press Back in any app → 📸 Capture. Get them on your phone with a QR code."),
-                    tx("Avatarını yap, üst bardaki profil resmi olsun.", "Make your avatar and use it as the profile picture in the top bar."),
+                    tx("🌐 Hafif tarayıcı: kumandayla fare oku, TV klavyesiyle form doldurma, kendi indiricisi (APK'lar tek tuşla kurulur). Kapatınca bellekte iz bırakmaz.", "🌐 A light browser: remote pointer, TV keyboard for forms, its own downloader (one-press APK install). Leaves nothing in memory when closed."),
+                    tx("🎨 Canlı Tablo ekran koruyucusu: yapay zekâ şehirleri o anki gerçek saatlerine ve havalarına göre resmeder; benim şehrim ya da dünya turu, altı farklı stil.", "🎨 Living Painting screensaver: AI paints cities at their real local time and weather; my city or a world tour, six styles."),
+                    tx("🛠 Araçlar: Hesap Makinesi, Hız Testi, Ekran Görüntüleri (QR ile telefona), Sistem Özellikleri ve Avatar Düzenleyici (avatar profil resmi olur).", "🛠 Tools: Calculator, Speed Test, Screenshots (to your phone via QR), System Info and Avatar Maker (your avatar becomes the profile picture)."),
+                    tx("Düzeltme: gece yarısını geçince akşam maçları kaybolmuyor; maç günü sabah 06:00'da değişiyor.", "Fix: evening matches no longer vanish after midnight; the match day changes at 06:00."),
                 ),
             ),
             Release(
                 "2.0.0",
-                tx("Masal Makinesi 🌙", "Story Machine 🌙"),
+                tx("Masal Makinesi ve Gemini sesi", "Story Machine and Gemini voice"),
                 listOf(
-                    tx("Yeni: Masal Makinesi. Kahramanı, yeri ve konuyu seç; yapay zekâ masalı yazsın, her sayfasını çizsin ve Gemini sesiyle anlatsın.", "New: Story Machine. Pick a hero, a place and a theme; AI writes the story, draws every page and tells it in a Gemini voice."),
-                    tx("Karakterler kendi sesleriyle konuşuyor; anlatıcı fısıldıyor, gülüyor, duraksıyor.", "Characters speak in their own voices; the narrator whispers, laughs and pauses."),
-                    tx("Masalın ortasında çocuk yolu seçiyor, hikâye ona göre devam ediyor.", "Halfway through, the child picks the path and the story follows."),
-                    tx("Sayfalar film gibi akıyor: yavaş yakınlaşan resimler, sayfanın havasına göre değişen ninni müziği.", "Pages flow like a film: slowly zooming pictures and a lullaby that follows the mood."),
-                    tx("Bitince TV kendiliğinden kapanabilir. Masallar kitaplıkta saklanır, yeniden dinlemek ücretsizdir.", "The TV can turn itself off at the end. Stories are kept in a library and replay for free."),
-                    tx("Claude'a sor cevapları artık Gemini sesiyle okunuyor (Claude seçiliyken de). Ayarlar → Claude'a sor → Ses motoru, Anlatıcı sesi, Sesi dene.", "Ask Claude answers are now read in a Gemini voice, even with Claude selected. Settings → Ask Claude → Voice engine, Narrator voice, Try the voice."),
-                ),
-            ),
-            Release(
-                "1.9.3",
-                tx("Güncelleme ekranları ekrana sığıyor", "Update screens fit the screen"),
-                listOf(
-                    tx("\"Güncellendi\" ekranında ve güncelleme penceresinde alttaki düğmeler artık ekranın dışına taşmıyor, yazıları görünüyor.", "On the \"Updated\" screen and the update window the buttons no longer slip off the bottom edge; their labels are visible."),
-                    tx("Yenilikler uzunsa liste kısalıyor, düğmeler hep ekranda kalıyor.", "Long release notes shrink to fit so the buttons always stay on screen."),
-                    tx("GitHub'a resimli kurulum rehberi eklendi (docs/KURULUM.md).", "Added an illustrated setup guide to GitHub (docs/KURULUM.md)."),
-                ),
-            ),
-            Release(
-                "1.9.2",
-                tx("Güncelleme penceresi düzeltmeleri", "Update window fixes"),
-                listOf(
-                    tx("Ekranda artık aynı anda tek güncelleme penceresi açılıyor; elle denetleyince de aynı soru geliyor.", "Only one update window opens at a time; checking by hand shows the same prompt."),
-                    tx("Güncelleme penceresi açıkken kumanda arkadaki ayarlara kaçmıyor.", "The remote no longer jumps to the settings behind the update window."),
-                    tx("Güncelleme düğmeleri daha belirgin, yazıları her zaman okunuyor.", "Update buttons stand out more and their labels are always readable."),
-                    tx("Kurma izni yoksa \"Şimdi güncelle\" izin ekranını açıyor ve ne yapılacağını yazıyor.", "Without install permission, \"Update now\" opens the permission screen and explains what to do."),
-                ),
-            ),
-            Release(
-                "1.9.1",
-                tx("Güncelleme boyutu", "Update size"),
-                listOf(
-                    tx("Güncelleme penceresinde indirilecek dosyanın boyutu da yazıyor.", "The update window now shows the download size."),
-                    tx("Bu sürüm, kendi kendine güncellemenin ilk gerçek denemesi.", "This version is the first real test of self-update."),
+                    tx("🌙 Masal Makinesi: kahramanı, yeri ve konuyu seç; yapay zekâ masalı yazar, her sayfasını çizer ve anlatır. Ortada çocuk yolu seçer, karakterler kendi sesleriyle konuşur.", "🌙 Story Machine: pick a hero, a place and a theme; AI writes, illustrates and narrates the story. The child picks the path, characters have their own voices."),
+                    tx("Film gibi akış, sayfaya göre değişen ninni müziği, bitince TV'nin kapanması ve ücretsiz yeniden dinlenen masal kitaplığı.", "Film-like pages, a mood-following lullaby, optional TV-off at the end and a library that replays for free."),
+                    tx("🎙️ Claude'a sor cevapları Gemini'nin doğal sesleriyle okunuyor (Sulafat ve dokuz ses daha).", "🎙️ Ask Claude answers are read in Gemini's natural voices (Sulafat and nine more)."),
+                    tx("Düzeltmeler: güncelleme pencereleri ekrana sığıyor, üst üste binmiyor ve kumanda arkaya kaçmıyor.", "Fixes: update windows fit the screen, never stack, and the remote no longer slips behind them."),
                 ),
             ),
             Release(
                 "1.9.0",
-                tx("Mayın Tarlası", "Minesweeper"),
+                tx("Kendi kendine güncelleme ve Mayın Tarlası", "Self-update and Minesweeper"),
                 listOf(
-                    tx("Yeni oyun: Mayın Tarlası. Oyunlar sekmesinde.", "New game: Minesweeper, in the Games tab."),
-                    tx("Kolay (9×9), Orta (12×11) ve Zor (16×12); her zorluğun en iyi süresi kaydedilir.", "Easy (9×9), Medium (12×11) and Hard (16×12); the best time for each is saved."),
-                    tx("Kumandayla: Tamam açar, basılı tutmak bayrak koyar, rakama Tamam çevresini açar. İlk açılan kare hep güvenli.",
-                        "With the remote: OK opens, holding OK flags, OK on a number opens around it. The first square is always safe."),
-                ),
-            ),
-            Release(
-                "1.8.2",
-                tx("Açılış düzeltmesi", "Startup fix"),
-                listOf(
-                    tx("Güncellemeden sonraki ilk açılışta LiteDroid'in siyah ekranda kalması düzeltildi.", "Fixed LiteDroid staying on a black screen on the first start after an update."),
-                ),
-            ),
-            Release(
-                "1.8.1",
-                tx("Güncelleme denetimi düzeltmesi", "Update check fix"),
-                listOf(
-                    tx("GitHub'da henüz yayınlanmış sürüm yokken \"internet bağlantısını kontrol et\" yerine \"LiteDroid güncel\" görünür.",
-                        "When no release is published yet, \"LiteDroid is up to date\" appears instead of a connection error."),
-                    tx("Bu sürüm, kendi kendine güncelleme sisteminin ilk denemesi.", "This version is the first test of the self-update system."),
-                ),
-            ),
-            Release(
-                "1.8.0",
-                tx("Kendi kendine güncelleme", "Self-update"),
-                listOf(
-                    tx("LiteDroid yarım saatte bir yeni sürüm var mı diye bakar.", "LiteDroid checks for a new version every half hour."),
-                    tx("Otomatik modda ekrana \"Yeni sürüm hazır\" sorusu gelir: Şimdi güncelle, 1 saat sonra ya da 3 saat sonra.",
-                        "In automatic mode a \"New version ready\" prompt appears: Update now, in 1 hour or in 3 hours."),
-                    tx("Güncelleme tam ekranda ilerleme çubuğuyla izlenir; istersen arka plana alıp köşedeki küçük karttan takip edersin.",
-                        "Follow the update full screen with a progress bar, or send it to the background and watch the small corner card."),
-                    tx("Bitince LiteDroid kendiliğinden yeniden açılır ve \"şu sürüme güncellendi, yenilikler şunlar\" ekranını gösterir.",
-                        "When done LiteDroid restarts and shows which version it was updated to and what's new."),
-                    tx("Sadece haber ver modunda yalnızca köşede bildirim çıkar; Kapalı modda hiç bakılmaz.",
-                        "Notify only shows a corner notice; Off never checks."),
-                ),
-            ),
-            Release(
-                "1.7.1",
-                tx("Gemini anahtarları ve yeni ekran görüntüleri", "Gemini keys and new screenshots"),
-                listOf(
-                    tx("Google'ın yeni \"AQ.\" ile başlayan Gemini anahtarları için ipuçları güncellendi, anlaşılır hata mesajı eklendi.",
-                        "Hints updated for Google's new Gemini keys starting with \"AQ.\", with a clear error message."),
-                    tx("GitHub sayfası yeni ekran görüntüleri ve kapak görseliyle güncellendi.", "The GitHub page got new screenshots and a new cover image."),
+                    tx("🔄 LiteDroid yeni sürümleri GitHub'dan kendisi indirip kuruyor: Otomatik kur, Sadece haber ver ya da Kapalı. Ertele (1 / 3 saat), tam ekran ya da köşede ilerleme, bitince \"Güncellendi\" ekranı.", "🔄 LiteDroid downloads and installs new versions from GitHub: Automatic, Notify only or Off. Snooze (1 / 3 h), full-screen or corner progress, an \"Updated\" screen when done."),
+                    tx("💣 Mayın Tarlası: üç zorluk, ilk kare hep güvenli, en iyi süreler kaydediliyor.", "💣 Minesweeper: three levels, the first square is always safe, best times are saved."),
+                    tx("Düzeltmeler: güncellemeden sonraki açılış hatası giderildi, indirme boyutu gösteriliyor.", "Fixes: a startup crash after updating, and the download size is shown."),
                 ),
             ),
             Release(
                 "1.7.0",
-                tx("Daha akıcı sesli soru ve Gemini", "Smoother voice questions and Gemini"),
+                tx("Bilgi Yarışması, sesli soru ve Gemini", "Quiz Night, voice questions and Gemini"),
                 listOf(
-                    tx("Sesli soru artık uygulamanın içinde: mikrofon hazır olunca \"Şimdi konuş\" yazar, söylediklerin konuşurken ekranda canlı görünür, cümlenin başı kaçmaz.",
-                        "Voice questions now run inside the app: \"Speak now\" appears when the mic is ready and your words show live, so the start isn't cut off."),
-                    tx("Sesle sor'a basınca önceki cevabın okunması anında durur.", "Pressing Ask by voice stops the previous answer immediately."),
-                    tx("Cevap ilk cümleden itibaren okunmaya başlar, sonuna kadar beklenmez; okuma motoru ekran açılırken hazırlanır.",
-                        "Answers are read from the first sentence instead of waiting for the end; the voice engine warms up when the screen opens."),
-                    tx("Gemini desteği: Ayarlar → Claude'a sor → Yapay zekâ ile Claude ya da Gemini seçilir, iki anahtar da girilebilir.",
-                        "Gemini support: pick Claude or Gemini in Settings → Ask Claude → AI; both keys can be saved."),
-                ),
-            ),
-            Release(
-                "1.6.0",
-                tx("Bilgi Yarışması", "Quiz Night"),
-                listOf(
-                    tx("Kahoot tarzı bilgi yarışması: Oyunlar → Bilgi Yarışması. Telefonlar TV'deki QR kodu okutup katılır, uygulama gerekmez (Android ve iPhone).",
-                        "Kahoot-style quiz: Games → Quiz Night. Phones join by scanning the QR code on the TV, no app needed (Android and iPhone)."),
-                    tx("Her oyuncu adını ve avatarını seçer; en fazla 8 kişi.", "Everyone picks a name and an avatar; up to 8 players."),
-                    tx("12 kategori, 3 zorluk (Başlangıç, Orta, Zor) ve 388 soruluk havuzdan rastgele sorular.",
-                        "12 categories, 3 levels (Beginner, Medium, Hard) and random questions from a pool of 388."),
-                    tx("Geri sayım, kimin cevapladığı, doğru cevap ve hızlı cevaba göre puan; her sorudan sonra kayarak yer değiştiren canlı puan tablosu.",
-                        "Countdown, who answered, the right answer and points for speed; a live leaderboard that slides into place after each question."),
-                    tx("Sonda kürsü ve konfeti, tek tuşla tekrar oyna.", "A podium with confetti at the end, and play again with one press."),
-                ),
-            ),
-            Release(
-                "1.5.0",
-                tx("Avrupa kupaları, takım takibi, uyku zamanlayıcısı", "European cups, team follow, sleep timer"),
-                listOf(
-                    tx("Şampiyonlar Ligi, Avrupa Ligi ve Konferans Ligi eklendi; diğer ligler gibi açılıp kapatılır.",
-                        "Champions League, Europa League and Conference League added; switch them like the other leagues."),
-                    tx("Takımları seç: her ligden yalnızca istediğin takımların maçlarını gör. Tümünü seç, seçimi kaldır ya da tek tek seç.",
-                        "Pick teams: see only the teams you want in each league. Select all, clear, or pick one by one."),
-                    tx("Uyku zamanlayıcısı: süreyle ya da belirli saatte kapan. 45, 30, 15 ve 5 dakika kala sağ altta uyarı, son 10 saniyede geri sayım; herhangi bir tuş iptal eder.",
-                        "Sleep timer: by duration or at a set time. Notices at 45, 30, 15 and 5 minutes left, a 10-second countdown at the end; any key cancels."),
-                    tx("Yüzen menü küçüldü ve sadeleşti, sağdan kayarak açılıp kapanıyor; içinde hızlı uyku zamanlayıcısı var.",
-                        "The floating menu is smaller and cleaner, slides in and out from the right and has a quick sleep timer."),
-                    tx("Hızlı panele Uyku kutucuğu eklendi.", "A Sleep tile in the quick panel."),
-                ),
-            ),
-            Release(
-                "1.4.1",
-                tx("Home yönlendirme düzeltmesi", "Home redirect fix"),
-                listOf(
-                    tx("LiteDroid artık kutunun kendi ana ekranını görebiliyor; Home yönlendirmesi bu yüzden çalışmıyordu.",
-                        "LiteDroid can now see the box's own home screen, which is why Home redirect didn't work."),
+                    tx("🧠 Bilgi Yarışması: telefonlar QR'ı okutup katılır, en hızlı doğru cevap kazanır; yüzlerce Türkçe soru.", "🧠 Quiz Night: phones scan the QR to join, the fastest right answer wins; hundreds of questions."),
+                    tx("🎤 Sesli soru: konuşurken yazı canlı görünüyor, cevap ilk cümleden itibaren okunuyor.", "🎤 Voice questions: your words appear live, answers are read from the first sentence."),
+                    tx("✨ Claude'un yanında Gemini desteği.", "✨ Gemini support alongside Claude."),
+                    tx("🏆 Avrupa kupaları, takım takibi, uyku zamanlayıcısı ve sağdan kayan yüzen menü.", "🏆 European cups, team follow, the sleep timer and a sliding floating menu."),
                 ),
             ),
             Release(
                 "1.4.0",
-                tx("Home tuşu kilitli kutularda da LiteDroid", "LiteDroid on boxes that lock the Home key"),
+                tx("LiteDroid'in temelleri", "LiteDroid's foundations"),
                 listOf(
-                    tx("Kendi ana ekranının kapatılmasına izin vermeyen TV kutularında (ör. Botech Wzone) Home tuşu artık LiteDroid'i açar.",
-                        "On TV boxes that won't let you turn off their own home screen (e.g. Botech Wzone), Home now opens LiteDroid."),
-                    tx("Kutunun ana ekranı açılışta ya da bir uygulamadan çıkınca öne gelirse LiteDroid hemen devralır.",
-                        "If the box's home screen comes up at boot or when leaving an app, LiteDroid takes over right away."),
-                    tx("Ayarlar'da \"Home tuşunu LiteDroid'e yönlendir\" ile açılıp kapatılır; kumanda kısayolu servisi açık olmalı.",
-                        "Switch it in Settings with \"Send Home to LiteDroid\"; it needs the remote shortcut service on."),
-                ),
-            ),
-            Release(
-                "1.3.1",
-                tx("Kullanım raporu yeniden düzenlendi", "Usage report reworked"),
-                listOf(
-                    tx("Rapor artık koyu, okunaklı bir sayfa; arkadaki ana ekran görünmüyor.", "The report is now a dark, readable page; the home screen no longer shows through."),
-                    tx("Sayfa kumandayla aşağı kayar: özet, grafikler ve uygulamalar sırayla gelir.", "The whole page scrolls with the remote: summary, charts, then apps."),
-                    tx("Uygulamalar iki sütunlu kartlarda: simge, sıra, süre, pay ve açılış bilgisi.", "Apps in two-column cards with icon, rank, time, share and opens."),
-                    tx("Ortam modu gibi sistem bileşenleri paket adıyla görünmez, rapora alınmaz.", "System components like ambient mode no longer show up as package names."),
-                ),
-            ),
-            Release(
-                "1.3.0",
-                tx("Kullanım raporu", "Usage report"),
-                listOf(
-                    tx("Ayarlar → İçerik ve gizlilik → Kullanım raporu: Bugün, Dün ve Son 7 gün için ekran süresi.",
-                        "Settings → Content and privacy → Usage report: screen time for Today, Yesterday and the Last 7 days."),
-                    tx("Uygulama sıralaması: toplam süre, pay, açılış sayısı, en uzun oturum ve son kullanım.",
-                        "App ranking: total time, share, opens, longest session and last use."),
-                    tx("Saatlere göre ve son 7 güne göre grafikler, en yoğun saat ve düne göre fark.",
-                        "Charts by hour and by day, the busiest hour and the change from yesterday."),
-                    tx("Süreler Android'in ön plan kayıtlarından hesaplanır; ana ekran ve ekran koruyucu sayılmaz.",
-                        "Times come from Android's foreground records; the home screen and screensaver don't count."),
-                ),
-            ),
-            Release(
-                "1.2.0",
-                tx("Her müzik uygulaması, sade alt kısım, sürüm notları", "Every music app, cleaner bottom, release notes"),
-                listOf(
-                    tx("Şimdi çalıyor kartı Spotify'ın yanında YouTube Music, Apple Music, TIDAL, Qobuz, Deezer, fizy gibi tüm müzik uygulamalarıyla çalışır: ekran koruyucu, yüzen menü ve hızlı panelde şarkı adı, sanatçı, kapak ve ilerleme.",
-                        "The Now playing card works with every music app besides Spotify (YouTube Music, Apple Music, TIDAL, Qobuz, Deezer, fizy…): title, artist, artwork and progress on the screensaver, floating menu and quick panel."),
-                    tx("Oturumuna başlık ya da kapak koymayan uygulamalar için bilgiler medya bildiriminden tamamlanır, kapak adresleri arka planda yüklenir.",
-                        "Apps that leave title or artwork out of their session are completed from the media notification; artwork URLs load in the background."),
-                    tx("Kapatılan oynatıcılar karttan kalkar, birden fazla uygulama çalıyorsa en son değişen öne çıkar.",
-                        "Closed players drop off the card; with several apps playing, the most recent one comes first."),
-                    tx("Modern arayüzün alttaki siyah durum çubuğu kaldırıldı, ekran daha ferah. Bağlantı ve hava durumu hızlı panelde.",
-                        "The black status bar at the bottom of the Modern layout is gone; connection and weather live in the quick panel."),
-                    tx("Ayarlar → Diğer → Sürüm notları: bu ekran.", "Settings → More → Release notes: this screen."),
-                ),
-            ),
-            Release(
-                "1.1.2",
-                tx("Skor şeridi düzeltmesi, yeni README", "Score strip fix, new README"),
-                listOf(
-                    tx("Gösterecek maç yokken skor şeridi penceresi tamamen gizlenir, ekran kenarında boş çerçeve kalmaz.",
-                        "With nothing to show, the score strip window is fully hidden, so no empty frame lingers at the screen edge."),
-                    tx("GitHub sayfası baştan, Türkçe olarak yeniden tasarlandı.", "The GitHub page was redesigned from scratch, in Turkish."),
-                ),
-            ),
-            Release(
-                "1.1.1",
-                tx("Yüzen menü ve akıllı skor şeridi", "Floating menu and smarter score strip"),
-                listOf(
-                    tx("Herhangi bir uygulama açıkken Geri'ye iki kez bas: saat, hava, müzik kontrolleri, bugünün maçları ve skor ayarlarıyla yüzen LiteDroid menüsü. Tek basış normal Geri.",
-                        "Press Back twice over any app: a floating LiteDroid menu with clock, weather, music controls, today's matches and score settings. A single press is a normal Back."),
-                    tx("Skor şeridi ana ekranda, ekran koruyucuda ve menü açıkken gizlenir.", "The score strip hides on the home screen, the screensaver and while the menu is open."),
-                    tx("Şerit küçüldü: en fazla 3 maç, daha fazlası 10 saniyede bir yukarı kayarak döner; kutu maç sayısına göre boyutlanır.",
-                        "Smaller strip: up to 3 matches, more rotate every 10 s with a slide-up; the box sizes itself to the match count."),
-                    tx("Gol, kırmızı kart ve maç sonu şeridin içinde animasyonlu ayrı bir kutuda gösterilir.", "Goals, red cards and full time play in their own animated box inside the strip."),
-                    tx("Hızlı panel uzunsa kayar, müzik kartının altındaki kontrollere ulaşılır.", "The quick panel scrolls, so controls below the music card are reachable."),
-                ),
-            ),
-            Release(
-                "1.1.0",
-                tx("Claude'a sor ve canlı skorlar", "Ask Claude and live scores"),
-                listOf(
-                    tx("Claude'a sor: sesle ya da yazarak soru, ekranda akan büyük cevap, sesli okuma, web araması ve kaynaklar, Haiku/Sonnet seçimi.",
-                        "Ask Claude: voice or typed questions, streamed large answers, read aloud, web search with sources, Haiku/Sonnet choice."),
-                    tx("Süper Lig, Premier League, LaLiga, Serie A, Bundesliga ve Ligue 1 için canlı skorlar ve gol bildirimleri.",
-                        "Live scores and goal alerts for Süper Lig, Premier League, LaLiga, Serie A, Bundesliga and Ligue 1."),
-                    tx("Diğer uygulamaların üstünde yüzen skor şeridi.", "A floating score strip over other apps."),
-                    tx("Ekran koruyucuda Şimdi çalıyor ve canlı skor kartları.", "Now playing and live score cards on the screensaver."),
-                    tx("Sekmeli ayarlar ve sağdan kayan yeni hızlı panel.", "Tabbed settings and a new quick panel sliding in from the right."),
-                    tx("Devam kartları kesin içerik bağlantısı yoksa uygulamayı baştan açar.", "Continue cards start the app fresh when there is no exact content link."),
-                ),
-            ),
-            Release(
-                "1.0.1",
-                tx("YouTube kapakları ve MIT lisansı", "YouTube thumbnails and MIT license"),
-                listOf(
-                    tx("Devam kartlarında YouTube videolarının gerçek kapak görseli.", "Real video thumbnails on YouTube continue cards."),
-                    tx("Kartların altında buzlu yazı bandı, parlak görsellerde de okunur.", "A frosted text band on cards keeps titles readable on bright images."),
-                    tx("Proje MIT lisansıyla açık kaynak oldu.", "The project became open source under the MIT License."),
-                ),
-            ),
-            Release(
-                "1.0.0",
-                tx("LiteDroid Launcher doğdu", "LiteDroid Launcher is born"),
-                listOf(
-                    tx("Camekan'ın adı LiteDroid Launcher oldu.", "Camekan was renamed to LiteDroid Launcher."),
-                    tx("Kaldığın yerden devam: içerik başına tek kart, uygulama başına en fazla 3, renk, numara, kalan süre.",
-                        "Continue watching: one card per content, up to 3 per app, with color, number and time left."),
-                    tx("Altı dahili oyun: Yılan, Kutu İtme, Mini Yarış, SOS, XOX, Sudoku.", "Six built-in games: Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe, Sudoku."),
-                    tx("Etiketli önerilerle Mağaza, yeni Hakkında ekranı, geliştirilmiş ekran koruyucu.", "Store with tagged picks, a new About screen, an upgraded screensaver."),
-                ),
-            ),
-            Release(
-                "0.7",
-                tx("Akıllı devam rafı", "Smarter continue row"),
-                listOf(
-                    tx("Vitrin sadece uygulamaları, devam rafı sadece videoları gösterir; müzik uygulamaları rafa girmez.",
-                        "The hero shows only apps, the continue row only videos; music apps stay out."),
-                    tx("Çan menüsü Kaldığın yerden devam listesine dönüştü.", "The bell menu became a Continue watching list."),
-                    tx("YouTube, Netflix, Prime Video ve Disney+ için doğrudan bağlantılar.", "Direct links for YouTube, Netflix, Prime Video and Disney+."),
-                ),
-            ),
-            Release(
-                "0.6",
-                tx("Medya oturumlarından devam", "Resume from media sessions"),
-                listOf(
-                    tx("Kaldığın yerden devam Android medya oturumlarıyla çalışmaya başladı.", "Continue watching started working from Android media sessions."),
-                    tx("Ayarlar, Play Store gibi yardımcı uygulamalar vitrinden çıkarıldı.", "Utility apps like Settings and Play Store left the hero."),
-                    tx("Bulanık simgeli kartlar ve yenilenen üst barlar.", "Blurred-icon cards and redesigned top bars."),
-                ),
-            ),
-            Release(
-                "0.5",
-                tx("Büyük performans turu", "Big performance pass"),
-                listOf(
-                    tx("Pişirilmiş duvar kâğıdı, canlı bulanıklık ve gölge yok, hızlı geçişler.", "Baked wallpaper, no live blur or shadows, fast crossfades."),
-                    tx("Her yerde Plus Jakarta Sans yazı tipi.", "Plus Jakarta Sans everywhere."),
-                    tx("İngilizce arayüz seçeneği.", "English UI option."),
-                ),
-            ),
-            Release(
-                "0.4",
-                tx("Modern arayüz", "Modern layout"),
-                listOf(
-                    tx("Sekmeler, öne çıkan vitrin, geniş kart satırları, arama ve çan.", "Tabs, featured hero, wide card rows, search and bell."),
-                    tx("Yeniden çizilen ekran koruyucu sahneleri.", "Redrawn screensaver scenes."),
-                ),
-            ),
-            Release(
-                "0.3",
-                tx("Yüzen üst bar ve ekran koruyucu", "Floating top bar and screensaver"),
-                listOf(
-                    tx("Favori uygulamalı yüzen cam üst bar, profil ve saat.", "A floating glass top bar with favorites, profile and clock."),
-                    tx("Ses efektleri, yaylı animasyonlar ve logo.", "Sound effects, bouncy animations and a logo."),
-                    tx("Dört sahneli ekran koruyucu ve ayarlar sayfası.", "A four-scene screensaver and a settings page."),
-                ),
-            ),
-            Release(
-                "0.2",
-                tx("Vitrin stilleri", "Showcase styles"),
-                listOf(
-                    tx("Vitrin stilleri, renkli arka planlar ve devam şeridi.", "Showcase styles, colorful backgrounds and a continue strip."),
-                    tx("İlk performans iyileştirmeleri.", "First performance work."),
-                ),
-            ),
-            Release(
-                "0.1",
-                tx("İlk sürüm: Camekan", "First version: Camekan"),
-                listOf(
-                    tx("Apple TV tarzı ilk launcher: cam menüler, uygulama ızgarası, Hakkında ekranı.", "The first Apple TV-style launcher: glass menus, app grid, About screen."),
-                    tx("Google Play'e bağlanan mağaza.", "A store linking to Google Play."),
+                    tx("Apple TV tarzı cam görünüm: Casual ve Modern arayüz, vitrin stilleri, kodla çizilmiş ekran koruyucu.", "Apple TV-style glass look: Casual and Modern layouts, showcase styles, a code-drawn screensaver."),
+                    tx("Uygulamalar arası \"Kaldığın yerden devam\" ve her müzik uygulaması için \"Şimdi çalıyor\".", "\"Continue watching\" across apps and \"Now playing\" for every music app."),
+                    tx("Claude'a sor, canlı skorlar, yüzen skor şeridi ve dahili oyunlar.", "Ask Claude, live scores, a floating score strip and built-in games."),
+                    tx("Kullanım raporu ve Home tuşunu kilitleyen kutularda da LiteDroid'e yönlendirme.", "A usage report, and redirecting Home to LiteDroid on boxes that lock it."),
+                    tx("Sayısız performans iyileştirmesi ve hata düzeltmesi (0.1 Camekan'dan 1.4'e).", "Countless performance improvements and fixes (from 0.1 Camekan to 1.4)."),
                 ),
             ),
         )
