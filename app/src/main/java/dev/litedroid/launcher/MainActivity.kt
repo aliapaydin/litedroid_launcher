@@ -48,6 +48,17 @@ class MainActivity : ComponentActivity() {
      * adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."
      */
     private fun handleKeyIntent(intent: Intent?): Boolean {
+        // Gemini anahtarı: --es gemini_key "AIza..."
+        intent?.getStringExtra(EXTRA_GEMINI_KEY)?.trim()?.takeIf { it.isNotEmpty() }?.let { gKey ->
+            intent.removeExtra(EXTRA_GEMINI_KEY)
+            viewModel.updateSettings { it.copy(geminiKey = gKey) }
+            android.widget.Toast.makeText(
+                this,
+                tx("Gemini API anahtarı kaydedildi (…${gKey.takeLast(4)})", "Gemini API key saved (…${gKey.takeLast(4)})"),
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+            return true
+        }
         val key = intent?.getStringExtra(EXTRA_CLAUDE_KEY)?.trim()?.takeIf { it.isNotEmpty() } ?: return false
         intent.removeExtra(EXTRA_CLAUDE_KEY)
         viewModel.updateSettings { it.copy(claudeKey = key) }
@@ -66,7 +77,24 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
-    private fun startVoiceInput(): Boolean {
+    /** Mikrofon izni sorulduktan sonra: verildiyse uygulama içi dinleme, verilmediyse sistemin ekranı. */
+    private val micPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted || viewModel.startVoice() != LauncherViewModel.VoiceStart.STARTED) launchSystemVoice()
+        }
+
+    /**
+     * Sesli soru: önce konuşan cevap kesilir, sonra uygulama içi dinleme başlar (canlı yazı, hazır olunca
+     * "şimdi konuş"). İzin yoksa bir kez sorulur; tanıma hizmeti yoksa sistemin konuşma ekranı açılır.
+     */
+    private fun startVoiceInput(): Boolean = when (viewModel.startVoice()) {
+        LauncherViewModel.VoiceStart.STARTED -> true
+        LauncherViewModel.VoiceStart.NEED_PERMISSION -> runCatching { micPermission.launch(android.Manifest.permission.RECORD_AUDIO) }.isSuccess
+        LauncherViewModel.VoiceStart.UNAVAILABLE -> launchSystemVoice()
+    }
+
+    private fun launchSystemVoice(): Boolean {
+        viewModel.stopClaude()
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, if (I18n.lang == AppLanguage.EN) "en-US" else "tr-TR")
@@ -80,6 +108,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sounds = SoundFx(this)
+        viewModel.onVoiceFallback = { launchSystemVoice() }
         setContent {
             LiteDroidTheme {
                 CompositionLocalProvider(
@@ -159,6 +188,7 @@ class MainActivity : ComponentActivity() {
         private const val READ_EPG = "com.android.providers.tv.permission.READ_EPG_DATA"
         private const val KEY_ASKED = "epg_permission_asked"
         private const val EXTRA_CLAUDE_KEY = "claude_key"
+        private const val EXTRA_GEMINI_KEY = "gemini_key"
 
         /** Yüzen menüdeki "Claude'a sor" kısayolu LiteDroid'i bu ekranla açar. */
         const val EXTRA_OPEN_CLAUDE = "open_claude"

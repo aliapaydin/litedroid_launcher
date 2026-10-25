@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.6.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.7.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -58,10 +58,11 @@ Standart ana ekranın yerine buzlu cam menüler, uygulamalar arası çalışan b
 
 <p align="center"><img src="docs/screenshots/ask-claude.png" alt="Claude'a sor" width="100%"></p>
 
-- Üst bardaki ✦ düğmesine bas ve **sorunu söyle**. Cevap ekranda büyük yazıyla akarak gelir, sonra **sesli okunur**.
+- Üst bardaki ✦ düğmesine bas. Mikrofon hazır olunca **"Şimdi konuş"** yazar ve söylediklerin konuşurken ekranda canlı görünür.
+- Cevap ekranda büyük yazıyla akarak gelir. **İlk cümleden itibaren sesli okunmaya başlar**, sonuna kadar beklemez. Yeni soru sormak için bastığında önceki okuma anında durur.
 - Güncel sorularda (bu akşamın maçları, haberler, hava, vizyondaki filmler) **web'de arar** ve kullandığı **kaynakları** altta gösterir.
 - Takip soruları bağlamı korur. İstersen yazarak da sorabilirsin.
-- Model seçimi: **Haiku** (en hızlı ve en ucuz) ya da **Sonnet** (daha dengeli).
+- **Claude ya da Gemini:** İkisinin de anahtarını girip Ayarlar → Claude'a sor → Yapay zekâ'dan istediğine geçebilirsin. Claude için Haiku ya da Sonnet, Gemini için Flash-Lite ya da Flash modelini seçebilirsin.
 - Kendi Anthropic API anahtarınla çalışır. Anahtar sadece TV'de saklanır ve doğrudan `api.anthropic.com`'a gider. Kurulumu aşağıda: [Claude'a sor kurulumu](#claudea-sor-kurulumu).
 
 ### ⚽ Canlı skorlar
@@ -243,7 +244,12 @@ Android TV bu izinleri arayüzünde göstermediği için bir kez adb ile verilir
    adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."
    ```
    İstersen **Ayarlar → Claude'a sor → API anahtarı**'ndan da girebilirsin.
-3. Üst bardaki ✦ düğmesine bas ve sor.
+3. Üst bardaki ✦ düğmesine bas ve sor. İlk seferde mikrofon izni sorulur, **İzin ver** de. İstersen izni komutla da verebilirsin: `adb shell pm grant dev.litedroid.launcher android.permission.RECORD_AUDIO`
+
+**Gemini kullanmak için:** [aistudio.google.com](https://aistudio.google.com) → **Get API key** ile bir anahtar al (`AIza…`). Anahtarı şu komutla gönder, sonra Ayarlar → Claude'a sor → **Yapay zekâ: Gemini** seç:
+```bash
+adb shell am start -n dev.litedroid.launcher/.MainActivity --es gemini_key "AIza..."
+```
 
 > Anahtarını kimseyle paylaşma. Ekran görüntüsünde ya da bir yerde göründüyse konsoldan silip yenisini oluştur.
 

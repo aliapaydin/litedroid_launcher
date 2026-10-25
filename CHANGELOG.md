@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0
+- **In-app voice input** (`data/VoiceListener.kt`): `SpeechRecognizer` with partial results instead of the system voice screen. A panel shows "Getting the mic ready…" → "Speak now" (on `onReadyForSpeech`) with a level meter and the live transcript; longer silence thresholds so pauses don't cut the sentence; the last partial is used if the final result is empty. Falls back to the system screen without permission or a recognition service. Needs `RECORD_AUDIO` (asked once).
+- Asking again stops the current answer and speech immediately; Back while listening cancels listening only.
+- **Streaming speech** (`data/Speaker.kt`): sentences are spoken as soon as they complete (first one after ~8 characters), the TTS engine is warmed up when the screen opens.
+- **Gemini** (`data/GeminiClient.kt`): `streamGenerateContent?alt=sse` with Google Search grounding and sources; models via the rolling aliases `gemini-flash-latest` / `gemini-flash-lite-latest`. Settings: AI provider, Gemini key (also `--es gemini_key`), Gemini model.
+
 ## 1.6.0
 - **Quiz Night** (Games → Quiz Night): a Kahoot-style quiz played with phones. The TV runs a tiny HTTP server (`quiz/QuizServer.kt`, ports 8765–8775) and shows a QR code (ZXing) with its LAN address; Android and iPhone browsers open a self-contained page (`assets/quiz/index.html`) to join with a name and avatar (up to 8 players) and answer.
 - 12 categories × 3 levels (Beginner / Medium / Hard, or mixed), 388 Turkish questions in `assets/quiz/questions.json`, options shuffled per game, recently asked questions avoided.

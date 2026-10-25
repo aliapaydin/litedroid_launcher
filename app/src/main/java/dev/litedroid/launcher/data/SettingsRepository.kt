@@ -41,6 +41,20 @@ enum class ClaudeModel(val id: String, private val tr: String, private val en: S
     val label: String get() = tx(tr, en)
 }
 
+/** Soruları cevaplayan yapay zekâ. */
+enum class AiProvider(val label: String) {
+    CLAUDE("Claude"),
+    GEMINI("Gemini"),
+}
+
+/** Gemini modeli: Google'ın kayan takma adları, yeni sürüm çıkınca kendiliğinden güncellenir. */
+enum class GeminiModel(val id: String, private val tr: String, private val en: String) {
+    FLASH("gemini-flash-latest", "Flash · dengeli", "Flash · balanced"),
+    FLASH_LITE("gemini-flash-lite-latest", "Flash-Lite · en hızlı", "Flash-Lite · fastest");
+
+    val label: String get() = tx(tr, en)
+}
+
 /** LiteDroid'in kullanıcı tarafından değiştirilebilen tüm ayarları. */
 data class LauncherSettings(
     val language: AppLanguage = AppLanguage.TR,
@@ -84,6 +98,11 @@ data class LauncherSettings(
     val claudeModel: ClaudeModel = ClaudeModel.SONNET,
     val claudeSpeak: Boolean = true,
     val claudeWebSearch: Boolean = true,
+    /** Hangi yapay zekâ cevaplasın. */
+    val aiProvider: AiProvider = AiProvider.CLAUDE,
+    /** Gemini: kullanıcının kendi Google AI Studio API anahtarı. */
+    val geminiKey: String = "",
+    val geminiModel: GeminiModel = GeminiModel.FLASH,
 ) {
     companion object {
         val SAVER_OPTIONS = listOf(0, 1, 2, 5, 10, 15, 30)
@@ -135,6 +154,9 @@ class SettingsRepository(context: Context) {
         claudeModel = enumOr(prefs.getString(K_CLAUDE_MODEL, null), ClaudeModel.SONNET),
         claudeSpeak = prefs.getBoolean(K_CLAUDE_SPEAK, true),
         claudeWebSearch = prefs.getBoolean(K_CLAUDE_WEB, true),
+        aiProvider = enumOr(prefs.getString(K_AI_PROVIDER, null), AiProvider.CLAUDE),
+        geminiKey = prefs.getString(K_GEMINI_KEY, "").orEmpty(),
+        geminiModel = enumOr(prefs.getString(K_GEMINI_MODEL, null), GeminiModel.FLASH),
     )
 
     fun save(s: LauncherSettings) {
@@ -167,6 +189,9 @@ class SettingsRepository(context: Context) {
             .putString(K_CLAUDE_MODEL, s.claudeModel.name)
             .putBoolean(K_CLAUDE_SPEAK, s.claudeSpeak)
             .putBoolean(K_CLAUDE_WEB, s.claudeWebSearch)
+            .putString(K_AI_PROVIDER, s.aiProvider.name)
+            .putString(K_GEMINI_KEY, s.geminiKey)
+            .putString(K_GEMINI_MODEL, s.geminiModel.name)
             .apply()
     }
 
@@ -204,5 +229,8 @@ class SettingsRepository(context: Context) {
         const val K_CLAUDE_MODEL = "claude_model"
         const val K_CLAUDE_SPEAK = "claude_speak"
         const val K_CLAUDE_WEB = "claude_web_search"
+        const val K_AI_PROVIDER = "ai_provider"
+        const val K_GEMINI_KEY = "gemini_key"
+        const val K_GEMINI_MODEL = "gemini_model"
     }
 }

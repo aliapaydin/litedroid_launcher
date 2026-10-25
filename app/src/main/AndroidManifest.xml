@@ -10,6 +10,9 @@
 
     <!-- İçerik görsellerini (poster, kapak) internetten yüklemek için -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Claude'a sor: uygulama içi sesli soru (konuşurken yazı canlı görünür) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <!-- Alt çubuktaki bağlantı durumu için -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -56,6 +59,9 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 
