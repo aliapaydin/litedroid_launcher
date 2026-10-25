@@ -1,5 +1,9 @@
 package dev.litedroid.launcher
 
+import androidx.compose.runtime.mutableFloatStateOf
+import dev.litedroid.launcher.data.AiProvider
+import dev.litedroid.launcher.data.GeminiClient
+import dev.litedroid.launcher.data.VoiceListener
 import dev.litedroid.launcher.data.UsageReport
 import dev.litedroid.launcher.data.UsageRange
 import dev.litedroid.launcher.overlay.RemoteKeyService
@@ -190,6 +194,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     override fun onCleared() {
         runCatching { connectivity?.unregisterNetworkCallback(networkCallback) }
         speaker.shutdown()
+        voice.cancel()
         super.onCleared()
     }
 
@@ -232,6 +237,74 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private var claudeJob: Job? = null
     private val speaker = Speaker(app)
 
+    // ---------------- Sesli soru ----------------
+
+    private val voice = VoiceListener(app)
+    var voiceState by mutableStateOf(VoiceListener.State.IDLE)
+        private set
+    /** Konuşurken ekranda canlı görünen metin. */
+    var voicePartial by mutableStateOf("")
+        private set
+    var voiceLevel by mutableFloatStateOf(0f)
+        private set
+    /** Uygulama içi tanıma kullanılamazsa sistemin konuşma ekranını açar (MainActivity bağlar). */
+    var onVoiceFallback: (() -> Unit)? = null
+
+    enum class VoiceStart { STARTED, NEED_PERMISSION, UNAVAILABLE }
+
+    /** Claude ekranı açılınca: okuma motoru önceden hazırlanır, ilk cevap gecikmeden okunur. */
+    fun warmUpAssistant() {
+        speaker.warmUp()
+    }
+
+    /**
+     * Sesli soru başlatır. Önce konuşan cevap ve süren istek hemen kesilir. Zaten dinliyorsa
+     * dinlemeyi bitirir (söylenen gönderilir).
+     */
+    fun startVoice(): VoiceStart {
+        if (voiceState != VoiceListener.State.IDLE) {
+            voice.stop()
+            return VoiceStart.STARTED
+        }
+        stopClaude()
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(app, android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) return VoiceStart.NEED_PERMISSION
+        if (!voice.available()) return VoiceStart.UNAVAILABLE
+        voicePartial = ""
+        voiceLevel = 0f
+        voice.start(
+            if (I18n.lang == AppLanguage.EN) "en-US" else "tr-TR",
+            object : VoiceListener.Callback {
+                override fun onState(state: VoiceListener.State) {
+                    voiceState = state
+                    if (state == VoiceListener.State.IDLE) voiceLevel = 0f
+                }
+                override fun onPartial(text: String) { voicePartial = text }
+                override fun onLevel(level: Float) { voiceLevel = level }
+                override fun onResult(text: String?) {
+                    voicePartial = ""
+                    if (!text.isNullOrBlank()) askClaude(text)
+                }
+                override fun onUnavailable() {
+                    voiceState = VoiceListener.State.IDLE
+                    onVoiceFallback?.invoke()
+                }
+            },
+        )
+        return VoiceStart.STARTED
+    }
+
+    fun cancelVoice() {
+        voice.cancel()
+        voiceState = VoiceListener.State.IDLE
+        voicePartial = ""
+        voiceLevel = 0f
+    }
+
+    /** Seçili yapay zekânın adı (ekran başlığı ve mesajlar için). */
+    val assistantName: String get() = settings.aiProvider.label
+
     private fun claudeSystemPrompt(): String {
         val now = java.time.ZonedDateTime.now()
         val date = now.format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy EEEE, HH:mm", I18n.locale))
@@ -258,44 +331,63 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (q.isEmpty()) return
         claudeJob?.cancel()
         speaker.stop()
-        val key = settings.claudeKey.trim()
+        val provider = settings.aiProvider
+        val key = (if (provider == AiProvider.GEMINI) settings.geminiKey else settings.claudeKey).trim()
         if (key.isEmpty()) {
             claudeTurns += ClaudeTurn(
                 q,
-                error = tx("Önce Ayarlar → Claude'a sor → API anahtarı'nı gir.", "Add your API key first: Settings → Ask Claude → API key."),
+                error = if (provider == AiProvider.GEMINI) tx("Önce Ayarlar → Claude'a sor → Gemini API anahtarı'nı gir.", "Add your Gemini API key first: Settings → Ask Claude → Gemini API key.")
+                else tx("Önce Ayarlar → Claude'a sor → API anahtarı'nı gir.", "Add your API key first: Settings → Ask Claude → API key."),
                 authProblem = true,
             )
             return
         }
+        val speak = settings.claudeSpeak
         val history = claudeTurns.filter { it.error == null && it.answer.isNotBlank() }.map { ClaudeExchange(it.question, it.answer) }
         claudeTurns += ClaudeTurn(q)
         val index = claudeTurns.lastIndex
         claudeStatus = ClaudeStatus.THINKING
+        if (speak) speaker.startStream(I18n.locale)
         claudeJob = viewModelScope.launch {
             val text = StringBuilder()
             val sources = LinkedHashMap<String, ClaudeEvent.Source>()
             try {
-                ClaudeClient.ask(
-                    apiKey = key,
-                    model = settings.claudeModel.id,
-                    system = claudeSystemPrompt(),
-                    history = history,
-                    question = q,
-                    webSearch = settings.claudeWebSearch,
-                    timezone = java.time.ZoneId.systemDefault().id,
-                    city = weather?.city ?: settings.weatherCity,
-                ).collect { e ->
+                val events = if (provider == AiProvider.GEMINI) {
+                    GeminiClient.ask(
+                        apiKey = key,
+                        model = settings.geminiModel.id,
+                        system = claudeSystemPrompt(),
+                        history = history,
+                        question = q,
+                        webSearch = settings.claudeWebSearch,
+                    )
+                } else {
+                    ClaudeClient.ask(
+                        apiKey = key,
+                        model = settings.claudeModel.id,
+                        system = claudeSystemPrompt(),
+                        history = history,
+                        question = q,
+                        webSearch = settings.claudeWebSearch,
+                        timezone = java.time.ZoneId.systemDefault().id,
+                        city = weather?.city ?: settings.weatherCity,
+                    )
+                }
+                events.collect { e ->
                     when (e) {
                         is ClaudeEvent.Text -> {
                             text.append(e.delta)
                             claudeStatus = ClaudeStatus.ANSWERING
                             claudeTurns[index] = claudeTurns[index].copy(answer = text.toString())
+                            // Cümle tamamlandıkça hemen okunur
+                            if (speak) speaker.feed(e.delta)
                         }
                         is ClaudeEvent.Searching -> {
                             claudeStatus = ClaudeStatus.SEARCHING
                             // Aramadan önce yazılan "bakayım" cümlesi cevaptan çıkarılır
                             text.clear()
                             claudeTurns[index] = claudeTurns[index].copy(answer = "")
+                            if (speak) speaker.startStream(I18n.locale)
                         }
                         is ClaudeEvent.Source -> {
                             sources.putIfAbsent(e.url, e)
@@ -303,12 +395,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         }
                         is ClaudeEvent.Failed -> {
                             claudeTurns[index] = claudeTurns[index].copy(error = e.message, authProblem = e.authProblem)
+                            speaker.stop()
                         }
                         is ClaudeEvent.Done -> Unit
                     }
                 }
-                val answer = text.toString().trim()
-                if (answer.isNotEmpty() && settings.claudeSpeak) speaker.speak(answer, I18n.locale)
+                if (speak) speaker.endStream()
             } catch (c: kotlinx.coroutines.CancellationException) {
                 throw c
             } catch (t: Throwable) {
@@ -324,6 +416,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun stopClaude() {
         claudeJob?.cancel()
         speaker.stop()
+        if (voiceState != VoiceListener.State.IDLE) cancelVoice()
         claudeStatus = ClaudeStatus.IDLE
     }
 

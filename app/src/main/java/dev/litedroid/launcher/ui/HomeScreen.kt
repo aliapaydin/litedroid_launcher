@@ -1,5 +1,8 @@
 package dev.litedroid.launcher.ui
 
+import dev.litedroid.launcher.data.VoiceListener
+import dev.litedroid.launcher.data.GeminiModel
+import dev.litedroid.launcher.data.AiProvider
 import androidx.compose.runtime.collectAsState
 import dev.litedroid.launcher.overlay.SleepTimer
 import dev.litedroid.launcher.data.Changelog
@@ -115,11 +118,12 @@ import kotlin.math.roundToInt
 
 private data class MenuTarget(val app: LauncherApp, val fromDock: Boolean)
 
-private enum class TextTarget { NAME, CITY, CLAUDE_KEY, CLAUDE_QUESTION }
+private enum class TextTarget { NAME, CITY, CLAUDE_KEY, GEMINI_KEY, CLAUDE_QUESTION }
 
 private const val CMD_MEDIA =
     "adb shell cmd notification allow_listener dev.litedroid.launcher/dev.litedroid.launcher.media.MediaListenerService"
 private const val CMD_KEY = "adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key ANAHTAR"
+private const val CMD_GEMINI_KEY = "adb shell am start -n dev.litedroid.launcher/.MainActivity --es gemini_key ANAHTAR"
 private const val CMD_OVERLAY = "adb shell appops set dev.litedroid.launcher SYSTEM_ALERT_WINDOW allow"
 private const val CMD_USAGE = "adb shell appops set dev.litedroid.launcher GET_USAGE_STATS allow"
 private const val CMD_SAVER =
@@ -371,6 +375,7 @@ private fun HomeContent(vm: LauncherViewModel) {
         when {
             textTarget != null -> textTarget = null
             gameOpen != null -> gameOpen = null
+            askOpen && vm.voiceState != VoiceListener.State.IDLE -> vm.cancelVoice()
             askOpen -> {
                 vm.stopClaude()
                 askOpen = false
@@ -841,6 +846,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                     onEditName = { textTarget = TextTarget.NAME },
                     onEditCity = { textTarget = TextTarget.CITY },
                     onEditClaudeKey = { textTarget = TextTarget.CLAUDE_KEY },
+                    onEditGeminiKey = { textTarget = TextTarget.GEMINI_KEY },
                     onOpenClaude = {
                         settingsOpen = false
                         askOpen = true
@@ -944,7 +950,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                         TextTarget.NAME -> tx("Kullanıcı adı", "User name")
                         TextTarget.CITY -> tx("Hava durumu konumu", "Weather location")
                         TextTarget.CLAUDE_KEY -> tx("Claude API anahtarı", "Claude API key")
-                        TextTarget.CLAUDE_QUESTION -> tx("Claude'a sor", "Ask Claude")
+                        TextTarget.GEMINI_KEY -> tx("Gemini API anahtarı", "Gemini API key")
+                        TextTarget.CLAUDE_QUESTION -> if (settings.aiProvider == AiProvider.GEMINI) tx("Gemini'ye sor", "Ask Gemini") else tx("Claude'a sor", "Ask Claude")
                     },
                     subtitle = when (target) {
                         TextTarget.NAME -> tx("Üst barda ve selamlamada görünür", "Shown in the top bar and greeting")
@@ -953,19 +960,25 @@ private fun HomeContent(vm: LauncherViewModel) {
                             "console.anthropic.com → API Keys'ten aldığın anahtar (sk-ant-api03-…). Kumandayla yazmak zor: bilgisayardan da gönderebilirsin: $CMD_KEY",
                             "Your key from console.anthropic.com → API Keys (sk-ant-api03-…). Typing with the remote is tedious, you can send it from a computer: $CMD_KEY",
                         )
-                        TextTarget.CLAUDE_QUESTION -> tx("Sorunu yaz, Claude cevaplasın", "Type your question for Claude")
+                        TextTarget.GEMINI_KEY -> tx(
+                            "aistudio.google.com → Get API key'den aldığın anahtar (AIza…). Bilgisayardan da gönderebilirsin: $CMD_GEMINI_KEY",
+                            "Your key from aistudio.google.com → Get API key (AIza…). You can also send it from a computer: $CMD_GEMINI_KEY",
+                        )
+                        TextTarget.CLAUDE_QUESTION -> tx("Sorunu yaz, ${settings.aiProvider.label} cevaplasın", "Type your question for ${settings.aiProvider.label}")
                     },
                     initial = when (target) {
                         TextTarget.NAME -> settings.userName
                         TextTarget.CITY -> settings.weatherCity
                         TextTarget.CLAUDE_KEY -> settings.claudeKey
+                        TextTarget.GEMINI_KEY -> settings.geminiKey
                         TextTarget.CLAUDE_QUESTION -> ""
                     },
-                    allowEmpty = target == TextTarget.CITY || target == TextTarget.CLAUDE_KEY,
+                    allowEmpty = target == TextTarget.CITY || target == TextTarget.CLAUDE_KEY || target == TextTarget.GEMINI_KEY,
                     maxLength = when (target) {
                         TextTarget.NAME -> 20
                         TextTarget.CITY -> 40
                         TextTarget.CLAUDE_KEY -> 400
+                        TextTarget.GEMINI_KEY -> 400
                         TextTarget.CLAUDE_QUESTION -> 500
                     },
                     onSave = { value ->
@@ -973,6 +986,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                             TextTarget.NAME -> vm.updateSettings { it.copy(userName = value) }
                             TextTarget.CITY -> vm.updateSettings { it.copy(weatherCity = value) }
                             TextTarget.CLAUDE_KEY -> vm.updateSettings { it.copy(claudeKey = value.trim()) }
+                            TextTarget.GEMINI_KEY -> vm.updateSettings { it.copy(geminiKey = value.trim()) }
                             TextTarget.CLAUDE_QUESTION -> vm.askClaude(value)
                         }
                         textTarget = null
@@ -1081,6 +1095,7 @@ private fun settingsEntries(
     onSystemSaver: () -> Unit,
     onClearHistory: () -> Unit,
     onEditClaudeKey: () -> Unit,
+    onEditGeminiKey: () -> Unit,
     onOpenClaude: () -> Unit,
     onFloatingScores: () -> Unit,
     onGames: () -> Unit,
@@ -1266,7 +1281,12 @@ private fun settingsEntries(
         tx("Sesle ya da yazarak her şeyi sor; cevap ekranda ve sesli gelir.", "Ask anything by voice or text; the answer appears on screen and is read aloud.")) {
         onOpenClaude()
     },
-    SettingsEntry.Row("claude_key", tx("API anahtarı", "API key"), Icons.Filled.Lock,
+    SettingsEntry.Row("ai_provider", tx("Yapay zekâ", "AI"), Icons.Filled.Star, settings.aiProvider.label,
+        tx("Soruları kim cevaplasın: Claude (Anthropic) ya da Gemini (Google). İkisinin de anahtarını girip istediğin zaman geçebilirsin.",
+            "Who answers: Claude (Anthropic) or Gemini (Google). Enter both keys and switch any time.")) {
+        vm.updateSettings { it.copy(aiProvider = AiProvider.entries.toList().next(it.aiProvider)) }
+    },
+    SettingsEntry.Row("claude_key", tx("Claude API anahtarı", "Claude API key"), Icons.Filled.Lock,
         settings.claudeKey.takeIf { it.isNotBlank() }?.let { "…" + it.takeLast(4) } ?: tx("Girilmedi", "Not set"),
         tx("Claude'a sor kendi Anthropic API anahtarınla çalışır (console.anthropic.com → API Keys). Kullandıkça API ücreti senin hesabına yazılır. " +
             "Anahtar yalnızca bu cihazda saklanır, doğrudan api.anthropic.com'a gönderilir.",
@@ -1274,13 +1294,26 @@ private fun settingsEntries(
             "The key is stored only on this device and sent directly to api.anthropic.com.")) {
         onEditClaudeKey()
     },
-    SettingsEntry.Row("claude_model", tx("Model", "Model"), Icons.Filled.Build, settings.claudeModel.label,
+    SettingsEntry.Row("claude_model", tx("Claude modeli", "Claude model"), Icons.Filled.Build, settings.claudeModel.label,
         tx("Sonnet daha kapsamlı, Haiku daha hızlı ve ucuz cevap verir.", "Sonnet is more thorough; Haiku is faster and cheaper.")) {
         vm.updateSettings { it.copy(claudeModel = ClaudeModel.entries.toList().next(it.claudeModel)) }
     },
+    SettingsEntry.Row("gemini_key", tx("Gemini API anahtarı", "Gemini API key"), Icons.Filled.Lock,
+        settings.geminiKey.takeIf { it.isNotBlank() }?.let { "…" + it.takeLast(4) } ?: tx("Girilmedi", "Not set"),
+        tx("Gemini kendi Google AI Studio anahtarınla çalışır (aistudio.google.com → Get API key). Ücretsiz kullanım kotası vardır. " +
+            "Anahtar yalnızca bu cihazda saklanır. Bilgisayardan göndermek için:\n\n$CMD_GEMINI_KEY",
+            "Gemini uses your own Google AI Studio key (aistudio.google.com → Get API key). There is a free usage tier. " +
+            "The key stays on this device. To send it from a computer:\n\n$CMD_GEMINI_KEY")) {
+        onEditGeminiKey()
+    },
+    SettingsEntry.Row("gemini_model", tx("Gemini modeli", "Gemini model"), Icons.Filled.Build, settings.geminiModel.label,
+        tx("Flash dengeli ve akıllı, Flash-Lite en hızlı ve en ucuzu. Google yeni sürüm çıkardıkça otomatik güncellenir.",
+            "Flash is balanced, Flash-Lite is the fastest and cheapest. Updated automatically as Google ships new versions.")) {
+        vm.updateSettings { it.copy(geminiModel = GeminiModel.entries.toList().next(it.geminiModel)) }
+    },
     SettingsEntry.Row("claude_speak", tx("Sesli yanıt", "Spoken replies"), Icons.Filled.Notifications,
         if (settings.claudeSpeak) tx("Açık", "On") else tx("Kapalı", "Off"),
-        tx("Cevap bitince cihazın metin okuma sesiyle okunur.", "Answers are read aloud with the device's text-to-speech voice.")) {
+        tx("Cevap ekrana gelirken ilk cümleden itibaren cihazın metin okuma sesiyle okunur.", "Answers are read aloud with the device's text-to-speech voice as they arrive, from the first sentence.")) {
         vm.updateSettings { it.copy(claudeSpeak = !it.claudeSpeak) }
     },
     SettingsEntry.Row("claude_web", tx("Web araması", "Web search"), Icons.Filled.Search,

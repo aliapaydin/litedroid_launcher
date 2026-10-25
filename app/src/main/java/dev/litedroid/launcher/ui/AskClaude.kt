@@ -1,5 +1,12 @@
 package dev.litedroid.launcher.ui
 
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedVisibility
+import dev.litedroid.launcher.data.VoiceListener
+import dev.litedroid.launcher.data.AiProvider
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
@@ -136,7 +143,11 @@ fun AskClaudeScreen(
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
 
+    val gemini = settings.aiProvider == AiProvider.GEMINI
+    val listening = vm.voiceState != VoiceListener.State.IDLE
     LaunchedEffect(Unit) {
+        // Okuma motoru şimdiden hazırlansın: ilk cevap gecikmeden okunur
+        vm.warmUpAssistant()
         delay(120)
         runCatching { micFocus.requestFocus() }
     }
@@ -187,10 +198,13 @@ fun AskClaudeScreen(
                 ) { SparkleGlyph(Color.White, 28.dp) }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(tx("Claude'a sor", "Ask Claude"), color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.4).sp)
+                    Text(
+                        if (gemini) tx("Gemini'ye sor", "Ask Gemini") else tx("Claude'a sor", "Ask Claude"),
+                        color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.4).sp,
+                    )
                     Text(
                         listOf(
-                            settings.claudeModel.label,
+                            if (gemini) "Gemini " + settings.geminiModel.label else settings.claudeModel.label,
                             if (settings.claudeWebSearch) tx("web araması açık", "web search on") else tx("web araması kapalı", "web search off"),
                             if (settings.claudeSpeak) tx("sesli yanıt açık", "spoken replies on") else tx("sesli yanıt kapalı", "spoken replies off"),
                         ).joinToString("  ·  "),
@@ -229,8 +243,8 @@ fun AskClaudeScreen(
                         Spacer(Modifier.height(6.dp))
                         Text(
                             tx(
-                                "Mikrofona bas ve sor. Güncel sorularda (maçlar, haberler, hava) Claude web'de arar. Örnekler:",
-                                "Press the mic and ask. For current topics (matches, news, weather) Claude searches the web. Try:",
+                                "Mikrofona bas, \"Şimdi konuş\" yazısını görünce sor. Güncel sorularda (maçlar, haberler, hava) web'de aranır. Örnekler:",
+                                "Press the mic and ask when you see \"Speak now\". Current topics (matches, news, weather) are searched on the web. Try:",
                             ),
                             color = Color.White.copy(alpha = 0.65f),
                             fontSize = 15.sp,
@@ -258,13 +272,28 @@ fun AskClaudeScreen(
                 }
             }
 
+            // ---- Dinleme paneli: hazır olunca "Şimdi konuş", söylenenler canlı ----
+            AnimatedVisibility(
+                visible = listening,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                ListeningPanel(vm.voiceState, vm.voicePartial, vm.voiceLevel)
+            }
             Spacer(Modifier.height(16.dp))
             // ---- Düğmeler ----
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 PillButton(
-                    if (busy) tx("Yeni soru (sesle)", "New question (voice)") else tx("Sesle sor", "Ask by voice"),
+                    when {
+                        listening -> tx("Bitir ve sor", "Done, ask")
+                        busy -> tx("Yeni soru (sesle)", "New question (voice)")
+                        else -> tx("Sesle sor", "Ask by voice")
+                    },
                     null, primary = true, focusRequester = micFocus, mic = true,
                 ) { askByVoice() }
+                if (listening) {
+                    PillButton(tx("Vazgeç", "Cancel"), Icons.Filled.Delete, primary = false) { vm.cancelVoice() }
+                }
                 PillButton(tx("Yazarak sor", "Type a question"), Icons.Filled.Create, primary = false) { onType() }
                 if (busy) {
                     PillButton(tx("Durdur", "Stop"), Icons.Filled.Delete, primary = false) { vm.stopClaude() }
@@ -275,7 +304,7 @@ fun AskClaudeScreen(
                 if (turns.isNotEmpty()) {
                     PillButton(tx("Yeni sohbet", "New chat"), Icons.Filled.Refresh, primary = false) { vm.clearClaude() }
                 }
-                if (turns.lastOrNull()?.authProblem == true || settings.claudeKey.isBlank()) {
+                if (turns.lastOrNull()?.authProblem == true || (if (gemini) settings.geminiKey else settings.claudeKey).isBlank()) {
                     PillButton(tx("Ayarlar", "Settings"), Icons.Filled.Settings, primary = false) { onOpenSettings() }
                 }
             }
@@ -334,7 +363,8 @@ private fun TurnView(t: LauncherViewModel.ClaudeTurn, latest: Boolean, status: L
             Text(
                 tx("Kaynaklar: ", "Sources: ") + t.sources.take(4).joinToString("  ·  ") { s ->
                     val host = runCatching { Uri.parse(s.url).host?.removePrefix("www.") }.getOrNull()
-                    host ?: s.title
+                    // Gemini kaynakları yönlendirme adresiyle gelir: başlık (alan adı) daha anlamlı
+                    if (host == null || host.contains("vertexaisearch") || host.contains("google.com")) s.title.ifBlank { host ?: "" } else host
                 },
                 color = Color(0xFFF2B89E).copy(alpha = 0.85f),
                 fontSize = 12.sp,
@@ -445,5 +475,67 @@ fun MicGlyph(color: Color, size: Dp) {
         )
         drawLine(color, Offset(w / 2, h * 0.72f), Offset(w / 2, h * 0.92f), stroke, cap = StrokeCap.Round)
         drawLine(color, Offset(w * 0.34f, h * 0.94f), Offset(w * 0.66f, h * 0.94f), stroke, cap = StrokeCap.Round)
+    }
+}
+
+/**
+ * Dinlerken soru alanının altında: mikrofon hazırlanırken "Hazırlanıyor…", hazır olunca "Şimdi konuş",
+ * ses seviyesine göre hareket eden çubuklar ve söylenenin canlı yazısı.
+ */
+@Composable
+private fun ListeningPanel(state: VoiceListener.State, partial: String, level: Float) {
+    val ready = state == VoiceListener.State.LISTENING
+    val shown by animateFloatAsState(level, spring(dampingRatio = 0.6f, stiffness = 900f), label = "lvl")
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White.copy(alpha = 0.07f))
+            .border(1.dp, (if (ready) CLAUDE_WARM else Color.White).copy(alpha = if (ready) 0.7f else 0.12f), RoundedCornerShape(22.dp))
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(46.dp)
+                .graphicsLayer { val s = 1f + (if (ready) shown * 0.25f else 0f); scaleX = s; scaleY = s }
+                .clip(CircleShape)
+                .background(if (ready) CLAUDE_BRUSH else Brush.linearGradient(listOf(Color(0xFF3A3A44), Color(0xFF2A2A33)))),
+            contentAlignment = Alignment.Center,
+        ) { MicGlyph(Color.White, 22.dp) }
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                when (state) {
+                    VoiceListener.State.PREPARING -> tx("Mikrofon hazırlanıyor…", "Getting the mic ready…")
+                    VoiceListener.State.LISTENING -> tx("Şimdi konuş", "Speak now")
+                    else -> tx("Anlaşılıyor…", "Understanding…")
+                },
+                color = if (ready) CLAUDE_WARM else Color.White.copy(alpha = 0.6f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                partial.ifBlank { if (ready) tx("Dinliyorum…", "Listening…") else " " },
+                color = Color.White.copy(alpha = if (partial.isBlank()) 0.45f else 0.95f),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // Ses seviyesi çubukları
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            listOf(0.55f, 0.85f, 1f, 0.75f, 0.5f).forEach { f ->
+                Box(
+                    Modifier
+                        .width(5.dp)
+                        .height((8f + 30f * (if (ready) shown * f else 0.1f)).dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(if (ready) CLAUDE_WARM else Color.White.copy(alpha = 0.3f))
+                )
+            }
+        }
     }
 }

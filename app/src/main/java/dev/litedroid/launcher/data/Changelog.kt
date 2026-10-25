@@ -10,6 +10,19 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.7.0",
+                tx("Daha akıcı sesli soru ve Gemini", "Smoother voice questions and Gemini"),
+                listOf(
+                    tx("Sesli soru artık uygulamanın içinde: mikrofon hazır olunca \"Şimdi konuş\" yazar, söylediklerin konuşurken ekranda canlı görünür, cümlenin başı kaçmaz.",
+                        "Voice questions now run inside the app: \"Speak now\" appears when the mic is ready and your words show live, so the start isn't cut off."),
+                    tx("Sesle sor'a basınca önceki cevabın okunması anında durur.", "Pressing Ask by voice stops the previous answer immediately."),
+                    tx("Cevap ilk cümleden itibaren okunmaya başlar, sonuna kadar beklenmez; okuma motoru ekran açılırken hazırlanır.",
+                        "Answers are read from the first sentence instead of waiting for the end; the voice engine warms up when the screen opens."),
+                    tx("Gemini desteği: Ayarlar → Claude'a sor → Yapay zekâ ile Claude ya da Gemini seçilir, iki anahtar da girilebilir.",
+                        "Gemini support: pick Claude or Gemini in Settings → Ask Claude → AI; both keys can be saved."),
+                ),
+            ),
+            Release(
                 "1.6.0",
                 tx("Bilgi Yarışması", "Quiz Night"),
                 listOf(
