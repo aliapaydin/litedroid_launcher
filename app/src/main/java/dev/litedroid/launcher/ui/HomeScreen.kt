@@ -1453,8 +1453,8 @@ private fun settingsEntries(
 
     SettingsEntry.Header(tx("Diğer", "More")),
     SettingsEntry.Row("games", tx("Dahili oyunlar", "Built-in games"), Icons.Filled.PlayArrow, null,
-        tx("Yılan, Kutu İtme, Mini Yarış, SOS, XOX ve Sudoku. Modern arayüzde Oyunlar sekmesinde de var.",
-            "Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe and Sudoku. Also in the Games tab of the Modern layout.")) { onGames() },
+        tx("Bilgi Yarışması, Yılan, Kutu İtme, Mini Yarış, SOS, XOX, Sudoku ve Mayın Tarlası. Modern arayüzde Oyunlar sekmesinde de var.",
+            "Quiz Night, Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe, Sudoku and Minesweeper. Also in the Games tab of the Modern layout.")) { onGames() },
     SettingsEntry.Row("hidden", if (vm.showHidden) tx("Gizli uygulamaları sakla", "Conceal hidden apps") else tx("Gizli uygulamaları göster", "Show hidden apps"),
         Icons.Filled.Search, "${vm.hiddenApps.size}", null) { vm.toggleShowHidden() },
     SettingsEntry.Row("store", tx("Uygulama mağazası", "App store"), Icons.Filled.ShoppingCart, null, null) { onOpenStore() },

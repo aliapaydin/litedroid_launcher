@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.8.2-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.9.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -144,7 +144,7 @@ Kahoot tarzı bir yarışma: **Oyunlar → Bilgi Yarışması**.
 
 <p align="center"><img src="docs/screenshots/quiz-phones.png" alt="Telefondan katılma, cevap verme ve sonuç" width="85%"></p>
 
-### 🎮 Kumandaya göre yapılmış altı oyun
+### 🎮 Kumandaya göre yapılmış yedi oyun
 
 | Oyunlar | Yılan | Sudoku |
 |---|---|---|
@@ -158,6 +158,7 @@ Kahoot tarzı bir yarışma: **Oyunlar → Bilgi Yarışması**.
 | 🔤 **SOS** | 6×6 tahtada, SOS kovalayan ve sana fırsat vermemeye çalışan bilgisayara karşı. |
 | ❌ **XOX** | Minimax rakip, biraz rastgelelikle, yani yenilebilir. |
 | 🔢 **Sudoku** | Kolay ve orta 6 bulmaca. Her birinin tek çözümü olduğu doğrulandı. Rakam tuşları da çalışır. |
+| 💣 **Mayın Tarlası** | Kolay, Orta ve Zor seviyeler. Tamam ile açılır, basılı tutunca bayrak konur, ilk kare hep güvenlidir. |
 
 Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
 

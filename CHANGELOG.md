@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.0
+- **Minesweeper** (`games/Minesweeper.kt`): Easy 9×9/10, Medium 12×11/22, Hard 16×12/38; OK opens (flood fill), holding OK flags, OK on a number chords; mines are planted after the first open so it and its neighbours are always safe; timer, mines left and best time per level; level row above the board.
+
 ## 1.8.2
 - Fix a startup crash after updating: the view model set `updatedTo` from its first `init` block before that property was initialized (Kotlin initializes members in order). Update checks now start from an `init` block placed after the update properties.
 

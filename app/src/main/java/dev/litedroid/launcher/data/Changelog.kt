@@ -10,6 +10,16 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.9.0",
+                tx("Mayın Tarlası", "Minesweeper"),
+                listOf(
+                    tx("Yeni oyun: Mayın Tarlası. Oyunlar sekmesinde.", "New game: Minesweeper, in the Games tab."),
+                    tx("Kolay (9×9), Orta (12×11) ve Zor (16×12); her zorluğun en iyi süresi kaydedilir.", "Easy (9×9), Medium (12×11) and Hard (16×12); the best time for each is saved."),
+                    tx("Kumandayla: Tamam açar, basılı tutmak bayrak koyar, rakama Tamam çevresini açar. İlk açılan kare hep güvenli.",
+                        "With the remote: OK opens, holding OK flags, OK on a number opens around it. The first square is always safe."),
+                ),
+            ),
+            Release(
                 "1.8.2",
                 tx("Açılış düzeltmesi", "Startup fix"),
                 listOf(
