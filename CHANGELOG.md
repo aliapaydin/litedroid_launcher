@@ -2,6 +2,7 @@
 
 ## 2.2.0
 - **Browser** tool (`tools/Browser.kt`, full screen): single-tab Android System WebView, created lazily and `destroy()`ed on exit; `onPause`/`pauseTimers` when LiteDroid stops. Remote pointer (accelerating on hold), OK sends a synthetic touch, edges and channel keys send mouse-wheel `ACTION_SCROLL` so inner scroll containers work too. Focused page inputs are detected via JS and filled through LiteDroid's own text dialog (value setter + input/change events, optional Enter/submit). Address bar (URL or Google search), back/forward/reload/stop, home page with quick sites and recent history, text zoom, desktop/mobile user agent. Camera/mic/location requests are denied; `intent:` links open the target app.
+- Scores: a "match day" runs 06:00–06:00 local, so a 23:00 kick-off and its final score stay visible after midnight; live matches always show.
 - **Downloader** (`tools/Downloader.kt`): takes over WebView downloads (cookies + UA, manual redirects), live progress/speed, cancel/delete, copies finished files to `Downloads/LiteDroid`, opens or installs APKs via a `FileProvider`.
 
 ## 2.1.0

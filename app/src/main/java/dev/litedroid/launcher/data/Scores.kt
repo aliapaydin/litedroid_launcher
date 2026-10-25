@@ -88,6 +88,8 @@ sealed interface MatchEvent {
  * Veri ESPN'in herkese açık skor tablosundan gelir (anahtar gerektirmez).
  */
 object ScoresHub {
+    /** Maç gününün başladığı saat (yerel). */
+    private const val DAY_START_HOUR = 6
 
     private const val TAG = "LiteDroidScores"
 
@@ -199,12 +201,25 @@ object ScoresHub {
         )
     }
 
+    /**
+     * "Maç günü" sabah 06:00'da başlar, ertesi sabah 06:00'da biter. Gece yarısını geçince akşamki maçlar
+     * (ör. 23:00'te başlayan) kaybolmaz; skorları sabaha kadar görünür. Yeni günün maçları 06:00'da gelir.
+     * Canlı maçlar saatten bağımsız her zaman gösterilir.
+     */
     private suspend fun fetchAll(codes: Set<String>): List<Match> = kotlinx.coroutines.coroutineScope {
-        val today = LocalDate.now(ZoneId.systemDefault()).format(DateTimeFormatter.BASIC_ISO_DATE)
+        val zone = ZoneId.systemDefault()
+        val now = java.time.ZonedDateTime.now(zone)
+        val dayDate = if (now.hour < DAY_START_HOUR) now.toLocalDate().minusDays(1) else now.toLocalDate()
+        val dayStart = dayDate.atTime(DAY_START_HOUR, 0).atZone(zone).toInstant()
+        val dayEnd = dayStart.plus(java.time.Duration.ofHours(24))
+        // Maç gününün takvim günü istenir (gece 00:30'da hâlâ dünün listesi)
+        val dates = listOf(dayDate.format(DateTimeFormatter.BASIC_ISO_DATE))
         codes.mapNotNull { League.of(it) }
             .map { league ->
                 async {
-                    val all = runCatching { fetch(league, today) }.getOrDefault(emptyList())
+                    val all = dates.flatMap { d -> runCatching { fetch(league, d) }.getOrDefault(emptyList()) }
+                        .distinctBy { it.id }
+                        .filter { it.state == MatchState.LIVE || (!it.start.isBefore(dayStart) && it.start.isBefore(dayEnd)) }
                     val follow = teams[league.code] ?: return@async all
                     all.filter { it.home.id in follow || it.away.id in follow }
                 }
