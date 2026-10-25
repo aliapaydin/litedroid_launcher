@@ -183,7 +183,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             NotificationsHub.items.collect { notifications = it }
         }
-        ScoresHub.leagues = settings.scoreLeagues
+        ScoresHub.configure(settings)
         ScoreOverlay.sync(app, settings)
     }
 
@@ -540,7 +540,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val old = settings
         settings = transform(settings)
         settingsRepo.save(settings)
-        if (old.scoreLeagues != settings.scoreLeagues) ScoresHub.leagues = settings.scoreLeagues
+        if (old.scoreLeagues != settings.scoreLeagues || old.followedTeams != settings.followedTeams) ScoresHub.configure(settings)
         if (old.floatingScores != settings.floatingScores || old.floatingOnlyLive != settings.floatingOnlyLive) {
             ScoreOverlay.restart(app, settings)
         }

@@ -1,32 +1,41 @@
 package dev.litedroid.launcher.overlay
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,8 +43,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -49,26 +61,50 @@ import dev.litedroid.launcher.data.SettingsRepository
 import dev.litedroid.launcher.data.WeatherRepository
 import dev.litedroid.launcher.media.LiveMediaHub
 import dev.litedroid.launcher.tx
-import dev.litedroid.launcher.ui.ActionView
 import dev.litedroid.launcher.ui.MatchRow
-import dev.litedroid.launcher.ui.MediaButton
-import dev.litedroid.launcher.ui.QuickAction
-import dev.litedroid.launcher.ui.QuickTile
-import dev.litedroid.launcher.ui.SparkleGlyph
-import dev.litedroid.launcher.ui.TileView
 import dev.litedroid.launcher.ui.WeatherGlyph
-import dev.litedroid.launcher.ui.glassSheen
+import dev.litedroid.launcher.ui.onRemoteSelect
 import dev.litedroid.launcher.ui.rememberNow
 import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 
+private val MenuAccent = Color(0xFF6B4DFF)
+private val Ink = Color.White
+private val InkSoft = Color.White.copy(alpha = 0.6f)
+
 /**
- * Başka bir uygulama açıkken (Geri'ye iki kez basınca) sağdan açılan yüzen menü:
- * saat ve hava, çalan müzik kontrolleri, skor ayarları, bugünün tüm maçları ve kısayollar.
- * İçerik sığmazsa odak indikçe kendiliğinden kayar. Geri ile kapanır.
+ * Başka bir uygulama açıkken (Geri'ye iki kez basınca) sağdan kayarak açılan sade yüzen menü:
+ * saat ve hava, çalan müzik, uyku zamanlayıcısı, skor şeridi ayarları, bugünün maçları ve kısayollar.
+ * [visible] false olunca sağa kayarak çıkar (pencereyi servis animasyon bitince kaldırır).
  */
 @Composable
-fun FloatingMenu(onClose: () -> Unit, onHome: () -> Unit, onAskClaude: () -> Unit) {
+fun FloatingMenu(
+    visible: Boolean,
+    sleepEnd: Long?,
+    onSleep: (minutes: Int?) -> Unit,
+    onClose: () -> Unit,
+    onHome: () -> Unit,
+    onAskClaude: () -> Unit,
+) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = slideInHorizontally(tween(240)) { it } + fadeIn(tween(200)),
+            exit = slideOutHorizontally(tween(220)) { it } + fadeOut(tween(200)),
+        ) {
+            MenuCard(sleepEnd, onSleep, onClose, onHome, onAskClaude)
+        }
+    }
+}
+
+@Composable
+private fun MenuCard(
+    sleepEnd: Long?,
+    onSleep: (minutes: Int?) -> Unit,
+    onClose: () -> Unit,
+    onHome: () -> Unit,
+    onAskClaude: () -> Unit,
+) {
     val context = LocalContext.current
     val repo = remember { SettingsRepository(context) }
     var settings by remember { mutableStateOf(repo.load()) }
@@ -78,8 +114,16 @@ fun FloatingMenu(onClose: () -> Unit, onHome: () -> Unit, onAskClaude: () -> Uni
     val matches by ScoresHub.matches.collectAsState()
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        delay(120)
+        delay(260)
         runCatching { first.requestFocus() }
+    }
+    // Kalan süre her saniye yenilensin
+    var tick by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(sleepEnd) {
+        while (sleepEnd != null) {
+            tick = System.currentTimeMillis()
+            delay(1_000)
+        }
     }
 
     fun update(transform: (dev.litedroid.launcher.data.LauncherSettings) -> dev.litedroid.launcher.data.LauncherSettings) {
@@ -89,162 +133,215 @@ fun FloatingMenu(onClose: () -> Unit, onHome: () -> Unit, onAskClaude: () -> Uni
         ScoreOverlay.restart(context, next)
     }
 
+    val shape = RoundedCornerShape(24.dp)
     Column(
         Modifier
-            .fillMaxHeight()
-            .padding(top = 16.dp, bottom = 16.dp, end = 16.dp)
-            .clip(RoundedCornerShape(30.dp))
+            .padding(top = 14.dp, bottom = 14.dp, end = 14.dp)
+            .width(340.dp)
+            .clip(shape)
             .background(Brush.verticalGradient(listOf(Color(0xFF15172A).copy(alpha = 0.97f), Color(0xFF0A0B14).copy(alpha = 0.98f))))
-            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.04f))), RoundedCornerShape(30.dp))
-            .glassSheen(0.6f)
+            .border(1.dp, Color.White.copy(alpha = 0.1f), shape)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
-        // ---- Saat ----
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                now.format(DateTimeFormatter.ofPattern("HH:mm", I18n.locale)),
-                color = Color.White,
-                fontSize = 40.sp,
-                lineHeight = 42.sp,
-                fontWeight = FontWeight.Light,
-                letterSpacing = (-1).sp,
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                now.format(DateTimeFormatter.ofPattern(tx("d MMMM EEEE", "EEEE, MMMM d"), I18n.locale)).uppercase(I18n.locale),
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(bottom = 7.dp),
-            )
-        }
-        if (weather != null) {
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                WeatherGlyph(weather.code, weather.isDay, 16.dp)
-                Spacer(Modifier.width(6.dp))
+        // ---- Saat ve hava ----
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    "${weather.temperature}°C  ${weather.description}" + if (weather.city.isNotBlank()) " · ${weather.city}" else "",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 12.sp,
+                    now.format(DateTimeFormatter.ofPattern("HH:mm", I18n.locale)),
+                    color = Ink, fontSize = 30.sp, lineHeight = 32.sp, fontWeight = FontWeight.Light,
                 )
+                Text(
+                    now.format(DateTimeFormatter.ofPattern(tx("d MMMM EEEE", "EEEE, MMMM d"), I18n.locale)),
+                    color = InkSoft, fontSize = 10.sp,
+                )
+            }
+            if (weather != null) {
+                WeatherGlyph(weather.code, weather.isDay, 16.dp)
+                Spacer(Modifier.width(5.dp))
+                Text("${weather.temperature}°", color = Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
         // ---- Çalan ----
         val m = media
         if (m != null) {
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color.White.copy(alpha = 0.06f))
-                    .padding(10.dp),
+                    .padding(7.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(9.dp))
                         .background(Brush.linearGradient(listOf(Color(0xFF3A7BFF), Color(0xFF7B5CFF)))),
                     contentAlignment = Alignment.Center,
                 ) {
                     val art = m.art
-                    if (art != null) Image(art, null, contentScale = ContentScale.Crop, modifier = Modifier.size(48.dp))
-                    else Text("♪", color = Color.White, fontSize = 20.sp)
+                    if (art != null) Image(art, null, contentScale = ContentScale.Crop, modifier = Modifier.size(36.dp))
+                    else Text("♪", color = Ink, fontSize = 15.sp)
                 }
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(m.title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(listOfNotNull(m.artist, m.appLabel).joinToString(" · "), color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(m.title, color = Ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(listOfNotNull(m.artist, m.appLabel).joinToString(" · "), color = InkSoft, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                MediaButton("⏮") { LiveMediaHub.previous() }
-                MediaButton(if (m.playing) "⏸" else "▶", big = true) { LiveMediaHub.playPause() }
-                MediaButton("⏭") { LiveMediaHub.next() }
+                RoundButton("⏮", 28) { LiveMediaHub.previous() }
+                RoundButton(if (m.playing) "⏸" else "▶", 32) { LiveMediaHub.playPause() }
+                RoundButton("⏭", 28) { LiveMediaHub.next() }
             }
         }
 
-        // ---- Skor ayarları ----
-        Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            TileView(
-                QuickTile(
-                    "float", tx("Yüzen skor", "Floating scores"),
-                    if (settings.floatingScores) tx("Açık", "On") else tx("Kapalı", "Off"),
-                    Icons.Filled.Star, active = settings.floatingScores,
-                ) { update { it.copy(floatingScores = !it.floatingScores) } },
-                Modifier.weight(1f),
-                first,
-            )
-            TileView(
-                QuickTile(
-                    "live", tx("Şeritte", "In the strip"),
-                    if (settings.floatingOnlyLive) tx("Yalnızca canlı", "Live only") else tx("Bugünün tümü", "All today"),
-                    Icons.Filled.Refresh, active = settings.floatingOnlyLive,
-                ) { update { it.copy(floatingOnlyLive = !it.floatingOnlyLive) } },
-                Modifier.weight(1f),
-                null,
-            )
+        // ---- Uyku zamanlayıcısı ----
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel(tx("UYKU ZAMANLAYICISI", "SLEEP TIMER"), Modifier.weight(1f))
+            if (sleepEnd != null) {
+                Text(
+                    SleepTimer.formatRemaining(sleepEnd - tick) + " · " + SleepTimer.clock(sleepEnd),
+                    color = Color(0xFFB9A8FF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        val activeMinutes = if (sleepEnd != null) (SleepTimer.totalMs / 60_000L).toInt() else null
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Chip(tx("Kapalı", "Off"), selected = sleepEnd == null, modifier = Modifier.weight(1.3f).focusRequester(first)) { onSleep(null) }
+            listOf(15, 30, 60, 90).forEach { min ->
+                Chip("$min", selected = activeMinutes == min, modifier = Modifier.weight(1f)) { onSleep(min) }
+            }
         }
 
-        // ---- Bugünün maçları ----
-        Spacer(Modifier.height(16.dp))
+        // ---- Skor şeridi ----
+        Spacer(Modifier.height(12.dp))
+        SectionLabel(tx("SKOR ŞERİDİ", "SCORE STRIP"))
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Chip(
+                if (settings.floatingScores) tx("Şerit açık", "Strip on") else tx("Şerit kapalı", "Strip off"),
+                selected = settings.floatingScores, modifier = Modifier.weight(1f),
+            ) { update { it.copy(floatingScores = !it.floatingScores) } }
+            Chip(
+                if (settings.floatingOnlyLive) tx("Yalnızca canlı", "Live only") else tx("Bugünün tümü", "All today"),
+                selected = settings.floatingOnlyLive, modifier = Modifier.weight(1f),
+            ) { update { it.copy(floatingOnlyLive = !it.floatingOnlyLive) } }
+        }
+
+        // ---- Maçlar ----
+        Spacer(Modifier.height(12.dp))
         val live = matches.count { it.state == MatchState.LIVE }
-        Text(
-            if (live > 0) tx("CANLI · $live MAÇ", "LIVE · $live MATCHES") else tx("BUGÜNÜN MAÇLARI", "TODAY'S MATCHES"),
-            color = Color.White.copy(alpha = 0.6f),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-        )
+        SectionLabel(if (live > 0) tx("CANLI · $live MAÇ", "LIVE · $live MATCHES") else tx("BUGÜNÜN MAÇLARI", "TODAY'S MATCHES"))
         Spacer(Modifier.height(6.dp))
         if (matches.isEmpty()) {
-            Text(
-                tx("Bugün takip ettiğin liglerde maç yok.", "No matches today in the leagues you follow."),
-                color = Color.White.copy(alpha = 0.55f),
-                fontSize = 12.sp,
-            )
+            Text(tx("Takip ettiğin takımların bugün maçı yok.", "No matches today for the teams you follow."), color = InkSoft, fontSize = 11.sp)
         } else {
+            val shown = matches.take(MAX_MATCHES)
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color.White.copy(alpha = 0.05f))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
             ) {
-                var lastLeague: String? = null
-                matches.forEach { match ->
-                    if (match.league.code != lastLeague) {
-                        lastLeague = match.league.code
-                        Text(
-                            match.league.label,
-                            color = Color(0xFF9DB8FF),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
-                        )
-                    }
-                    Box(Modifier.padding(vertical = 3.dp)) { MatchRow(match, compact = true) }
+                shown.forEach { match -> Box(Modifier.padding(vertical = 2.dp)) { MatchRow(match, compact = true) } }
+                if (matches.size > shown.size) {
+                    Text(
+                        tx("+${matches.size - shown.size} maç daha", "+${matches.size - shown.size} more"),
+                        color = InkSoft, fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp),
+                    )
                 }
             }
         }
 
         // ---- Kısayollar ----
-        Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ActionView(QuickAction(tx("Ana ekran", "Home"), Icons.Filled.Home) { onHome() }, Modifier.weight(1f))
-            ActionView(QuickAction(tx("Claude'a sor", "Ask Claude"), Icons.Filled.Star) { onAskClaude() }, Modifier.weight(1f))
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            IconAction(tx("Ana ekran", "Home"), Icons.Filled.Home, Modifier.weight(1f)) { onHome() }
+            IconAction("Claude", Icons.Filled.Star, Modifier.weight(1f)) { onAskClaude() }
+            IconAction(tx("Kapat", "Close"), Icons.Filled.Clear, Modifier.weight(1f)) { onClose() }
         }
-        Spacer(Modifier.height(8.dp))
-        ActionView(QuickAction(tx("Kapat (Geri)", "Close (Back)"), Icons.Filled.Clear) { onClose() }, Modifier.fillMaxWidth())
-        Spacer(Modifier.height(4.dp))
-        Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            SparkleGlyph(Color.White.copy(alpha = 0.4f), 12.dp)
-            Spacer(Modifier.width(6.dp))
-            Text(tx("LiteDroid · Geri'ye iki kez bas: menü", "LiteDroid · Double-press Back: menu"), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp)
-        }
+    }
+}
+
+private const val MAX_MATCHES = 6
+
+@Composable
+private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(text, color = InkSoft, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, modifier = modifier)
+}
+
+@Composable
+private fun Chip(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        modifier
+            .height(30.dp)
+            .clip(RoundedCornerShape(50))
+            .background(
+                when {
+                    focused -> Color.White
+                    selected -> MenuAccent
+                    else -> Color.White.copy(alpha = 0.08f)
+                }
+            )
+            .onFocusChanged { focused = it.isFocused }
+            .onRemoteSelect(onClick)
+            .focusable(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            color = if (focused) Color(0xFF111114) else Ink,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun RoundButton(symbol: String, size: Int, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .padding(start = 3.dp)
+            .size(size.dp)
+            .clip(CircleShape)
+            .background(if (focused) Color.White else Color.White.copy(alpha = 0.1f))
+            .onFocusChanged { focused = it.isFocused }
+            .onRemoteSelect(onClick)
+            .focusable(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(symbol, color = if (focused) Color(0xFF111114) else Ink, fontSize = (size / 2.6f).sp)
+    }
+}
+
+@Composable
+private fun IconAction(label: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (focused) Color.White else Color.White.copy(alpha = 0.07f))
+            .onFocusChanged { focused = it.isFocused }
+            .onRemoteSelect(onClick)
+            .focusable()
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        val fg = if (focused) Color(0xFF111114) else Ink
+        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(5.dp))
+        Text(label, color = fg, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

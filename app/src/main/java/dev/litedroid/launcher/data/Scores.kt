@@ -32,7 +32,10 @@ enum class League(val code: String, private val tr: String, private val en: Stri
     ESP("esp.1", "LaLiga", "LaLiga", "🇪🇸"),
     ITA("ita.1", "Serie A", "Serie A", "🇮🇹"),
     GER("ger.1", "Bundesliga", "Bundesliga", "🇩🇪"),
-    FRA("fra.1", "Ligue 1", "Ligue 1", "🇫🇷");
+    FRA("fra.1", "Ligue 1", "Ligue 1", "🇫🇷"),
+    UCL("uefa.champions", "Şampiyonlar Ligi", "Champions League", "🏆"),
+    UEL("uefa.europa", "Avrupa Ligi", "Europa League", "🏆"),
+    UECL("uefa.europa.conf", "Konferans Ligi", "Conference League", "🏆");
 
     val label: String get() = tx(tr, en)
 
@@ -111,6 +114,25 @@ object ScoresHub {
             }
         }
 
+    /**
+     * Lig başına takip edilen takımlar (ESPN takım kimlikleri). Haritada olmayan lig: tüm maçlar.
+     * Haritada boş küme: o ligden hiç maç gösterilmez.
+     */
+    @Volatile
+    var teams: Map<String, Set<String>> = emptyMap()
+        set(value) {
+            if (field != value) {
+                field = value
+                refreshNow()
+            }
+        }
+
+    /** Ayarlardaki ligleri ve takımları uygular. */
+    fun configure(settings: LauncherSettings) {
+        teams = settings.followedTeams
+        leagues = settings.scoreLeagues
+    }
+
     /** [who] skorlara ihtiyaç duyuyor (ör. "saver", "overlay"). */
     fun acquire(context: Context, who: String) {
         synchronized(this) {
@@ -180,7 +202,13 @@ object ScoresHub {
     private suspend fun fetchAll(codes: Set<String>): List<Match> = kotlinx.coroutines.coroutineScope {
         val today = LocalDate.now(ZoneId.systemDefault()).format(DateTimeFormatter.BASIC_ISO_DATE)
         codes.mapNotNull { League.of(it) }
-            .map { league -> async { runCatching { fetch(league, today) }.getOrDefault(emptyList()) } }
+            .map { league ->
+                async {
+                    val all = runCatching { fetch(league, today) }.getOrDefault(emptyList())
+                    val follow = teams[league.code] ?: return@async all
+                    all.filter { it.home.id in follow || it.away.id in follow }
+                }
+            }
             .awaitAll()
             .flatten()
     }
@@ -270,5 +298,41 @@ object ScoresHub {
         val fixedHome = if (state == MatchState.PRE) homeFinal.copy(score = null) else homeFinal
         val fixedAway = if (state == MatchState.PRE) awayFinal.copy(score = null) else awayFinal
         return Match(e.optString("id"), league, fixedHome, fixedAway, state, label, start, lastGoal, lastRed)
+    }
+}
+
+/** Takım seçici için bir ligdeki takım. */
+data class TeamInfo(val id: String, val name: String, val short: String, val logo: String?)
+
+/** Liglerin takım listeleri (ESPN), bellekte önbelleklenir. */
+object TeamCatalog {
+    private val cache = HashMap<String, List<TeamInfo>>()
+
+    suspend fun teams(league: League): List<TeamInfo> = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        synchronized(cache) { cache[league.code] }?.let { return@withContext it }
+        val conn = (URL("https://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/teams").openConnection() as HttpURLConnection).apply {
+            connectTimeout = 8_000
+            readTimeout = 10_000
+            setRequestProperty("User-Agent", "LiteDroid-Launcher")
+        }
+        val body = try {
+            conn.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            conn.disconnect()
+        }
+        val arr = JSONObject(body).optJSONArray("sports")?.optJSONObject(0)
+            ?.optJSONArray("leagues")?.optJSONObject(0)?.optJSONArray("teams")
+        val list = (0 until (arr?.length() ?: 0)).mapNotNull { i ->
+            val t = arr?.optJSONObject(i)?.optJSONObject("team") ?: return@mapNotNull null
+            val id = t.optString("id").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            TeamInfo(
+                id = id,
+                name = t.optString("displayName"),
+                short = t.optString("shortDisplayName").ifBlank { t.optString("displayName") },
+                logo = t.optJSONArray("logos")?.optJSONObject(0)?.optString("href")?.takeIf { it.startsWith("http") },
+            )
+        }.sortedBy { it.name.lowercase() }
+        if (list.isNotEmpty()) synchronized(cache) { cache[league.code] = list }
+        list
     }
 }

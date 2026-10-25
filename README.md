@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.4.1-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-1.5.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -66,7 +66,9 @@ Standart ana ekranın yerine buzlu cam menüler, uygulamalar arası çalışan b
 
 ### ⚽ Canlı skorlar
 
-Süper Lig, Premier League, LaLiga, Serie A, Bundesliga ve Ligue 1 varsayılan olarak takipte. Hangi ligleri izleyeceğini ayarlardan seçersin.
+Süper Lig, Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, **Şampiyonlar Ligi, Avrupa Ligi ve Konferans Ligi** varsayılan olarak takipte. Hangi ligleri izleyeceğini ayarlardan seçersin.
+
+**Takımları seç:** Ayarlar → Canlı skorlar → Takımları seç. Her ligden yalnızca istediğin takımları takip edebilirsin, mesela Süper Lig'den Beşiktaş ve Galatasaray, LaLiga'dan Real Madrid. Tümünü seçebilir, seçimi kaldırabilir ya da tek tek seçebilirsin. Skor kartı, şerit, menü, ekran koruyucu ve gol bildirimleri sadece bu takımların maçlarını gösterir.
 
 <p align="center"><img src="docs/screenshots/score-strip-context.png" alt="Prime Video izlerken köşedeki skor şeridi" width="80%"></p>
 
@@ -82,9 +84,17 @@ Süper Lig, Premier League, LaLiga, Serie A, Bundesliga ve Ligue 1 varsayılan o
 ### 🎛️ Her uygulamanın üstünde yüzen menü
 
 - Netflix, YouTube ya da başka bir şey açıkken kumandada **Geri'ye iki kez hızlıca bas**.
-- Sağdan bir LiteDroid menüsü açılır. İçinde saat, hava durumu, çalan müziğin kontrolleri, bugünün tüm maçları, skor şeridi ayarları ve Ana ekran / Claude'a sor kısayolları var.
+- Sağdan kayarak sade bir LiteDroid menüsü açılır. İçinde saat, hava durumu, çalan müziğin kontrolleri, uyku zamanlayıcısı, skor şeridi ayarları, bugünün maçları ve Ana ekran / Claude / Kapat kısayolları var.
 - **Tek basış normal Geri olarak çalışmaya devam eder.**
 - Bir kez açman gerekiyor: **Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu**. Servis yalnızca tuş basışlarını ve öndeki uygulamanın adını görür.
+
+### 😴 Uyku zamanlayıcısı
+
+- Ayarlar → Uyku zamanlayıcısı'ndan **süreyle** (15–120 dk) ya da **belirli bir saatte** kapan. Yüzen menüden ve hızlı panelden de tek tuşla kurulur.
+- Kapanmaya 45, 30, 15 ve 5 dakika kala sağ altta 5 saniyelik bir uyarı çıkar.
+- Son 10 saniyede halkalı bir geri sayım görünür. Herhangi bir tuşa basarak iptal edebilirsin.
+- Süre dolunca çalan durdurulur ve cihaz uyku moduna geçer. HDMI-CEC açıksa TV de kapanır.
+- Kumanda kısayolu (erişilebilirlik) açık olmalı.
 
 ### 🧩 Hızlı panel
 

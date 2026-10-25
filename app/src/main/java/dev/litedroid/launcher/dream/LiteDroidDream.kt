@@ -1,5 +1,6 @@
 package dev.litedroid.launcher.dream
 
+import dev.litedroid.launcher.data.ScoresHub
 import dev.litedroid.launcher.overlay.ScoreOverlay
 import dev.litedroid.launcher.I18n
 import android.service.dreams.DreamService
@@ -40,6 +41,7 @@ class LiteDroidDream : DreamService(), LifecycleOwner, SavedStateRegistryOwner {
         isFullscreen = true
         val settings = SettingsRepository(this).load()
         I18n.lang = settings.language
+        ScoresHub.configure(settings)
         val view = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@LiteDroidDream)
             setViewTreeSavedStateRegistryOwner(this@LiteDroidDream)

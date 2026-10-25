@@ -1,5 +1,7 @@
 package dev.litedroid.launcher.ui
 
+import androidx.compose.runtime.collectAsState
+import dev.litedroid.launcher.overlay.SleepTimer
 import dev.litedroid.launcher.data.Changelog
 import androidx.compose.material.icons.filled.List
 import dev.litedroid.launcher.overlay.RemoteKeyService
@@ -173,6 +175,9 @@ private fun HomeContent(vm: LauncherViewModel) {
     var aboutOpen by remember { mutableStateOf(false) }
     var changelogOpen by remember { mutableStateOf(false) }
     var usageOpen by remember { mutableStateOf(false) }
+    var teamsOpen by remember { mutableStateOf(false) }
+    var sleepDialogOpen by remember { mutableStateOf(false) }
+    val sleepEnd by SleepTimer.endAt.collectAsState()
     var settingsRefocus by remember { mutableIntStateOf(0) }
     var settingsOpen by remember { mutableStateOf(false) }
     var searchOpen by remember { mutableStateOf(false) }
@@ -185,7 +190,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     var restoreSignal by remember { mutableIntStateOf(0) }
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
-    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
+    val pageOpen = storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
 
@@ -325,6 +330,7 @@ private fun HomeContent(vm: LauncherViewModel) {
         aboutOpen = false
         changelogOpen = false
         usageOpen = false
+        teamsOpen = false
         settingsOpen = false
         searchOpen = false
         gameOpen = null
@@ -352,6 +358,7 @@ private fun HomeContent(vm: LauncherViewModel) {
         aboutOpen = false
         changelogOpen = false
         usageOpen = false
+        teamsOpen = false
         settingsOpen = false
         searchOpen = false
         gameOpen = null
@@ -371,6 +378,14 @@ private fun HomeContent(vm: LauncherViewModel) {
             gamePickerOpen -> gamePickerOpen = false
             movingPkg != null -> movingPkg = null
             aboutOpen -> aboutOpen = false
+            sleepDialogOpen -> {
+                sleepDialogOpen = false
+                settingsRefocus++
+            }
+            teamsOpen -> {
+                teamsOpen = false
+                settingsOpen = true
+            }
             usageOpen -> {
                 usageOpen = false
                 settingsOpen = true
@@ -396,7 +411,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     // Animasyon değerleri State olarak tutulur ve çizim/yerleşim aşamasında okunur
     val dimState = animateFloatAsState(
         targetValue = when {
-            usageOpen -> 0.96f
+            usageOpen || teamsOpen -> 0.96f
             storeOpen || settingsOpen || searchOpen -> 0.78f
             overlayOpen -> 0.55f
             else -> 0f
@@ -701,6 +716,20 @@ private fun HomeContent(vm: LauncherViewModel) {
                         vm.updateSettings { it.copy(floatingScores = turnOn) }
                         if (turnOn && !vm.overlayAllowed()) toast(tx("Önce izin ver: Ayarlar → Canlı skorlar", "Grant permission first: Settings → Live scores"))
                     })
+                    add(QuickTile(
+                        "sleep", tx("Uyku", "Sleep"),
+                        sleepEnd?.let { SleepTimer.clock(it) } ?: tx("Kapalı", "Off"),
+                        Icons.Filled.DateRange, active = sleepEnd != null,
+                    ) {
+                        val current = if (sleepEnd != null) (SleepTimer.totalMs / 60_000L).toInt() else null
+                        val presets = listOf(30, 60, 90)
+                        val next = when (val i = presets.indexOf(current)) {
+                            -1 -> if (current == null) presets.first() else null
+                            presets.lastIndex -> null
+                            else -> presets[i + 1]
+                        }
+                        if (next == null) SleepTimer.cancel(context) else SleepTimer.startIn(context, next)
+                    })
                     add(QuickTile("weather", tx("Hava durumu", "Weather"), if (settings.weatherEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.weather, active = settings.weatherEnabled) {
                         vm.updateSettings { it.copy(weatherEnabled = !it.weatherEnabled) }
                     })
@@ -803,6 +832,12 @@ private fun HomeContent(vm: LauncherViewModel) {
                 entries = settingsEntries(
                     vm = vm,
                     settings = settings,
+                    sleepEnd = sleepEnd,
+                    onSleepPreset = { minutes ->
+                        if (minutes == null) SleepTimer.cancel(context) else SleepTimer.startIn(context, minutes)
+                        if (!vm.remoteShortcutEnabled()) toast(tx("Kapanma için kumanda kısayolunu aç: komut sol panelde", "Turn on the remote shortcut for this: the command is in the left panel"))
+                    },
+                    onSleepAt = { sleepDialogOpen = true },
                     onEditName = { textTarget = TextTarget.NAME },
                     onEditCity = { textTarget = TextTarget.CITY },
                     onEditClaudeKey = { textTarget = TextTarget.CLAUDE_KEY },
@@ -835,6 +870,10 @@ private fun HomeContent(vm: LauncherViewModel) {
                         aboutOpen = true
                     },
                     onChangelog = { changelogOpen = true },
+                    onTeams = {
+                        settingsOpen = false
+                        teamsOpen = true
+                    },
                     onUsageReport = {
                         settingsOpen = false
                         usageOpen = true
@@ -862,9 +901,17 @@ private fun HomeContent(vm: LauncherViewModel) {
                         toast(tx("İzleme geçmişi temizlendi", "Watch history cleared"))
                     },
                 ),
-                enabled = textTarget == null && !changelogOpen,
+                enabled = textTarget == null && !changelogOpen && !sleepDialogOpen,
                 refocusSignal = settingsRefocus,
             )
+        }
+
+        AnimatedVisibility(
+            visible = teamsOpen,
+            enter = fadeIn() + slideInVertically { it / 8 },
+            exit = fadeOut() + slideOutVertically { it / 8 },
+        ) {
+            TeamPickerScreen(vm)
         }
 
         AnimatedVisibility(
@@ -936,6 +983,23 @@ private fun HomeContent(vm: LauncherViewModel) {
             }
         }
 
+        if (sleepDialogOpen) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f))
+            )
+            SleepTimeDialog(
+                onPick = { h, m ->
+                    SleepTimer.startAt(context, h, m)
+                    sleepDialogOpen = false
+                    settingsRefocus++
+                    if (!vm.remoteShortcutEnabled()) toast(tx("Kapanma için kumanda kısayolunu aç: komut sol panelde", "Turn on the remote shortcut for this: the command is in the left panel"))
+                },
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
         if (changelogOpen) {
             Box(
                 Modifier
@@ -1001,12 +1065,16 @@ private fun <T> List<T>.next(current: T): T = this[(indexOf(current) + 1).mod(si
 private fun settingsEntries(
     vm: LauncherViewModel,
     settings: LauncherSettings,
+    sleepEnd: Long?,
+    onSleepPreset: (Int?) -> Unit,
+    onSleepAt: () -> Unit,
     onEditName: () -> Unit,
     onEditCity: () -> Unit,
     onOpenStore: () -> Unit,
     onOpenAbout: () -> Unit,
     onChangelog: () -> Unit,
     onUsageReport: () -> Unit,
+    onTeams: () -> Unit,
     onAndroidSettings: () -> Unit,
     onMediaAccess: () -> Unit,
     onUsageAccess: () -> Unit,
@@ -1077,6 +1145,33 @@ private fun settingsEntries(
         vm.updateSettings { it.copy(soundLevel = SoundLevel.entries.toList().next(it.soundLevel)) }
     },
 
+    SettingsEntry.Header(tx("Uyku zamanlayıcısı", "Sleep timer")),
+    SettingsEntry.Row("sleep_in", tx("Süreyle kapan", "Turn off after"), Icons.Filled.DateRange,
+        when {
+            sleepEnd == null -> tx("Kapalı", "Off")
+            else -> SleepTimer.statusLabel(sleepEnd)
+        },
+        tx("Her basışta süre değişir: 15, 30, 45, 60, 90, 120 dakika, kapalı. Kapanmaya 45, 30, 15 ve 5 dakika kala sağ altta 5 saniyelik uyarı çıkar; " +
+            "son 10 saniyede geri sayım görünür, herhangi bir tuşa basarak iptal edebilirsin. Süre dolunca çalan durdurulur ve cihaz uyku moduna geçer " +
+            "(HDMI-CEC açıksa TV de kapanır). Kumanda kısayolu (erişilebilirlik) açık olmalı. Yüzen menüden de kurulabilir.",
+            "Each press changes the time: 15, 30, 45, 60, 90, 120 minutes, off. A 5-second notice appears bottom-right at 45, 30, 15 and 5 minutes left; " +
+            "the last 10 seconds count down and any key cancels. When time is up playback stops and the device sleeps (the TV turns off too with HDMI-CEC). " +
+            "Needs the remote shortcut (accessibility) on. Also available in the floating menu.")) {
+        val current = if (sleepEnd != null) (SleepTimer.totalMs / 60_000L).toInt() else null
+        val presets = SleepTimer.PRESETS
+        val next = when (val i = presets.indexOf(current)) {
+            -1 -> if (current == null) presets.first() else null
+            presets.lastIndex -> null
+            else -> presets[i + 1]
+        }
+        onSleepPreset(next)
+    },
+    SettingsEntry.Row("sleep_at", tx("Belirli saatte kapan", "Turn off at a time"), Icons.Filled.Notifications,
+        sleepEnd?.let { SleepTimer.clock(it) },
+        tx("Saat ve dakikayı seç; o saat bugün geçtiyse yarın uygulanır.", "Pick the hour and minute; if it has passed today, it applies tomorrow.")) { onSleepAt() },
+    SettingsEntry.Row("sleep_off", tx("Zamanlayıcıyı kapat", "Turn timer off"), Icons.Filled.Clear,
+        if (sleepEnd == null) tx("Kapalı", "Off") else null, null) { onSleepPreset(null) },
+
     SettingsEntry.Header(tx("Ekran koruyucu", "Screensaver")),
     SettingsEntry.Row("saver_min", tx("Başlama süresi", "Start after"), Icons.Filled.DateRange,
         if (settings.saverMinutes == 0) tx("Kapalı", "Off") else tx("${settings.saverMinutes} dk", "${settings.saverMinutes} min"),
@@ -1142,10 +1237,24 @@ private fun settingsEntries(
         tx("Kapalıysa henüz başlamamış bugünkü maçlar da görünür.", "When off, today's upcoming matches are shown too.")) {
         vm.updateSettings { it.copy(floatingOnlyLive = !it.floatingOnlyLive) }
     },
+) + listOf(
+    SettingsEntry.Row("teams", tx("Takımları seç", "Pick teams"), Icons.Filled.Favorite,
+        settings.followedTeams.values.sumOf { it.size }.let { n ->
+            if (settings.followedTeams.isEmpty()) tx("Tüm takımlar", "All teams") else tx("$n takım", "$n teams")
+        },
+        tx("Her ligden yalnızca istediğin takımların maçlarını gör: ör. Süper Lig'den Beşiktaş ve Galatasaray, LaLiga'dan Real Madrid. " +
+            "Tümünü seçebilir, seçimi kaldırabilir ya da tek tek seçebilirsin.",
+            "See only the teams you want in each league, e.g. Real Madrid in LaLiga. Select all, clear, or pick one by one.")) { onTeams() },
 ) + League.entries.map { league ->
+    val follow = settings.followedTeams[league.code]
     SettingsEntry.Row("league_${league.code}", league.label, Icons.Filled.Star,
-        if (league.code in settings.scoreLeagues) tx("Takipte", "Following") else tx("Kapalı", "Off"),
-        tx("Bu ligin maçları skor kartında ve yüzen şeritte görünsün.", "Show this league in the scores card and the floating strip.")) {
+        when {
+            league.code !in settings.scoreLeagues -> tx("Kapalı", "Off")
+            follow == null -> tx("Takipte", "Following")
+            else -> tx("Takipte · ${follow.size} takım", "Following · ${follow.size} teams")
+        },
+        tx("Bu ligin maçları skor kartında ve yüzen şeritte görünsün. Takımları \"Takımları seç\"ten daraltabilirsin.",
+            "Show this league in the scores card and the floating strip. Narrow it to teams in \"Pick teams\".")) {
         vm.updateSettings {
             val now = if (league.code in it.scoreLeagues) it.scoreLeagues - league.code else it.scoreLeagues + league.code
             it.copy(scoreLeagues = now)

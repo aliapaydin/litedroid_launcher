@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.0
+- **UEFA competitions:** Champions League (`uefa.champions`), Europa League (`uefa.europa`) and Conference League (`uefa.europa.conf`), on by default (also for existing installs, via a "known leagues" migration) and switchable like the others.
+- **Team follow:** Settings → Live scores → Pick teams. Leagues on the left, the league's teams (ESPN `/teams`) as a logo grid on the right, with Select all / Clear / one-by-one. A league with no customization follows every team; otherwise only matches involving the selected teams reach the scores card, strip, menu, screensaver and goal alerts.
+- **Sleep timer:** by duration (15–120 min) or at a set time (hour/minute picker). The remote shortcut service shows a 5 s notice bottom-right at 45/30/15/5 min left and a 10 s ring countdown at the end (any key cancels), then pauses playback and calls `GLOBAL_ACTION_LOCK_SCREEN` to put the device to sleep (HDMI-CEC turns the TV off). State survives restarts. Settings section, quick-panel tile and floating-menu chips.
+- **Floating menu redesign:** 340 dp wide, compact clock/weather, small media row, sleep chips, two strip toggles, up to 6 matches, three small shortcut buttons; slides in from the right and slides out before the window is removed.
+
 ## 1.4.1
 - Home redirect fix: declare a `<queries>` entry for `MAIN`/`HOME` so the stock launcher is visible under Android 11+ package visibility (it resolved to null before); fall back to the highest-priority home activity if resolution is empty; log Home key presses under `LiteDroidRemote`.
 

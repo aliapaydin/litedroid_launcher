@@ -1,5 +1,9 @@
 package dev.litedroid.launcher.overlay
 
+import dev.litedroid.launcher.tx
+import dev.litedroid.launcher.media.LiveMediaHub
+import androidx.compose.runtime.collectAsState
+import android.os.Build
 import android.os.SystemClock
 import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
@@ -61,6 +65,20 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     /** Kendi gönderdiğimiz Geri olaylarını yeniden yakalamamak için. */
     private var passThroughUntil = 0L
 
+    // Menü açılış/kapanış animasyonu
+    private val menuVisible = androidx.compose.runtime.mutableStateOf(false)
+
+    // Uyku zamanlayıcısı
+    private var noticeView: ComposeView? = null
+    private val notice = androidx.compose.runtime.mutableStateOf<SleepNotice?>(null)
+    private val announced = HashSet<Int>()
+    private var countingDown = false
+    private var swallowUpAfterCancel = false
+    private val hideNotice = Runnable { notice.value = null }
+    private val sleepTick = object : Runnable {
+        override fun run() = tickSleep()
+    }
+
     // Home yönlendirme durumu
     private var foreignHome: String? = null
     private var foreignHomeCheckedAt = 0L
@@ -87,6 +105,122 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         super.onServiceConnected()
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         Log.i(TAG, "remote shortcut connected, default home: ${defaultHome(force = true)}")
+        SleepTimer.onChange = { fromUser -> handler.post { onSleepChanged(fromUser) } }
+        SleepTimer.load(this)
+        onSleepChanged(fromUser = false)
+    }
+
+    // ------------------------------------------------------------------
+    // Uyku zamanlayıcısı
+    // ------------------------------------------------------------------
+
+    private fun onSleepChanged(fromUser: Boolean) {
+        handler.removeCallbacks(sleepTick)
+        countingDown = false
+        announced.clear()
+        val remaining = SleepTimer.remainingMs()
+        val end = SleepTimer.endAt.value
+        if (remaining == null || end == null) {
+            if (fromUser) showNotice(SleepNotice(tx("Uyku zamanlayıcısı kapalı", "Sleep timer off"), tx("TV açık kalacak.", "The TV will stay on.")))
+            else notice.value = null
+            return
+        }
+        // Zaten geçilmiş eşikler için uyarı gösterme
+        WARN_MINUTES.forEach { if (remaining <= it * 60_000L) announced += it }
+        if (fromUser) {
+            showNotice(
+                SleepNotice(
+                    tx("Uyku zamanlayıcısı kuruldu", "Sleep timer set"),
+                    tx("TV ${SleepTimer.formatRemaining(remaining)} sonra kapanacak (saat ${SleepTimer.clock(end)}).",
+                        "The TV turns off in ${SleepTimer.formatRemaining(remaining)} (at ${SleepTimer.clock(end)})."),
+                )
+            )
+        }
+        handler.post(sleepTick)
+    }
+
+    private fun tickSleep() {
+        val remaining = SleepTimer.remainingMs() ?: return
+        val end = SleepTimer.endAt.value ?: return
+        if (remaining <= 0) {
+            goToSleep()
+            return
+        }
+        if (remaining <= 10_000) {
+            countingDown = true
+            ensureNoticeWindow()
+            val sec = ((remaining + 999) / 1000).toInt().coerceIn(1, 10)
+            handler.removeCallbacks(hideNotice)
+            val cur = notice.value
+            if (cur?.countdown != sec) {
+                notice.value = SleepNotice(
+                    tx("TV kapanıyor", "The TV is turning off"),
+                    tx("İptal etmek için kumandada herhangi bir tuşa bas.", "Press any key on the remote to cancel."),
+                    countdown = sec,
+                    id = cur?.takeIf { it.countdown != null }?.id ?: System.nanoTime(),
+                )
+            }
+        } else {
+            WARN_MINUTES.firstOrNull { it !in announced && remaining <= it * 60_000L }?.let { min ->
+                announced += min
+                showNotice(
+                    SleepNotice(
+                        tx("TV $min dakika sonra kapanacak", "The TV turns off in $min minutes"),
+                        tx("Kapanış saati ${SleepTimer.clock(end)}. Menüden süreyi değiştirebilirsin.",
+                            "Off at ${SleepTimer.clock(end)}. Change it from the menu."),
+                    )
+                )
+            }
+        }
+        handler.postDelayed(sleepTick, if (remaining <= 11_000) 200L else 1_000L)
+    }
+
+    private fun goToSleep() {
+        Log.i(TAG, "sleep timer finished, going to sleep")
+        countingDown = false
+        SleepTimer.finished(this)
+        notice.value = null
+        closeMenu(animated = false)
+        // Çalan bir şey varsa önce duraklat (uyanınca kaldığı yerden devam etsin)
+        runCatching { if (LiveMediaHub.current.value?.playing == true) LiveMediaHub.playPause() }
+        handler.postDelayed({
+            val ok = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+            Log.i(TAG, "lock screen action: $ok")
+        }, 400)
+    }
+
+    private fun cancelCountdown() {
+        countingDown = false
+        SleepTimer.cancel(this) // onChange → "kapalı" bildirimi gösterir
+    }
+
+    private fun showNotice(n: SleepNotice) {
+        ensureNoticeWindow()
+        handler.removeCallbacks(hideNotice)
+        notice.value = n
+        handler.postDelayed(hideNotice, NOTICE_MS)
+    }
+
+    /** Sağ alttaki bildirim penceresi: odak ve dokunma almaz, ilk bildirimde bir kez eklenir. */
+    private fun ensureNoticeWindow() {
+        if (noticeView != null) return
+        val wm = getSystemService(WindowManager::class.java) ?: return
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT,
+        ).apply { gravity = Gravity.END or Gravity.BOTTOM }
+        val view = ComposeView(this).apply {
+            setViewTreeLifecycleOwner(this@RemoteKeyService)
+            setViewTreeSavedStateRegistryOwner(this@RemoteKeyService)
+            setContent { LiteDroidTheme { SleepNoticeView(notice.value) } }
+        }
+        runCatching { wm.addView(view, params) }
+            .onSuccess { noticeView = view }
+            .onFailure { Log.w(TAG, "notice addView failed: ${it.message}") }
     }
 
     /**
@@ -146,6 +280,16 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        // Son 10 saniye: herhangi bir tuş kapanmayı iptal eder (tuş uygulamaya gitmez)
+        if (countingDown && event.action == KeyEvent.ACTION_DOWN) {
+            cancelCountdown()
+            swallowUpAfterCancel = true
+            return true
+        }
+        if (swallowUpAfterCancel && event.action == KeyEvent.ACTION_UP) {
+            swallowUpAfterCancel = false
+            return true
+        }
         // Home: varsayılan ana ekran başkasıysa tuşu yut, LiteDroid'i aç
         if (event.keyCode == KeyEvent.KEYCODE_HOME && event.action == KeyEvent.ACTION_DOWN) {
             Log.i(TAG, "home key seen, default home: ${defaultHome()}")
@@ -210,29 +354,39 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     private fun openMenu() {
         if (menuView != null) return
+        // Kapanma animasyonu sürüyorsa eski pencereyi hemen kaldır
+        handler.removeCallbacks(removeMenuRunnable)
+        removeMenuRunnable.run()
         val wm = getSystemService(WindowManager::class.java) ?: return
         val settings = SettingsRepository(this).load()
         I18n.lang = settings.language
-        ScoresHub.leagues = settings.scoreLeagues
+        ScoresHub.configure(settings)
         ScoresHub.acquire(this, "menu")
         ScoreOverlay.menuOpen.value = true
         val density = resources.displayMetrics.density
         val params = WindowManager.LayoutParams(
-            (460 * density).toInt(),
+            (370 * density).toInt(),
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_DIM_BEHIND,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.END or Gravity.TOP
-            dimAmount = 0.35f
+            dimAmount = 0.25f
         }
+        menuVisible.value = false
         val view = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@RemoteKeyService)
             setViewTreeSavedStateRegistryOwner(this@RemoteKeyService)
             setContent {
                 LiteDroidTheme {
                     FloatingMenu(
+                        visible = menuVisible.value,
+                        sleepEnd = SleepTimer.endAt.collectAsState().value,
+                        onSleep = { minutes ->
+                            if (minutes == null) SleepTimer.cancel(this@RemoteKeyService)
+                            else SleepTimer.startIn(this@RemoteKeyService, minutes)
+                        },
                         onClose = { closeMenu() },
                         onHome = {
                             closeMenu()
@@ -255,7 +409,11 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
             }
         }
         runCatching { wm.addView(view, params) }
-            .onSuccess { menuView = view }
+            .onSuccess {
+                menuView = view
+                // Pencere eklendikten sonra görünür yap: sağdan kayarak girsin
+                handler.post { menuVisible.value = true }
+            }
             .onFailure {
                 Log.w(TAG, "menu addView failed: ${it.message}")
                 ScoresHub.release("menu")
@@ -263,12 +421,24 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
             }
     }
 
-    private fun closeMenu() {
+    private var closingView: ComposeView? = null
+    private val removeMenuRunnable = Runnable {
+        val v = closingView ?: return@Runnable
+        closingView = null
+        runCatching { getSystemService(WindowManager::class.java)?.removeView(v) }
+    }
+
+    /** Menü sağa kayarak çıkar, animasyon bitince pencere kaldırılır. */
+    private fun closeMenu(animated: Boolean = true) {
         val v = menuView ?: return
         menuView = null
-        runCatching { getSystemService(WindowManager::class.java)?.removeView(v) }
+        menuVisible.value = false
         ScoresHub.release("menu")
         ScoreOverlay.menuOpen.value = false
+        handler.removeCallbacks(removeMenuRunnable)
+        closingView?.let { old -> runCatching { getSystemService(WindowManager::class.java)?.removeView(old) } }
+        closingView = v
+        if (animated) handler.postDelayed(removeMenuRunnable, MENU_EXIT_MS) else removeMenuRunnable.run()
     }
 
     override fun onInterrupt() {
@@ -280,7 +450,11 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     }
 
     override fun onDestroy() {
-        closeMenu()
+        closeMenu(animated = false)
+        handler.removeCallbacks(sleepTick)
+        SleepTimer.onChange = null
+        noticeView?.let { v -> runCatching { getSystemService(WindowManager::class.java)?.removeView(v) } }
+        noticeView = null
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         super.onDestroy()
     }
@@ -289,6 +463,10 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         private const val TAG = "LiteDroidRemote"
         /** İki basış arasındaki en uzun süre. Tek Geri de bu kadar gecikmeyle uygulamaya gider. */
         private const val DOUBLE_TAP_MS = 320L
+        private const val MENU_EXIT_MS = 260L
+        private const val NOTICE_MS = 5_000L
+        /** Kapanmaya bu kadar dakika kala sağ altta uyarı. */
+        private val WARN_MINUTES = listOf(45, 30, 15, 5)
 
         const val ADB_ENABLE =
             "adb shell settings put secure enabled_accessibility_services dev.litedroid.launcher/dev.litedroid.launcher.overlay.RemoteKeyService\n" +
