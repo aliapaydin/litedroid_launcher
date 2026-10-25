@@ -302,6 +302,8 @@ adb shell am start -n dev.litedroid.launcher/.MainActivity --es gemini_key "ANAH
 
 Sonra **Ayarlar → Claude'a sor → Yapay zekâ**'dan hangisini kullanacağını seç.
 
+**Masal Makinesi** ve **Gemini sesi** (cevapların doğal bir sesle okunması) Gemini anahtarıyla çalışır. Claude kullansan bile Gemini anahtarını da girersen ikisi de açılır. Sesi denemek için: **Ayarlar → Claude'a sor → Sesi dene**.
+
 > 🔒 Anahtarını kimseyle paylaşma, ekran görüntülerinde görünmesine dikkat et. Göründüyse konsoldan silip yenisini oluştur.
 
 ---

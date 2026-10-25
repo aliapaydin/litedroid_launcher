@@ -64,6 +64,30 @@ enum class GeminiModel(val id: String, private val tr: String, private val en: S
     val label: String get() = tx(tr, en)
 }
 
+/** Cevapları ve masalları kim seslendirsin. */
+enum class VoiceEngine(private val tr: String, private val en: String) {
+    GEMINI("Gemini sesi", "Gemini voice"),
+    DEVICE("Cihaz sesi", "Device voice");
+
+    val label: String get() = tx(tr, en)
+}
+
+/** Gemini'nin hazır seslerinden seçilenler (anlatıcı ve cevaplar için). */
+enum class GeminiVoice(val id: String, private val tr: String, private val en: String) {
+    SULAFAT("Sulafat", "sıcak", "warm"),
+    ACHERNAR("Achernar", "yumuşak", "soft"),
+    VINDEMIATRIX("Vindemiatrix", "nazik", "gentle"),
+    AOEDE("Aoede", "ferah", "breezy"),
+    ACHIRD("Achird", "samimi", "friendly"),
+    GACRUX("Gacrux", "olgun", "mature"),
+    CHARON("Charon", "anlatıcı", "informative"),
+    KORE("Kore", "kararlı", "firm"),
+    PUCK("Puck", "neşeli", "upbeat"),
+    LEDA("Leda", "genç", "youthful");
+
+    val label: String get() = "$id · " + tx(tr, en)
+}
+
 /** LiteDroid'in kullanıcı tarafından değiştirilebilen tüm ayarları. */
 data class LauncherSettings(
     val language: AppLanguage = AppLanguage.TR,
@@ -112,6 +136,9 @@ data class LauncherSettings(
     /** Gemini: kullanıcının kendi Google AI Studio API anahtarı. */
     val geminiKey: String = "",
     val geminiModel: GeminiModel = GeminiModel.FLASH,
+    /** Gemini anahtarı varsa cevaplar ve masallar Gemini sesiyle okunur. */
+    val voiceEngine: VoiceEngine = VoiceEngine.GEMINI,
+    val geminiVoice: GeminiVoice = GeminiVoice.SULAFAT,
     val updateMode: UpdateMode = UpdateMode.AUTO,
 ) {
     companion object {
@@ -167,6 +194,8 @@ class SettingsRepository(context: Context) {
         aiProvider = enumOr(prefs.getString(K_AI_PROVIDER, null), AiProvider.CLAUDE),
         geminiKey = prefs.getString(K_GEMINI_KEY, "").orEmpty(),
         geminiModel = enumOr(prefs.getString(K_GEMINI_MODEL, null), GeminiModel.FLASH),
+        voiceEngine = enumOr(prefs.getString(K_VOICE_ENGINE, null), VoiceEngine.GEMINI),
+        geminiVoice = enumOr(prefs.getString(K_GEMINI_VOICE, null), GeminiVoice.SULAFAT),
         updateMode = enumOr(prefs.getString(K_UPDATE_MODE, null), UpdateMode.AUTO),
     )
 
@@ -203,6 +232,8 @@ class SettingsRepository(context: Context) {
             .putString(K_AI_PROVIDER, s.aiProvider.name)
             .putString(K_GEMINI_KEY, s.geminiKey)
             .putString(K_GEMINI_MODEL, s.geminiModel.name)
+            .putString(K_VOICE_ENGINE, s.voiceEngine.name)
+            .putString(K_GEMINI_VOICE, s.geminiVoice.name)
             .putString(K_UPDATE_MODE, s.updateMode.name)
             .apply()
     }
@@ -244,6 +275,8 @@ class SettingsRepository(context: Context) {
         const val K_AI_PROVIDER = "ai_provider"
         const val K_GEMINI_KEY = "gemini_key"
         const val K_GEMINI_MODEL = "gemini_model"
+        const val K_VOICE_ENGINE = "voice_engine"
+        const val K_GEMINI_VOICE = "gemini_voice"
         const val K_UPDATE_MODE = "update_mode"
     }
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0
+- **Story Machine** (`story/`): pick hero, place, theme, length, narrator, picture density, music and "turn the TV off at the end". Gemini writes the whole interactive story as JSON in one call (intro pages, a choice, two branches, up to 3 characters with their own Gemini voices and speaking styles, an English image prompt and a mood per page).
+- Pages are illustrated (16:9) and narrated one page ahead while the current one plays; multi-speaker narration (narrator + one character per request, groups joined). Ken Burns zoom, crossfades, a procedurally generated lullaby (`Lullaby.kt`, AudioTrack, mood-driven chords and bells, ducked under narration), title card, choice screen, end screen with optional sleep timer.
+- Everything is stored in `filesDir/stories/<id>` (JSON, JPEG, WAV); the library replays without any API calls. Newest 15 kept.
+- `data/GeminiMedia.kt`: TTS and image generation with the user's Gemini key. Tries the Interactions API and the legacy `generateContent` across several model IDs, remembers the first route that works, converts WAV/L16, maps auth/quota errors. `PcmPlayer` plays PCM with pause/stop.
+- Ask Claude/Gemini answers can be voiced with Gemini TTS (`Speaker` cloud pipeline: chunks synthesized one ahead, device TTS fallback per chunk). New settings: Voice engine, Narrator voice (10 voices, default Sulafat), Try the voice.
+
 ## 1.9.3
 - Update screens fit a 540 dp-tall TV screen: the release-notes area takes the leftover height (`weight(fill = false)` + scroll) so the buttons on the "Updated" screen, the prompt and the update window never slip off the bottom edge.
 - Illustrated Turkish setup and update guide: `docs/KURULUM.md` with images in `docs/kurulum/`.
