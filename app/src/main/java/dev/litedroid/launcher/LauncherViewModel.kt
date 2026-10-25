@@ -1,5 +1,9 @@
 package dev.litedroid.launcher
 
+import dev.litedroid.launcher.data.UpdateMode
+import dev.litedroid.launcher.data.AppRelease
+import dev.litedroid.launcher.data.UpdateState
+import dev.litedroid.launcher.data.Updater
 import androidx.compose.runtime.mutableFloatStateOf
 import dev.litedroid.launcher.data.AiProvider
 import dev.litedroid.launcher.data.GeminiClient
@@ -189,6 +193,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
         ScoresHub.configure(settings)
         ScoreOverlay.sync(app, settings)
+        startUpdateChecks()
+        detectFreshUpdate()
     }
 
     override fun onCleared() {
@@ -603,6 +609,72 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             publishRecent()
         }
+    }
+
+    // ---------------- Güncellemeler ----------------
+
+    /** Güncelleme kurulduktan sonraki ilk açılışta "yenilikler" bir kez gösterilsin. */
+    var showWhatsNew by mutableStateOf(false)
+        private set
+
+    fun whatsNewShown() {
+        showWhatsNew = false
+    }
+
+    private fun detectFreshUpdate() {
+        val prefs = app.getSharedPreferences("litedroid_update", android.content.Context.MODE_PRIVATE)
+        val current = Updater.currentVersion(app)
+        val last = prefs.getString("last_run_version", null)
+        if (last != null && last != current && Updater.isNewer(current, last)) showWhatsNew = true
+        prefs.edit().putString("last_run_version", current).apply()
+    }
+
+    /**
+     * Açılıştan kısa süre sonra ve yarım saatte bir GitHub'daki son sürüme bakar. Otomatik moddaysa
+     * TV boşta iken (ekran koruyucu açıkken) indirip kurar; kullanıcı izlerken araya girmez.
+     */
+    private fun startUpdateChecks() {
+        viewModelScope.launch {
+            delay(20_000)
+            while (true) {
+                if (settings.updateMode != UpdateMode.OFF) {
+                    val found = Updater.check(app)
+                    if (found != null && settings.updateMode == UpdateMode.NOTIFY && notifiedVersion != found.version) {
+                        notifiedVersion = found.version
+                        android.widget.Toast.makeText(
+                            app,
+                            tx("LiteDroid ${found.version} hazır: çan menüsünden yenilikleri gör", "LiteDroid ${found.version} is ready: see what's new in the bell menu"),
+                            android.widget.Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+                delay(30 * 60_000L)
+            }
+        }
+        viewModelScope.launch {
+            while (true) {
+                delay(60_000)
+                val s = Updater.state.value
+                val idle = screensaverActive || ScoreOverlay.dreaming.value
+                if (settings.updateMode == UpdateMode.AUTO && s is UpdateState.Available && idle && Updater.canInstall(app)) {
+                    Updater.downloadAndInstall(app, s.release, byUser = false)
+                }
+            }
+        }
+    }
+
+    private var notifiedVersion: String? = null
+
+    /** Kurulu sürüm (ör. "1.8.0"). */
+    val appVersion: String get() = Updater.currentVersion(app)
+
+    /** Ayarlardan "Şimdi denetle". */
+    fun checkForUpdateNow(onDone: (AppRelease?) -> Unit) {
+        viewModelScope.launch { onDone(Updater.check(app, quiet = false)) }
+    }
+
+    fun installUpdate(release: AppRelease) {
+        viewModelScope.launch { Updater.downloadAndInstall(app, release, byUser = true) }
     }
 
     // ---------------- Çan: izlemeye devam et ----------------

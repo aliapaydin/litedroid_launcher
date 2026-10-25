@@ -1,5 +1,8 @@
 package dev.litedroid.launcher.ui
 
+import androidx.compose.runtime.collectAsState
+import dev.litedroid.launcher.data.UpdateState
+import dev.litedroid.launcher.data.Updater
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
@@ -272,7 +275,7 @@ fun ModernHome(
                 enabled = enabled,
                 userName = settings.userName,
                 showGreeting = settings.showGreeting,
-                notificationCount = vm.unseenContinue,
+                notificationCount = vm.unseenContinue + (if (Updater.state.collectAsState().value.let { it is UpdateState.Available || it is UpdateState.NeedsConfirm }) 1 else 0),
                 onTab = { tab = it },
                 onSearch = onSearch,
                 onNotifications = onNotifications,

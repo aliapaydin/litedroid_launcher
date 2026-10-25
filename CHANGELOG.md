@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0
+- **Self-update** (`data/Updater.kt`): checks `api.github.com/repos/aliapaydin/litedroid_launcher/releases/latest` 20 s after start and every 30 min, compares the tag with the installed `versionName`, downloads the `.apk` asset into the cache and installs it with a `PackageInstaller` session (`USER_ACTION_NOT_REQUIRED` on Android 12+, so once LiteDroid is the installer of record, later updates need no confirmation).
+- Bell badge and "Update available" item, an update window with notes, progress, retry and confirm, and Settings → More: Check for updates and Update mode (Automatic / Notify only / Off). Automatic installs only while the screensaver is on. Signature mismatches get a clear message.
+- After an update `MY_PACKAGE_REPLACED` reopens LiteDroid and the release notes open once.
+- `tools/release.sh`: builds, takes the Turkish notes from `Changelog.kt` (`tools/release_notes.py`) and publishes a GitHub release with the APK via `gh`.
+
 ## 1.7.1
 - Gemini keys: hints mention the new `AQ.` format (the client never checked the prefix); a readable message for `ACCESS_TOKEN_TYPE_UNSUPPORTED`.
 - README: new hero and screenshots (Gemini, listening panel, floating menu, sleep timer, team picker, usage report, release notes, Quiz Night on TV and phones).

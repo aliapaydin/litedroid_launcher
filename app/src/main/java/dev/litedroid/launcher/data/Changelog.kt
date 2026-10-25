@@ -10,6 +10,21 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.8.0",
+                tx("Kendi kendine güncelleme", "Self-update"),
+                listOf(
+                    tx("LiteDroid yarım saatte bir yeni sürüm var mı diye bakar; varsa çan menüsünde \"Güncelleme var\" görünür.",
+                        "LiteDroid checks for a new version every half hour; when there is one, \"Update available\" shows in the bell menu."),
+                    tx("Güncelleme penceresinde yenilikler, indirme ilerlemesi ve \"Şimdi güncelle\" düğmesi var.",
+                        "The update window shows what's new, download progress and an Update now button."),
+                    tx("Otomatik modda yeni sürüm TV boştayken (ekran koruyucu açıkken) indirilip kurulur, izlerken araya girmez. İlk güncellemede Android bir kez onay ister.",
+                        "In automatic mode the new version installs while the TV is idle (screensaver on), never while you watch. Android asks once on the first update."),
+                    tx("Güncellemeden sonra LiteDroid kendiliğinden açılır ve yenilikleri gösterir.", "After an update LiteDroid reopens by itself and shows what's new."),
+                    tx("Ayarlar → Diğer: Güncellemeleri denetle ve güncelleme modu (Otomatik kur / Sadece haber ver / Kapalı).",
+                        "Settings → More: Check for updates and the update mode (Automatic / Notify only / Off)."),
+                ),
+            ),
+            Release(
                 "1.7.1",
                 tx("Gemini anahtarları ve yeni ekran görüntüleri", "Gemini keys and new screenshots"),
                 listOf(

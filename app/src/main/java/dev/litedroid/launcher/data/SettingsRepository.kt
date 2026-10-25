@@ -41,6 +41,15 @@ enum class ClaudeModel(val id: String, private val tr: String, private val en: S
     val label: String get() = tx(tr, en)
 }
 
+/** Güncellemeler: kendiliğinden kur, sadece haber ver ya da hiç bakma. */
+enum class UpdateMode(private val tr: String, private val en: String) {
+    AUTO("Otomatik kur", "Install automatically"),
+    NOTIFY("Sadece haber ver", "Notify only"),
+    OFF("Kapalı", "Off");
+
+    val label: String get() = tx(tr, en)
+}
+
 /** Soruları cevaplayan yapay zekâ. */
 enum class AiProvider(val label: String) {
     CLAUDE("Claude"),
@@ -103,6 +112,7 @@ data class LauncherSettings(
     /** Gemini: kullanıcının kendi Google AI Studio API anahtarı. */
     val geminiKey: String = "",
     val geminiModel: GeminiModel = GeminiModel.FLASH,
+    val updateMode: UpdateMode = UpdateMode.AUTO,
 ) {
     companion object {
         val SAVER_OPTIONS = listOf(0, 1, 2, 5, 10, 15, 30)
@@ -157,6 +167,7 @@ class SettingsRepository(context: Context) {
         aiProvider = enumOr(prefs.getString(K_AI_PROVIDER, null), AiProvider.CLAUDE),
         geminiKey = prefs.getString(K_GEMINI_KEY, "").orEmpty(),
         geminiModel = enumOr(prefs.getString(K_GEMINI_MODEL, null), GeminiModel.FLASH),
+        updateMode = enumOr(prefs.getString(K_UPDATE_MODE, null), UpdateMode.AUTO),
     )
 
     fun save(s: LauncherSettings) {
@@ -192,6 +203,7 @@ class SettingsRepository(context: Context) {
             .putString(K_AI_PROVIDER, s.aiProvider.name)
             .putString(K_GEMINI_KEY, s.geminiKey)
             .putString(K_GEMINI_MODEL, s.geminiModel.name)
+            .putString(K_UPDATE_MODE, s.updateMode.name)
             .apply()
     }
 
@@ -232,5 +244,6 @@ class SettingsRepository(context: Context) {
         const val K_AI_PROVIDER = "ai_provider"
         const val K_GEMINI_KEY = "gemini_key"
         const val K_GEMINI_MODEL = "gemini_model"
+        const val K_UPDATE_MODE = "update_mode"
     }
 }
