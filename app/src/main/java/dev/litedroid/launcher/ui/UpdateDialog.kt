@@ -6,6 +6,8 @@ import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -101,6 +103,7 @@ fun UpdateDialog(
 
     Column(
         modifier
+            .padding(vertical = 20.dp)
             .width(820.dp)
             .glass(RoundedCornerShape(30.dp), strong = true)
             .padding(28.dp),
@@ -133,7 +136,7 @@ fun UpdateDialog(
         )
         Spacer(Modifier.height(14.dp))
         if (release != null) {
-            Column(Modifier.heightIn(max = 260.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 release.notes.take(8).forEach { n ->
                     Row {
                         Box(Modifier.padding(top = 7.dp).size(6.dp).clip(CircleShape).background(Color(0xFF8E7BFF)))
