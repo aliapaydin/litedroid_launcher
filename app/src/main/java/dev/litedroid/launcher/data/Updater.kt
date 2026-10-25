@@ -68,9 +68,16 @@ object Updater {
         val busy = _state.value
         if (busy is UpdateState.Downloading || busy is UpdateState.Installing) return@withContext null
         if (!quiet) _state.value = UpdateState.Checking
-        val release = runCatching { fetchLatest() }.onFailure { Log.w(TAG, "check failed: ${it.message}") }.getOrNull()
+        // Ağ hatası: exception; yayınlanmış sürüm yok (404) ya da APK yok: null
+        val result = runCatching { fetchLatest() }.onFailure { Log.w(TAG, "check failed: ${it.message}") }
+        val release = result.getOrNull()
         val current = currentVersion(context)
         when {
+            result.isSuccess && release == null -> {
+                Log.i(TAG, "no published release yet")
+                _state.value = if (quiet) UpdateState.Idle else UpdateState.UpToDate
+                null
+            }
             release == null -> {
                 if (!quiet) _state.value = UpdateState.Failed("Sürüm bilgisi alınamadı. İnternet bağlantısını kontrol et.", null)
                 else if (_state.value == UpdateState.Checking) _state.value = UpdateState.Idle
