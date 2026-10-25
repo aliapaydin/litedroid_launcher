@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+- Gemini keys: hints mention the new `AQ.` format (the client never checked the prefix); a readable message for `ACCESS_TOKEN_TYPE_UNSUPPORTED`.
+- README: new hero and screenshots (Gemini, listening panel, floating menu, sleep timer, team picker, usage report, release notes, Quiz Night on TV and phones).
+
 ## 1.7.0
 - **In-app voice input** (`data/VoiceListener.kt`): `SpeechRecognizer` with partial results instead of the system voice screen. A panel shows "Getting the mic ready…" → "Speak now" (on `onReadyForSpeech`) with a level meter and the live transcript; longer silence thresholds so pauses don't cut the sentence; the last partial is used if the final result is empty. Falls back to the system screen without permission or a recognition service. Needs `RECORD_AUDIO` (asked once).
 - Asking again stops the current answer and speech immediately; Back while listening cancels listening only.
