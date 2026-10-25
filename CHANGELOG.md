@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.1
+- Update check: a 404 from `releases/latest` (nothing published yet) counts as up to date instead of a connection error.
+
 ## 1.8.0
 - **Self-update** (`data/Updater.kt`): checks `api.github.com/repos/aliapaydin/litedroid_launcher/releases/latest` 20 s after start and every 30 min, compares the tag with the installed `versionName`, downloads the `.apk` asset into the cache and installs it with a `PackageInstaller` session (`USER_ACTION_NOT_REQUIRED` on Android 12+, so once LiteDroid is the installer of record, later updates need no confirmation).
 - **Automatic** mode: when LiteDroid is in front a prompt offers Update now / in 1 hour / in 3 hours (Back = 1 hour). Updating shows a full-screen progress screen (download → install → restart) that can be minimized to a corner card; the bell menu brings it back.

@@ -10,6 +10,15 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.8.1",
+                tx("Güncelleme denetimi düzeltmesi", "Update check fix"),
+                listOf(
+                    tx("GitHub'da henüz yayınlanmış sürüm yokken \"internet bağlantısını kontrol et\" yerine \"LiteDroid güncel\" görünür.",
+                        "When no release is published yet, \"LiteDroid is up to date\" appears instead of a connection error."),
+                    tx("Bu sürüm, kendi kendine güncelleme sisteminin ilk denemesi.", "This version is the first test of the self-update system."),
+                ),
+            ),
+            Release(
                 "1.8.0",
                 tx("Kendi kendine güncelleme", "Self-update"),
                 listOf(
