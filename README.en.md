@@ -4,11 +4,11 @@
 
 <p align="center">
   <b>A fast, glass-styled home screen for Android TV & Google TV.</b><br>
-  Ask Claude by voice · live football scores · continue watching across apps · two layouts · six built-in games · a cinematic screensaver · no ads, no root.
+  Ask Claude by voice · live football scores · continue watching across apps · two layouts · seven built-in games · a cinematic screensaver · no ads, no root.
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.8.2-ff5c8a?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.9.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -67,7 +67,7 @@ LiteDroid started as a weekend question — *"can my Chromecast with Google TV f
 - Selecting a card opens YouTube at the **exact second**; apps without an exact content link are **launched fresh**, so you never land on a stale half-closed screen.
 - Finished content drops off by itself. The bell menu doubles as a *Continue watching* list.
 
-### Six built-in games, made for the remote
+### Seven built-in games, made for the remote
 | | |
 |---|---|
 | 🐍 **Snake** | speeds up as you grow, best score saved |
@@ -75,6 +75,7 @@ LiteDroid started as a weekend question — *"can my Chromecast with Google TV f
 | 🏎️ **Mini Racer** | three lanes, rising speed, smooth 60 fps loop |
 | 🔤 **SOS** | 6×6 board against a CPU that hunts for SOS lines and avoids setting you up |
 | ❌ **Tic-Tac-Toe** | minimax opponent with a touch of randomness, so it can be beaten |
+| 💣 **Minesweeper** | Easy, Medium and Hard; OK opens, hold OK to flag, the first square is always safe |
 | 🔢 **Sudoku** | six puzzles (easy & medium), each verified to have a unique solution; number keys supported |
 
 Installed games from Google Play get their own row underneath.

@@ -62,7 +62,8 @@ enum class BuiltInGame(
     RACER("Mini Yarış", "Mini Racer", "Şerit değiştir, araçlara çarpma", "Switch lanes, dodge the traffic", Color(0xFFFF5C6E), Color(0xFF8E1430)),
     SOS("SOS", "SOS", "S-O-S diz, puanı kap", "Line up S-O-S to score", Color(0xFF4D9BFF), Color(0xFF16408F)),
     TICTACTOE("XOX", "Tic-Tac-Toe", "Üçünü yan yana getir", "Get three in a row", Color(0xFFB06BFF), Color(0xFF4A1D9E)),
-    SUDOKU("Sudoku", "Sudoku", "Her satır, sütun ve kutuda 1-9", "1-9 in every row, column and box", Color(0xFF2ED3C8), Color(0xFF0C5E66));
+    SUDOKU("Sudoku", "Sudoku", "Her satır, sütun ve kutuda 1-9", "1-9 in every row, column and box", Color(0xFF2ED3C8), Color(0xFF0C5E66)),
+    MINES("Mayın Tarlası", "Minesweeper", "Mayınlara basmadan tarlayı temizle", "Clear the field without hitting a mine", Color(0xFFFF8A3D), Color(0xFF8A2E12));
 
     val title: String get() = tx(tr, en)
     val description: String get() = tx(trDesc, enDesc)
@@ -74,6 +75,7 @@ enum class BuiltInGame(
             SOS -> tx("Yön tuşları: gez · Orta tuş: S ya da O koy", "Arrows: move · Center: place S or O")
             TICTACTOE -> tx("Yön tuşları: gez · Orta tuş: X koy", "Arrows: move · Center: place X")
             SUDOKU -> tx("Orta tuş ya da rakam tuşları: sayı yaz · Sağ kenar: sonraki bulmaca", "Center or number keys: enter digit · Right edge: next puzzle")
+            MINES -> tx("Yön tuşları: gez · Tamam: aç · Basılı tut: bayrak", "Arrows: move · OK: open · Hold: flag")
             QUIZ -> tx("Telefonlarla QR kodu okut · Tamam: devam", "Scan the QR code with phones · OK: continue")
         }
 }
@@ -248,6 +250,16 @@ fun GameGlyph(game: BuiltInGame, size: Dp, color: Color = Color.White) {
                 drawLine(color, Offset(s * 5f, s * 4.6f), Offset(s * 5f, s * 5.1f), s * 0.8f, cap = StrokeCap.Round)
                 drawCircle(color, s * 0.45f, Offset(s * 5f, s * 6f))
             }
+            BuiltInGame.MINES -> {
+                // Mayın: daire, dikenler ve parıltı
+                val c = Offset(s * 5f, s * 5.2f)
+                for (a in 0 until 8) {
+                    val ang = a * Math.PI / 4
+                    drawLine(color, c, Offset(c.x + (kotlin.math.cos(ang) * s * 3.6f).toFloat(), c.y + (kotlin.math.sin(ang) * s * 3.6f).toFloat()), s * 0.8f, cap = StrokeCap.Round)
+                }
+                drawCircle(color, s * 2.6f, c)
+                drawCircle(Color.Black.copy(alpha = 0.35f), s * 0.8f, Offset(c.x - s * 0.9f, c.y - s * 0.9f))
+            }
             BuiltInGame.SUDOKU -> {
                 drawRoundRect(color, Offset(s, s), Size(s * 8f, s * 8f), CornerRadius(s), style = Stroke(s * 0.8f))
                 for (i in 1..2) {
@@ -322,6 +334,7 @@ fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier) {
                     BuiltInGame.SOS -> SosGame(game)
                     BuiltInGame.TICTACTOE -> TicTacToeGame(game)
                     BuiltInGame.SUDOKU -> SudokuGame(game)
+                    BuiltInGame.MINES -> MinesweeperGame(game)
                     BuiltInGame.QUIZ -> Unit
                 }
             }
