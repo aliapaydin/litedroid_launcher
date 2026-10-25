@@ -961,8 +961,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                             "Your key from console.anthropic.com → API Keys (sk-ant-api03-…). Typing with the remote is tedious, you can send it from a computer: $CMD_KEY",
                         )
                         TextTarget.GEMINI_KEY -> tx(
-                            "aistudio.google.com → Get API key'den aldığın anahtar (AIza…). Bilgisayardan da gönderebilirsin: $CMD_GEMINI_KEY",
-                            "Your key from aistudio.google.com → Get API key (AIza…). You can also send it from a computer: $CMD_GEMINI_KEY",
+                            "aistudio.google.com → Get API key'den aldığın anahtar (AQ.… ya da AIza… ile başlar). Bilgisayardan da gönderebilirsin: $CMD_GEMINI_KEY",
+                            "Your key from aistudio.google.com → Get API key (starts with AQ.… or AIza…). You can also send it from a computer: $CMD_GEMINI_KEY",
                         )
                         TextTarget.CLAUDE_QUESTION -> tx("Sorunu yaz, ${settings.aiProvider.label} cevaplasın", "Type your question for ${settings.aiProvider.label}")
                     },

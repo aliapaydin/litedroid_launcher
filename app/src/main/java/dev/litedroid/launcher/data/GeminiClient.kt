@@ -57,7 +57,12 @@ object GeminiClient {
             if (code !in 200..299) {
                 val err = runCatching { conn.errorStream?.bufferedReader()?.use { it.readText() } }.getOrNull().orEmpty()
                 val e = runCatching { JSONObject(err).getJSONObject("error") }.getOrNull()
-                val msg = e?.optString("message")?.takeIf { it.isNotBlank() } ?: "HTTP $code"
+                val msg = when {
+                    // Bazı hesaplarda yeni "AQ." anahtarlar bu uç noktada reddediliyor
+                    err.contains("ACCESS_TOKEN_TYPE_UNSUPPORTED") ->
+                        "Google bu anahtarı Gemini API için kabul etmedi (ACCESS_TOKEN_TYPE_UNSUPPORTED). AI Studio'da yeni bir anahtar oluşturup tekrar dene."
+                    else -> e?.optString("message")?.takeIf { it.isNotBlank() } ?: "HTTP $code"
+                }
                 val auth = code == 401 || code == 403 || err.contains("API_KEY_INVALID") || err.contains("API key not valid")
                 Log.w(TAG, "HTTP $code $err")
                 emit(ClaudeEvent.Failed(msg, authProblem = auth))

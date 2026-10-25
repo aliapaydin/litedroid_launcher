@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
      * adb shell am start -n dev.litedroid.launcher/.MainActivity --es claude_key "sk-ant-api03-..."
      */
     private fun handleKeyIntent(intent: Intent?): Boolean {
-        // Gemini anahtarı: --es gemini_key "AIza..."
+        // Gemini anahtarı: --es gemini_key "AQ.Ab..." (ya da eski biçim "AIza...")
         intent?.getStringExtra(EXTRA_GEMINI_KEY)?.trim()?.takeIf { it.isNotEmpty() }?.let { gKey ->
             intent.removeExtra(EXTRA_GEMINI_KEY)
             viewModel.updateSettings { it.copy(geminiKey = gKey) }

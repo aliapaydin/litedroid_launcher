@@ -246,9 +246,9 @@ Android TV bu izinleri arayüzünde göstermediği için bir kez adb ile verilir
    İstersen **Ayarlar → Claude'a sor → API anahtarı**'ndan da girebilirsin.
 3. Üst bardaki ✦ düğmesine bas ve sor. İlk seferde mikrofon izni sorulur, **İzin ver** de. İstersen izni komutla da verebilirsin: `adb shell pm grant dev.litedroid.launcher android.permission.RECORD_AUDIO`
 
-**Gemini kullanmak için:** [aistudio.google.com](https://aistudio.google.com) → **Get API key** ile bir anahtar al (`AIza…`). Anahtarı şu komutla gönder, sonra Ayarlar → Claude'a sor → **Yapay zekâ: Gemini** seç:
+**Gemini kullanmak için:** [aistudio.google.com](https://aistudio.google.com) → **Get API key** ile bir anahtar al. Yeni anahtarlar `AQ.` ile, eskiler `AIza` ile başlar, ikisi de çalışır. Anahtarı şu komutla gönder, sonra Ayarlar → Claude'a sor → **Yapay zekâ: Gemini** seç:
 ```bash
-adb shell am start -n dev.litedroid.launcher/.MainActivity --es gemini_key "AIza..."
+adb shell am start -n dev.litedroid.launcher/.MainActivity --es gemini_key "AQ.Ab..."
 ```
 
 > Anahtarını kimseyle paylaşma. Ekran görüntüsünde ya da bir yerde göründüyse konsoldan silip yenisini oluştur.
