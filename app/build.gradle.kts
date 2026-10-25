@@ -12,8 +12,8 @@ android {
         applicationId = "dev.litedroid.launcher"
         minSdk = 26
         targetSdk = 35
-        versionCode = 29
-        versionName = "1.9.1"
+        versionCode = 30
+        versionName = "1.9.2"
     }
 
     buildTypes {

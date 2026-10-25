@@ -685,7 +685,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                     } else {
                         MenuItem(tx("Yeni sürüm: v${r.version} · yenilikleri gör", "New version: v${r.version} · see what's new"), Icons.Filled.Refresh) {
                             notifOpen = false
-                            updateOpen = true
+                            if (s is UpdateState.Available && vm.settings.updateMode == UpdateMode.AUTO) vm.showUpdatePrompt(r) else updateOpen = true
                         }
                     }
                 }) + when {
@@ -903,11 +903,15 @@ private fun HomeContent(vm: LauncherViewModel) {
                         aboutOpen = true
                     },
                     onChangelog = { changelogOpen = true },
-                    onUpdates = { updateOpen = true },
+                    onUpdates = {
+                        val s = Updater.state.value
+                        if (s is UpdateState.Available && settings.updateMode == UpdateMode.AUTO) vm.showUpdatePrompt(s.release) else updateOpen = true
+                    },
                     onCheckUpdates = {
                         toast(tx("Güncelleme denetleniyor…", "Checking for updates…"))
                         vm.checkForUpdateNow { r ->
-                            if (r != null) updateOpen = true
+                            if (r != null && settings.updateMode == UpdateMode.AUTO && Updater.state.value is UpdateState.Available) vm.showUpdatePrompt(r)
+                            else if (r != null) updateOpen = true
                             else if (Updater.state.value is UpdateState.UpToDate) toast(tx("LiteDroid güncel (v${Updater.currentVersion(context)})", "LiteDroid is up to date (v${Updater.currentVersion(context)})"))
                             else updateOpen = true
                         }
@@ -943,7 +947,9 @@ private fun HomeContent(vm: LauncherViewModel) {
                         toast(tx("İzleme geçmişi temizlendi", "Watch history cleared"))
                     },
                 ),
-                enabled = textTarget == null && !changelogOpen && !sleepDialogOpen,
+                // Üstte güncelleme penceresi varken arkadaki ayarlar odak alamaz (kumanda arkaya kaçmasın)
+                enabled = textTarget == null && !changelogOpen && !sleepDialogOpen && !updateOpen &&
+                    vm.updatePrompt == null && vm.updatedTo == null && !(vm.updateFullScreen && (updateState.inProgress || updateState is UpdateState.Failed)),
                 refocusSignal = settingsRefocus,
             )
         }
@@ -1050,6 +1056,7 @@ private fun HomeContent(vm: LauncherViewModel) {
             )
         }
 
+        LaunchedEffect(updateOpen) { vm.updateDialogOpen = updateOpen }
         if (updateOpen) {
             Box(
                 Modifier
@@ -1081,6 +1088,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                     toast(tx("$h saat sonra yeniden sorulacak", "We'll ask again in $h h"))
                 },
                 modifier = Modifier.align(Alignment.Center),
+                permissionHint = vm.installPermissionHint && !Updater.canInstall(context),
             )
         }
         val showProgress = updateState.inProgress || (updateState is UpdateState.Failed && vm.updateFullScreen)
