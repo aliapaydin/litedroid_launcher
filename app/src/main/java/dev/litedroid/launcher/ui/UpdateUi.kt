@@ -117,8 +117,12 @@ fun UpdatePrompt(
             UPill(tx("3 saat sonra", "In 3 hours"), primary = false, onClick = { onSnooze(3) })
         }
         Spacer(Modifier.height(12.dp))
+        val size = if (release.apkSize > 0) "%.1f MB".format(release.apkSize / 1_048_576f) else null
         Text(
-            tx("Güncelleme bir iki dakika sürer, bitince LiteDroid kendiliğinden yeniden açılır.", "It takes a minute or two; LiteDroid restarts by itself when done."),
+            listOfNotNull(
+                size?.let { tx("İndirilecek: $it", "Download: $it") },
+                tx("bir iki dakika sürer, bitince LiteDroid kendiliğinden yeniden açılır", "takes a minute or two, LiteDroid restarts by itself when done"),
+            ).joinToString(" · "),
             color = Color.White.copy(alpha = 0.45f), fontSize = 12.sp,
         )
     }
