@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.4.1-ff5c8a?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.6.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -95,6 +95,15 @@ Installed games from Google Play get their own row underneath.
 
 ### 📊 Usage report
 - **Settings → Content and privacy → Usage report** (needs usage access): screen time for Today / Yesterday / Last 7 days, an app ranking with share, opens, longest session and last use, an hour-of-day chart, a 7-day chart and the busiest hour.
+
+### 🧠 Quiz Night
+- Games → Quiz Night: a Kahoot-style quiz. Phones scan the QR code on the TV (same Wi-Fi, no app), pick a name and avatar and answer with colored buttons. 12 categories, 3 levels, 388 questions (Turkish), countdown, speed scoring, animated leaderboard and a podium.
+
+### 😴 Sleep timer
+- By duration (15–120 min) or at a set time, from Settings, the floating menu or the quick panel. Notices bottom-right at 45/30/15/5 minutes left, a 10-second countdown at the end (any key cancels), then playback stops and the device sleeps (the TV turns off with HDMI-CEC). Needs the remote shortcut service.
+
+### ⚽ Team follow
+- Champions League, Europa League and Conference League join the six leagues. Settings → Live scores → Pick teams narrows each league to the teams you choose.
 
 ### 🎧 Screensaver widgets
 - **Now playing**: artwork, title, artist and a live progress bar for whatever is playing: Spotify, YouTube Music, Apple Music, TIDAL, Qobuz, Deezer, fizy… The same card is in the quick panel and floating menu.

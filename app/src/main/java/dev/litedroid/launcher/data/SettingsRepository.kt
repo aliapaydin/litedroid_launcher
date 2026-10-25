@@ -67,6 +67,11 @@ data class LauncherSettings(
     /** Takip edilen ligler (ESPN kodları). Varsayılan: Türkiye, İtalya, İngiltere, İspanya, Almanya, Fransa. */
     val scoreLeagues: Set<String> = League.entries.map { it.code }.toSet(),
     /** Başka bir uygulama açıkken ekranın köşesinde yüzen skor şeridi. */
+    /**
+     * Lig başına takip edilen takımlar (ESPN takım kimlikleri). Haritada olmayan ligde tüm takımlar takipte;
+     * boş küme o ligden hiçbir maçın gösterilmemesi demek.
+     */
+    val followedTeams: Map<String, Set<String>> = emptyMap(),
     val floatingScores: Boolean = false,
     val floatingOnlyLive: Boolean = true,
     /**
@@ -108,7 +113,21 @@ class SettingsRepository(context: Context) {
         favoritesInitialized = prefs.getBoolean(K_FAV_INIT, false),
         saverNowPlaying = prefs.getBoolean(K_SAVER_NP, true),
         saverScores = prefs.getBoolean(K_SAVER_SCORES, true),
-        scoreLeagues = prefs.getStringSet(K_LEAGUES, null)?.toSet() ?: League.entries.map { it.code }.toSet(),
+        scoreLeagues = run {
+            val all = League.entries.map { it.code }.toSet()
+            val stored = prefs.getStringSet(K_LEAGUES, null)?.toSet() ?: return@run all
+            // Sonradan eklenen ligler (ör. UEFA turnuvaları) eski kurulumlarda varsayılan olarak açık gelsin
+            val known = prefs.getStringSet(K_LEAGUES_KNOWN, null)?.toSet() ?: ORIGINAL_LEAGUES
+            stored + (all - known)
+        },
+        followedTeams = run {
+            val customized = prefs.getStringSet(K_TEAM_LEAGUES, null).orEmpty()
+            val pairs = prefs.getStringSet(K_TEAMS, null).orEmpty().mapNotNull {
+                val i = it.indexOf('|')
+                if (i <= 0) null else it.substring(0, i) to it.substring(i + 1)
+            }
+            customized.associateWith { code -> pairs.filter { it.first == code }.map { it.second }.toSet() }
+        },
         floatingScores = prefs.getBoolean(K_FLOAT, false),
         floatingOnlyLive = prefs.getBoolean(K_FLOAT_LIVE, true),
         homeRedirect = prefs.getBoolean(K_HOME_REDIRECT, true),
@@ -138,6 +157,9 @@ class SettingsRepository(context: Context) {
             .putBoolean(K_SAVER_NP, s.saverNowPlaying)
             .putBoolean(K_SAVER_SCORES, s.saverScores)
             .putStringSet(K_LEAGUES, s.scoreLeagues)
+            .putStringSet(K_LEAGUES_KNOWN, League.entries.map { it.code }.toSet())
+            .putStringSet(K_TEAM_LEAGUES, s.followedTeams.keys)
+            .putStringSet(K_TEAMS, s.followedTeams.flatMap { (code, ids) -> ids.map { "$code|$it" } }.toSet())
             .putBoolean(K_FLOAT, s.floatingScores)
             .putBoolean(K_FLOAT_LIVE, s.floatingOnlyLive)
             .putBoolean(K_HOME_REDIRECT, s.homeRedirect)
@@ -171,6 +193,11 @@ class SettingsRepository(context: Context) {
         const val K_SAVER_SCORES = "saver_scores"
         const val K_LEAGUES = "score_leagues"
         const val K_FLOAT = "floating_scores"
+        const val K_LEAGUES_KNOWN = "leagues_known"
+        const val K_TEAM_LEAGUES = "team_leagues"
+        const val K_TEAMS = "followed_teams"
+        /** 1.5.0 öncesi ligler: bunların dışındakiler eski kurulumlara açık olarak eklenir. */
+        val ORIGINAL_LEAGUES = setOf("tur.1", "eng.1", "esp.1", "ita.1", "ger.1", "fra.1")
         const val K_HOME_REDIRECT = "home_redirect"
         const val K_FLOAT_LIVE = "floating_only_live"
         const val K_CLAUDE_KEY = "claude_key"

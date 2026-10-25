@@ -56,6 +56,7 @@ enum class BuiltInGame(
     val top: Color,
     val bottom: Color,
 ) {
+    QUIZ("Bilgi Yarışması", "Quiz Night", "Telefonlarla katıl, soruları ilk sen bil", "Join with phones, answer first", Color(0xFFFF5C8A), Color(0xFF5B3FE0)),
     SNAKE("Yılan", "Snake", "Elmaları topla, kendine çarpma", "Eat apples, don't bite yourself", Color(0xFF3BE07F), Color(0xFF0B6B3E)),
     BOXES("Kutu İtme", "Box Push", "Kutuları hedeflere it", "Push the boxes onto targets", Color(0xFFFFB13D), Color(0xFF9A4A0C)),
     RACER("Mini Yarış", "Mini Racer", "Şerit değiştir, araçlara çarpma", "Switch lanes, dodge the traffic", Color(0xFFFF5C6E), Color(0xFF8E1430)),
@@ -73,6 +74,7 @@ enum class BuiltInGame(
             SOS -> tx("Yön tuşları: gez · Orta tuş: S ya da O koy", "Arrows: move · Center: place S or O")
             TICTACTOE -> tx("Yön tuşları: gez · Orta tuş: X koy", "Arrows: move · Center: place X")
             SUDOKU -> tx("Orta tuş ya da rakam tuşları: sayı yaz · Sağ kenar: sonraki bulmaca", "Center or number keys: enter digit · Right edge: next puzzle")
+            QUIZ -> tx("Telefonlarla QR kodu okut · Tamam: devam", "Scan the QR code with phones · OK: continue")
         }
 }
 
@@ -238,6 +240,14 @@ fun GameGlyph(game: BuiltInGame, size: Dp, color: Color = Color.White) {
                 drawLine(color, Offset(s * 3.2f, s * 1.6f), Offset(s * 1.6f, s * 3.2f), s * 0.8f, cap = StrokeCap.Round)
                 drawCircle(color, s * 0.9f, Offset(s * 5f, s * 5f), style = Stroke(s * 0.7f))
             }
+            BuiltInGame.QUIZ -> {
+                // Konuşma balonu ve soru işareti
+                drawRoundRect(color, Offset(s * 1f, s * 1.5f), Size(s * 8f, s * 5.6f), CornerRadius(s * 1.6f), style = Stroke(s * 0.9f))
+                drawPath(Path().apply { moveTo(s * 3f, s * 7f); lineTo(s * 2.6f, s * 9f); lineTo(s * 5f, s * 7f) }, color)
+                drawArc(color, 200f, 230f, false, Offset(s * 3.8f, s * 2.4f), Size(s * 2.4f, s * 2.2f), style = Stroke(s * 0.8f, cap = StrokeCap.Round))
+                drawLine(color, Offset(s * 5f, s * 4.6f), Offset(s * 5f, s * 5.1f), s * 0.8f, cap = StrokeCap.Round)
+                drawCircle(color, s * 0.45f, Offset(s * 5f, s * 6f))
+            }
             BuiltInGame.SUDOKU -> {
                 drawRoundRect(color, Offset(s, s), Size(s * 8f, s * 8f), CornerRadius(s), style = Stroke(s * 0.8f))
                 for (i in 1..2) {
@@ -253,6 +263,11 @@ fun GameGlyph(game: BuiltInGame, size: Dp, color: Color = Color.White) {
 /** Tam ekran oyun sayfası: başlık, açıklama, tuş ipucu ve oyunun kendisi. Geri tuşu çıkar. */
 @Composable
 fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier) {
+    // Bilgi yarışması kendi tam ekran düzenini kullanır
+    if (game == BuiltInGame.QUIZ) {
+        dev.litedroid.launcher.quiz.QuizScreen(modifier)
+        return
+    }
     Box(
         modifier
             .fillMaxSize()
@@ -307,6 +322,7 @@ fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier) {
                     BuiltInGame.SOS -> SosGame(game)
                     BuiltInGame.TICTACTOE -> TicTacToeGame(game)
                     BuiltInGame.SUDOKU -> SudokuGame(game)
+                    BuiltInGame.QUIZ -> Unit
                 }
             }
         }

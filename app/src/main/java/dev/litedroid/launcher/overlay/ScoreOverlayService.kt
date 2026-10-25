@@ -142,7 +142,7 @@ class ScoreOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
         startAsForeground()
         val settings = SettingsRepository(this).load()
         I18n.lang = settings.language
-        ScoresHub.leagues = settings.scoreLeagues
+        ScoresHub.configure(settings)
         ScoresHub.acquire(this, "overlay")
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_DREAMING_STARTED)

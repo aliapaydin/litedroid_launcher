@@ -10,6 +10,35 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "1.6.0",
+                tx("Bilgi Yarışması", "Quiz Night"),
+                listOf(
+                    tx("Kahoot tarzı bilgi yarışması: Oyunlar → Bilgi Yarışması. Telefonlar TV'deki QR kodu okutup katılır, uygulama gerekmez (Android ve iPhone).",
+                        "Kahoot-style quiz: Games → Quiz Night. Phones join by scanning the QR code on the TV, no app needed (Android and iPhone)."),
+                    tx("Her oyuncu adını ve avatarını seçer; en fazla 8 kişi.", "Everyone picks a name and an avatar; up to 8 players."),
+                    tx("12 kategori, 3 zorluk (Başlangıç, Orta, Zor) ve 388 soruluk havuzdan rastgele sorular.",
+                        "12 categories, 3 levels (Beginner, Medium, Hard) and random questions from a pool of 388."),
+                    tx("Geri sayım, kimin cevapladığı, doğru cevap ve hızlı cevaba göre puan; her sorudan sonra kayarak yer değiştiren canlı puan tablosu.",
+                        "Countdown, who answered, the right answer and points for speed; a live leaderboard that slides into place after each question."),
+                    tx("Sonda kürsü ve konfeti, tek tuşla tekrar oyna.", "A podium with confetti at the end, and play again with one press."),
+                ),
+            ),
+            Release(
+                "1.5.0",
+                tx("Avrupa kupaları, takım takibi, uyku zamanlayıcısı", "European cups, team follow, sleep timer"),
+                listOf(
+                    tx("Şampiyonlar Ligi, Avrupa Ligi ve Konferans Ligi eklendi; diğer ligler gibi açılıp kapatılır.",
+                        "Champions League, Europa League and Conference League added; switch them like the other leagues."),
+                    tx("Takımları seç: her ligden yalnızca istediğin takımların maçlarını gör. Tümünü seç, seçimi kaldır ya da tek tek seç.",
+                        "Pick teams: see only the teams you want in each league. Select all, clear, or pick one by one."),
+                    tx("Uyku zamanlayıcısı: süreyle ya da belirli saatte kapan. 45, 30, 15 ve 5 dakika kala sağ altta uyarı, son 10 saniyede geri sayım; herhangi bir tuş iptal eder.",
+                        "Sleep timer: by duration or at a set time. Notices at 45, 30, 15 and 5 minutes left, a 10-second countdown at the end; any key cancels."),
+                    tx("Yüzen menü küçüldü ve sadeleşti, sağdan kayarak açılıp kapanıyor; içinde hızlı uyku zamanlayıcısı var.",
+                        "The floating menu is smaller and cleaner, slides in and out from the right and has a quick sleep timer."),
+                    tx("Hızlı panele Uyku kutucuğu eklendi.", "A Sleep tile in the quick panel."),
+                ),
+            ),
+            Release(
                 "1.4.1",
                 tx("Home yönlendirme düzeltmesi", "Home redirect fix"),
                 listOf(
