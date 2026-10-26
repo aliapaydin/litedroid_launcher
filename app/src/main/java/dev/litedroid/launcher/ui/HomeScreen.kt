@@ -7,6 +7,7 @@ import dev.litedroid.launcher.data.VoiceListener
 import dev.litedroid.launcher.data.GeminiModel
 import dev.litedroid.launcher.data.GeminiVoice
 import dev.litedroid.launcher.data.WifiSecurity
+import dev.litedroid.launcher.data.InputKeyAction
 import dev.litedroid.launcher.data.CanvasCities
 import dev.litedroid.launcher.data.CanvasStyle
 import dev.litedroid.launcher.data.VoiceEngine
@@ -392,6 +393,22 @@ private fun HomeContent(vm: LauncherViewModel) {
         askOpen = false
         lastGame = BuiltInGame.BROWSER
         gameOpen = BuiltInGame.BROWSER
+    }
+
+    // Kumandadaki Input tuşu: hızlı panel açılır, açıksa kapanır
+    LaunchedEffect(vm.openPanelSignal) {
+        if (vm.openPanelSignal == 0) return@LaunchedEffect
+        if (panelOpen) {
+            panelOpen = false
+            return@LaunchedEffect
+        }
+        menuFor = null
+        notifOpen = false
+        settingsOpen = false
+        gameOpen = null
+        askOpen = false
+        textTarget = null
+        panelOpen = true
     }
 
     // Sabah hava uyarısı: 06-12 arası, gün içinde yağış bekleniyorsa günde bir kez
@@ -1553,6 +1570,13 @@ private fun settingsEntries(
             "catches Home and opens LiteDroid whenever the box's home screen comes to the front. Does nothing when LiteDroid is already the default. " +
             "Needs the remote shortcut (accessibility) on.")) {
         vm.updateSettings { it.copy(homeRedirect = !it.homeRedirect) }
+    },
+    SettingsEntry.Row("input_key", tx("Input tuşu", "Input button"), Icons.Filled.Star, settings.inputKey.label,
+        tx("Kumandadaki Input (TV girişi) tuşu ne yapsın: hızlı panel, son uygulamaya dön (ör. Netflix ↔ YouTube), yüzen menü, ekran görüntüsü ya da LiteDroid ana ekranı. " +
+            "Kapalı'da tuş sistemin ya da TV'nin kendi işini yapar. Kumanda kısayolu (erişilebilirlik) açık olmalı.",
+            "What the remote's Input button does: quick panel, switch to the last app, floating menu, screenshot or LiteDroid home. " +
+            "Off leaves it to the system or TV. Needs the remote shortcut (accessibility).")) {
+        vm.updateSettings { it.copy(inputKey = InputKeyAction.entries.toList().next(it.inputKey)) }
     },
     SettingsEntry.Row("remote_menu", tx("Kumanda kısayolu (Geri'ye iki kez bas)", "Remote shortcut (double-press Back)"), Icons.Filled.Menu,
         if (vm.remoteShortcutEnabled()) tx("Açık", "On") else tx("Kapalı", "Off"),

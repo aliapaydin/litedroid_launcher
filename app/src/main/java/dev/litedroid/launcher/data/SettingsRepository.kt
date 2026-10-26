@@ -110,6 +110,18 @@ enum class GeminiVoice(val id: String, private val tr: String, private val en: S
     val label: String get() = "$id · " + tx(tr, en)
 }
 
+/** Kumandadaki Input (TV) tuşuna atanan iş. */
+enum class InputKeyAction(private val tr: String, private val en: String) {
+    PANEL("Hızlı panel", "Quick panel"),
+    LAST_APP("Son uygulamaya dön", "Switch to last app"),
+    MENU("Yüzen menü", "Floating menu"),
+    SCREENSHOT("Ekran görüntüsü", "Screenshot"),
+    HOME("LiteDroid ana ekranı", "LiteDroid home"),
+    OFF("Kapalı (sistem)", "Off (system)");
+
+    val label: String get() = tx(tr, en)
+}
+
 /** Misafir Wi-Fi QR'ı için ağ güvenliği. */
 enum class WifiSecurity(val qr: String, private val tr: String, private val en: String) {
     WPA("WPA", "WPA/WPA2/WPA3", "WPA/WPA2/WPA3"),
@@ -186,6 +198,8 @@ data class LauncherSettings(
     /** Uygulama kilidi: bu uygulamalar açılınca PIN sorulur. */
     val lockedApps: Set<String> = emptySet(),
     val lockPin: String = "",
+    /** Kumandadaki Input tuşu (Chromecast kumandasında TV girişi) ne yapsın. */
+    val inputKey: InputKeyAction = InputKeyAction.PANEL,
 ) {
     companion object {
         val SAVER_OPTIONS = listOf(0, 1, 2, 5, 10, 15, 30)
@@ -253,6 +267,7 @@ class SettingsRepository(context: Context) {
         breakMinutes = prefs.getInt(K_BREAK_MINUTES, 0),
         lockedApps = prefs.getStringSet(K_LOCKED_APPS, emptySet()).orEmpty().toSet(),
         lockPin = prefs.getString(K_LOCK_PIN, "").orEmpty(),
+        inputKey = enumOr(prefs.getString(K_INPUT_KEY, null), InputKeyAction.PANEL),
     )
 
     fun save(s: LauncherSettings) {
@@ -301,6 +316,7 @@ class SettingsRepository(context: Context) {
             .putInt(K_BREAK_MINUTES, s.breakMinutes)
             .putStringSet(K_LOCKED_APPS, s.lockedApps)
             .putString(K_LOCK_PIN, s.lockPin)
+            .putString(K_INPUT_KEY, s.inputKey.name)
             .apply()
     }
 
@@ -352,6 +368,7 @@ class SettingsRepository(context: Context) {
         const val K_BREAK_MINUTES = "break_minutes"
         const val K_LOCKED_APPS = "locked_apps"
         const val K_LOCK_PIN = "lock_pin"
+        const val K_INPUT_KEY = "input_key"
         const val K_GEMINI_VOICE = "gemini_voice"
         const val K_UPDATE_MODE = "update_mode"
     }

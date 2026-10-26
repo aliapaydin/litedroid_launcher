@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.1
+- **Input button**: the accessibility key filter catches `KEYCODE_TV` / `KEYCODE_TV_INPUT` (Chromecast remote's input key arrives as `KEY_TV`) and runs the chosen action: quick panel (`EXTRA_OPEN_PANEL`, toggles), last app (recent foreground packages), floating menu, screenshot, LiteDroid home, or Off (pass through).
+
 ## 2.4.0
 - **Guest Wi-Fi QR** (`ui/HomeExtras.kt`): `WIFI:T:…;S:…;P:…;;` payload with escaping, from the quick panel or Settings → Home and family; SSID → password → QR flow.
 - **Send from phone** (`tools/PhoneBridge.kt`): LAN page (ports 8791-8799, stops after 30 min idle). Links open in the LiteDroid browser (`BrowserLaunch` + `EXTRA_OPEN_BROWSER`); text fills an open LiteDroid text dialog, otherwise the focused input of the foreground app via `AccessibilityNodeInfo.ACTION_SET_TEXT` (accessibility now `canRetrieveWindowContent`, used only for that).

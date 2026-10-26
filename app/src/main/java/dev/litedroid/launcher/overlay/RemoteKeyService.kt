@@ -70,6 +70,8 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     // Mola hatırlatıcısı: öndeki uygulama ve ne zamandan beri önde
     private var fgPkg: String? = null
+    /** Son kullanılan uygulamalar (en yeni başta): Input tuşuyla "son uygulamaya dön" için. */
+    private val recentApps = ArrayDeque<String>()
     private var fgSince = 0L
     private var breakNotified = 0
     private val breakTick = object : Runnable {
@@ -297,6 +299,44 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         return foreignHome
     }
 
+    private fun runInputAction(action: dev.litedroid.launcher.data.InputKeyAction) {
+        val inLauncher = launcherInFront || ScoreOverlay.launcherVisible.value
+        when (action) {
+            dev.litedroid.launcher.data.InputKeyAction.PANEL -> openQuickPanel()
+            dev.litedroid.launcher.data.InputKeyAction.MENU ->
+                if (menuView != null) closeMenu() else if (inLauncher) openQuickPanel() else openMenu()
+            dev.litedroid.launcher.data.InputKeyAction.LAST_APP -> {
+                // LiteDroid öndeyse en son uygulama, bir uygulamadaysan ondan önceki
+                val target = if (inLauncher) recentApps.firstOrNull() else recentApps.getOrNull(1)
+                if (target == null) {
+                    showNotice(SleepNotice(tx("Dönülecek uygulama yok", "No app to switch to"), tx("Önce bir iki uygulama aç.", "Open an app or two first."), icon = "↩"))
+                    return
+                }
+                closeMenu(animated = false)
+                val intent = packageManager.getLeanbackLaunchIntentForPackage(target) ?: packageManager.getLaunchIntentForPackage(target)
+                runCatching { startActivity(intent!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    .onFailure { Log.w(TAG, "last app launch failed: ${it.message}") }
+            }
+            dev.litedroid.launcher.data.InputKeyAction.SCREENSHOT -> {
+                closeMenu(animated = false)
+                captureScreen(250)
+            }
+            dev.litedroid.launcher.data.InputKeyAction.HOME -> openLiteDroidHome()
+            dev.litedroid.launcher.data.InputKeyAction.OFF -> Unit
+        }
+    }
+
+    private fun openQuickPanel() {
+        closeMenu(animated = false)
+        runCatching {
+            startActivity(
+                Intent(this, MainActivity::class.java)
+                    .putExtra(MainActivity.EXTRA_OPEN_PANEL, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }.onFailure { Log.w(TAG, "panel open failed: ${it.message}") }
+    }
+
     /** LiteDroid ana ekranını açar (MainActivity bunu Home basışı sayar: başa döner). */
     private fun openLiteDroidHome() {
         val now = SystemClock.uptimeMillis()
@@ -356,6 +396,9 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         }
         if (pkg != fgPkg) {
             fgPkg = pkg
+            recentApps.remove(pkg)
+            recentApps.addFirst(pkg)
+            while (recentApps.size > 4) recentApps.removeLast()
             fgSince = System.currentTimeMillis()
             breakNotified = 0
         }
@@ -468,6 +511,13 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         }
         if (swallowUpAfterCancel && event.action == KeyEvent.ACTION_UP) {
             swallowUpAfterCancel = false
+            return true
+        }
+        // Kumandadaki Input (TV) tuşu: ayarlardaki işe atanır
+        if (event.keyCode == KeyEvent.KEYCODE_TV || event.keyCode == KeyEvent.KEYCODE_TV_INPUT) {
+            val action = SettingsRepository(this).load().inputKey
+            if (action == dev.litedroid.launcher.data.InputKeyAction.OFF) return false
+            if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) handler.post { runInputAction(action) }
             return true
         }
         // Home: varsayılan ana ekran başkasıysa tuşu yut, LiteDroid'i aç

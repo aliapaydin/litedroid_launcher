@@ -70,6 +70,13 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
+    private fun handleOpenPanel(intent: Intent?): Boolean {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_PANEL, false) != true) return false
+        intent.removeExtra(EXTRA_OPEN_PANEL)
+        viewModel.requestOpenPanel()
+        return true
+    }
+
     private fun handleOpenBrowser(intent: Intent?): Boolean {
         if (intent?.getBooleanExtra(EXTRA_OPEN_BROWSER, false) != true) return false
         intent.removeExtra(EXTRA_OPEN_BROWSER)
@@ -137,6 +144,7 @@ class MainActivity : ComponentActivity() {
         handleKeyIntent(intent)
         handleOpenClaude(intent)
         handleOpenBrowser(intent)
+        handleOpenPanel(intent)
         askContentPermissionOnce()
     }
 
@@ -184,6 +192,7 @@ class MainActivity : ComponentActivity() {
         if (handleKeyIntent(intent)) return
         if (handleOpenClaude(intent)) return
         if (handleOpenBrowser(intent)) return
+        if (handleOpenPanel(intent)) return
         if (intent.hasCategory(Intent.CATEGORY_HOME)) viewModel.onHomePressed()
     }
 
@@ -204,5 +213,8 @@ class MainActivity : ComponentActivity() {
 
         /** Telefondan gelen bağlantı: LiteDroid tarayıcısı açılır (adres BrowserLaunch'ta). */
         const val EXTRA_OPEN_BROWSER = "open_browser"
+
+        /** Kumandadaki Input tuşu: LiteDroid hızlı paneliyle açılır. */
+        const val EXTRA_OPEN_PANEL = "open_panel"
     }
 }
