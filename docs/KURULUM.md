@@ -242,7 +242,7 @@ adb shell pm enable com.google.android.tungsten.setupwraith
 Bazı kutularda B'deki komut *"This command is illegal"* gibi bir hata verir. O zaman LiteDroid'in **Home yönlendirme** özelliğini kullan:
 
 1. Adım 6'daki **erişilebilirlik** komutlarını çalıştırmış ol.
-2. LiteDroid'de **Ayarlar → Canlı skorlar → Home tuşunu LiteDroid'e yönlendir: Açık** (varsayılan olarak açık).
+2. LiteDroid'de **Ayarlar → Kumanda → Home tuşunu LiteDroid'e yönlendir: Açık** (varsayılan olarak açık).
 
 Home'a basınca kutunun kendi ekranı bir an görünür, LiteDroid hemen öne gelir.
 

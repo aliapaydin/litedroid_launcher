@@ -230,6 +230,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         openBrowserSignal++
     }
 
+    /** Input tuşu: hızlı paneli aç (ya da açıksa kapat). */
+    var openPanelSignal by mutableIntStateOf(0)
+        private set
+
+    fun requestOpenPanel() {
+        openPanelSignal++
+    }
+
     /** Ayarlar başka bir yerden (yüzen menü) değiştiyse yeniden oku. */
     fun reloadSettings() {
         val fresh = settingsRepo.load()

@@ -314,7 +314,7 @@ adb shell settings put secure enabled_accessibility_services dev.litedroid.launc
 adb shell settings put secure accessibility_enabled 1
 ```
 
-4. Kumandada **Home**'a bas ve **LiteDroid Launcher → Her zaman**'ı seç. Google TV'de seçim çıkmaz, aşağıdaki "Tek ana ekran yap" komutlarını kullan. Kutu buna da izin vermiyorsa **Ayarlar → Canlı skorlar → Home tuşunu LiteDroid'e yönlendir** açık kalsın.
+4. Kumandada **Home**'a bas ve **LiteDroid Launcher → Her zaman**'ı seç. Google TV'de seçim çıkmaz, aşağıdaki "Tek ana ekran yap" komutlarını kullan. Kutu buna da izin vermiyorsa **Ayarlar → Kumanda → Home tuşunu LiteDroid'e yönlendir** açık kalsın.
 
 | İzin | Ne işe yarar |
 |---|---|

@@ -13,6 +13,14 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "2.4.1",
+                tx("Input tuşu artık işe yarıyor", "The Input button now does something"),
+                listOf(
+                    tx("Kumandadaki Input tuşuna iş atanabiliyor: hızlı panel (varsayılan), son uygulamaya dön (ör. Netflix ↔ YouTube), yüzen menü, ekran görüntüsü ya da LiteDroid ana ekranı.", "The remote's Input button can be assigned: quick panel (default), switch to the last app, floating menu, screenshot or LiteDroid home."),
+                    tx("Ayarlar → Kumanda → Input tuşu. Kapalı'da tuş sistemin işini yapar. Kumandayla ilgili ayarlar artık kendi kategorisinde.", "Settings → Remote → Input button. Off leaves it to the system. Remote settings now have their own category."),
+                ),
+            ),
+            Release(
                 "2.4.0",
                 tx("Ev ve aile araçları", "Home and family tools"),
                 listOf(

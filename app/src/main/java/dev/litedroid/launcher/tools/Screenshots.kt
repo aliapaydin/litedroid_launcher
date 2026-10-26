@@ -231,7 +231,7 @@ fun ScreenshotsTool(accent: Color) {
                 ToolButton("📸 " + tx("3 sn sonra bu ekranı çek", "Capture this screen in 3 s"), accent, if (files.isEmpty()) Modifier.focusRequester(first) else Modifier) {
                     val svc = RemoteKeyService.instance
                     message = when {
-                        svc == null -> tx("Önce kumanda kısayolunu (erişilebilirlik) aç: Ayarlar → Canlı skorlar → Kumanda kısayolu.", "Turn on the remote shortcut (accessibility) first.")
+                        svc == null -> tx("Önce kumanda kısayolunu (erişilebilirlik) aç: Ayarlar → Kumanda → Kumanda kısayolu.", "Turn on the remote shortcut (accessibility) first.")
                         Build.VERSION.SDK_INT < Build.VERSION_CODES.R -> tx("Bu özellik Android 11 ve üstünde çalışır.", "Needs Android 11 or newer.")
                         else -> {
                             svc.captureScreen(3_000)
