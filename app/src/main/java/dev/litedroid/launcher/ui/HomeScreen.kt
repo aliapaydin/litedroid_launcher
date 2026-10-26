@@ -1561,33 +1561,6 @@ private fun settingsEntries(
             "While watching anything, a small live-score strip in the top-right corner, with a short goal alert. Run this command once:\n\n$CMD_OVERLAY")) {
         onFloatingScores()
     },
-    SettingsEntry.Row("home_redirect", tx("Home tuşunu LiteDroid'e yönlendir", "Send Home to LiteDroid"), Icons.Filled.Home,
-        if (settings.homeRedirect) tx("Açık", "On") else tx("Kapalı", "Off"),
-        tx("Bazı TV kutuları kendi ana ekranlarının kapatılmasına izin vermez ve Home tuşu hep oraya gider. Bu açıkken kumanda kısayolu servisi " +
-            "Home'u yakalar ve kutunun ana ekranı öne geldiğinde LiteDroid'i açar. LiteDroid zaten varsayılan ana ekransa hiçbir şey yapmaz. " +
-            "Kumanda kısayolu (erişilebilirlik) açık olmalı.",
-            "Some TV boxes don't let you turn off their own home screen, so Home always goes there. With this on, the remote shortcut service " +
-            "catches Home and opens LiteDroid whenever the box's home screen comes to the front. Does nothing when LiteDroid is already the default. " +
-            "Needs the remote shortcut (accessibility) on.")) {
-        vm.updateSettings { it.copy(homeRedirect = !it.homeRedirect) }
-    },
-    SettingsEntry.Row("input_key", tx("Input tuşu", "Input button"), Icons.Filled.Star, settings.inputKey.label,
-        tx("Kumandadaki Input (TV girişi) tuşu ne yapsın: hızlı panel, son uygulamaya dön (ör. Netflix ↔ YouTube), yüzen menü, ekran görüntüsü ya da LiteDroid ana ekranı. " +
-            "Kapalı'da tuş sistemin ya da TV'nin kendi işini yapar. Kumanda kısayolu (erişilebilirlik) açık olmalı.",
-            "What the remote's Input button does: quick panel, switch to the last app, floating menu, screenshot or LiteDroid home. " +
-            "Off leaves it to the system or TV. Needs the remote shortcut (accessibility).")) {
-        vm.updateSettings { it.copy(inputKey = InputKeyAction.entries.toList().next(it.inputKey)) }
-    },
-    SettingsEntry.Row("remote_menu", tx("Kumanda kısayolu (Geri'ye iki kez bas)", "Remote shortcut (double-press Back)"), Icons.Filled.Menu,
-        if (vm.remoteShortcutEnabled()) tx("Açık", "On") else tx("Kapalı", "Off"),
-        tx("Bir uygulama açıkken Geri'ye hızlıca iki kez basınca yüzen menü açılır: saat, tüm skorlar, çalan müzik, skor ayarları. " +
-            "Tek basış normal Geri'dir (çok kısa bir gecikmeyle). Açmak için: Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu. " +
-            "Ya da bilgisayardan (başka erişilebilirlik hizmetin yoksa):\n\n${RemoteKeyService.ADB_ENABLE}",
-            "While an app is open, press Back twice quickly to open the floating menu: clock, all scores, now playing, score settings. " +
-            "A single press is a normal Back (with a tiny delay). Turn it on in Android Settings → Accessibility → LiteDroid remote shortcut, " +
-            "or from a computer (if you use no other accessibility service):\n\n${RemoteKeyService.ADB_ENABLE}")) {
-        onRemoteShortcut()
-    },
     SettingsEntry.Row("float_live", tx("Şeritte yalnızca canlı maçlar", "Only live matches in the strip"), Icons.Filled.Refresh,
         if (settings.floatingOnlyLive) tx("Evet", "Yes") else tx("Bugünün tümü", "All today"),
         tx("Kapalıysa henüz başlamamış bugünkü maçlar da görünür.", "When off, today's upcoming matches are shown too.")) {
@@ -1699,6 +1672,35 @@ private fun settingsEntries(
             tx("Kullanım istatistikleri izni gerekir.", "Needs usage access.")) { onUsageReport() },
     SettingsEntry.Row("clear", tx("İzleme geçmişini temizle", "Clear watch history"), Icons.Filled.Delete, null,
         tx("Kaldığın yerden devam et ve son kullanılanlar listesini sıfırlar.", "Resets the continue-watching and recently used lists.")) { onClearHistory() },
+
+    SettingsEntry.Header(tx("Kumanda", "Remote")),
+    SettingsEntry.Row("home_redirect", tx("Home tuşunu LiteDroid'e yönlendir", "Send Home to LiteDroid"), Icons.Filled.Home,
+        if (settings.homeRedirect) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Bazı TV kutuları kendi ana ekranlarının kapatılmasına izin vermez ve Home tuşu hep oraya gider. Bu açıkken kumanda kısayolu servisi " +
+            "Home'u yakalar ve kutunun ana ekranı öne geldiğinde LiteDroid'i açar. LiteDroid zaten varsayılan ana ekransa hiçbir şey yapmaz. " +
+            "Kumanda kısayolu (erişilebilirlik) açık olmalı.",
+            "Some TV boxes don't let you turn off their own home screen, so Home always goes there. With this on, the remote shortcut service " +
+            "catches Home and opens LiteDroid whenever the box's home screen comes to the front. Does nothing when LiteDroid is already the default. " +
+            "Needs the remote shortcut (accessibility) on.")) {
+        vm.updateSettings { it.copy(homeRedirect = !it.homeRedirect) }
+    },
+    SettingsEntry.Row("input_key", tx("Input tuşu", "Input button"), Icons.Filled.Star, settings.inputKey.label,
+        tx("Kumandadaki Input (TV girişi) tuşu ne yapsın: hızlı panel, son uygulamaya dön (ör. Netflix ↔ YouTube), yüzen menü, ekran görüntüsü ya da LiteDroid ana ekranı. " +
+            "Kapalı'da tuş sistemin ya da TV'nin kendi işini yapar. Kumanda kısayolu (erişilebilirlik) açık olmalı.",
+            "What the remote's Input button does: quick panel, switch to the last app, floating menu, screenshot or LiteDroid home. " +
+            "Off leaves it to the system or TV. Needs the remote shortcut (accessibility).")) {
+        vm.updateSettings { it.copy(inputKey = InputKeyAction.entries.toList().next(it.inputKey)) }
+    },
+    SettingsEntry.Row("remote_menu", tx("Kumanda kısayolu (Geri'ye iki kez bas)", "Remote shortcut (double-press Back)"), Icons.Filled.Menu,
+        if (vm.remoteShortcutEnabled()) tx("Açık", "On") else tx("Kapalı", "Off"),
+        tx("Bir uygulama açıkken Geri'ye hızlıca iki kez basınca yüzen menü açılır: saat, tüm skorlar, çalan müzik, skor ayarları. " +
+            "Tek basış normal Geri'dir (çok kısa bir gecikmeyle). Açmak için: Android Ayarları → Erişilebilirlik → LiteDroid kumanda kısayolu. " +
+            "Ya da bilgisayardan (başka erişilebilirlik hizmetin yoksa):\n\n${RemoteKeyService.ADB_ENABLE}",
+            "While an app is open, press Back twice quickly to open the floating menu: clock, all scores, now playing, score settings. " +
+            "A single press is a normal Back (with a tiny delay). Turn it on in Android Settings → Accessibility → LiteDroid remote shortcut, " +
+            "or from a computer (if you use no other accessibility service):\n\n${RemoteKeyService.ADB_ENABLE}")) {
+        onRemoteShortcut()
+    },
 
     SettingsEntry.Header(tx("Ev ve aile", "Home and family")),
     SettingsEntry.Row("wifi_qr", tx("Misafir Wi-Fi QR'ı", "Guest Wi-Fi QR"), Icons.Filled.Share,
