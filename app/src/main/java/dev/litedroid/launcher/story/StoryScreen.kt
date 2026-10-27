@@ -569,7 +569,8 @@ fun StoryScreen(modifier: Modifier = Modifier, onExit: () -> Unit = {}) {
     Box(modifier.fillMaxSize().background(Night)) {
         Stars(Modifier.fillMaxSize())
         when (val s = ctrl.stage) {
-            Stage.Setup -> SetupView(ctrl, onExit)
+            // Gemini anahtarı yoksa yeni masal yazılamaz: kilit ekranı (kayıtlı masallar dinlenebilir)
+            Stage.Setup -> if (ctrl.key.isEmpty()) LockedView(ctrl, onExit) else SetupView(ctrl, onExit)
             Stage.Library -> LibraryView(ctrl)
             is Stage.Preparing -> PreparingView(s.title, s.detail)
             Stage.Playing, is Stage.Choosing, Stage.End -> PlayerView(ctrl, s, onExit)
@@ -735,6 +736,33 @@ private fun PreparingView(title: String, detail: String) {
         Spacer(Modifier.height(22.dp))
         Text(tx("İlk seferde 20-40 saniye sürebilir. Sonraki sayfalar sen dinlerken hazırlanır.", "The first time can take 20-40 seconds. Later pages get ready while you listen."),
             color = Color.White.copy(alpha = 0.45f), fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun LockedView(ctrl: StoryController, onExit: () -> Unit) {
+    val fr = remember { FocusRequester() }
+    val saved = remember { runCatching { ctrl.libraryCount() }.getOrDefault(0) }
+    LaunchedEffect(Unit) {
+        delay(100)
+        runCatching { fr.requestFocus() }
+    }
+    Column(Modifier.fillMaxSize().padding(60.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text("🔒", fontSize = 56.sp)
+        Spacer(Modifier.height(12.dp))
+        Text(tx("Masal Makinesi yapay zekâ ister", "The Story Machine needs AI"), color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            tx("Masalları Gemini yazar, çizer ve anlatır. Kullanmak için Ayarlar → Claude'a sor → Gemini API anahtarı'nı gir.",
+                "Gemini writes, illustrates and narrates the stories. Add your key in Settings → Ask Claude → Gemini API key.") +
+                if (saved > 0) tx("\nDaha önce yapılan $saved masalı anahtarsız da dinleyebilirsin.", "\nYou can still replay your $saved saved stories without a key.") else "",
+            color = Color.White.copy(alpha = 0.75f), fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 700.dp),
+        )
+        Spacer(Modifier.height(22.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (saved > 0) Pill(tx("Kayıtlı masallar", "Saved stories"), true, Modifier.focusRequester(fr)) { ctrl.openLibrary() }
+            Pill(tx("Çık", "Exit"), saved == 0, if (saved == 0) Modifier.focusRequester(fr) else Modifier) { onExit() }
+        }
     }
 }
 

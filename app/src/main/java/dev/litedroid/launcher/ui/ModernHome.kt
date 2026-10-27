@@ -1631,6 +1631,9 @@ private fun GamesTab(
 /** Dahili oyun kartı: oyunun renginde degrade, büyük silik simge, ad, açıklama ve "Oyna". */
 @Composable
 private fun BuiltInGameCard(game: BuiltInGame, fm: FocusMemory, key: String, enabled: Boolean, onSelect: () -> Unit) {
+    // Masal Makinesi Gemini ister: anahtar yoksa kartta kilit
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val locked = game == BuiltInGame.STORY && dev.litedroid.launcher.data.SettingsRepository(ctx).load().geminiKey.isBlank()
     FocusCard(
         fm = fm, key = key, enabled = enabled, glow = game.top,
         onSelect = onSelect,
@@ -1670,7 +1673,7 @@ private fun BuiltInGameCard(game: BuiltInGame, fm: FocusMemory, key: String, ena
             contentAlignment = Alignment.Center,
         ) { GameGlyph(game, 20.dp) }
         Text(
-            if (game.isTool) tx("AÇ", "OPEN") else tx("OYNA", "PLAY"),
+            if (locked) tx("🔒 ANAHTAR", "🔒 KEY") else if (game.isTool) tx("AÇ", "OPEN") else tx("OYNA", "PLAY"),
             color = if (focused) game.bottom else Color.White,
             fontSize = 10.sp,
             fontWeight = FontWeight.ExtraBold,
@@ -1689,7 +1692,7 @@ private fun BuiltInGameCard(game: BuiltInGame, fm: FocusMemory, key: String, ena
         ) {
             Text(game.title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.2).sp)
             Text(
-                game.description,
+                if (locked) tx("Gemini API anahtarı gerekli", "Needs a Gemini API key") else game.description,
                 color = Color.White.copy(alpha = 0.82f),
                 fontSize = 10.sp,
                 maxLines = 1,

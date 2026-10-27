@@ -292,18 +292,25 @@ fun WrappedShow(week: WeekData, onClose: () -> Unit, modifier: Modifier = Modifi
     val shareServer = remember { ShotShareServer(ctx) }
     DisposableEffect(Unit) {
         val ready = WrappedEngine.musicFile(ctx, week.start)
-        if (ready != null) music.play(ready) else {
-            music.startFallback()
-            scope.launch {
-                musicNote = tx("🎵 Yapay zekâ haftanın müziğini besteliyor…", "🎵 The AI is composing this week's music…")
-                val f = runCatching { WrappedEngine.ensureMusic(ctx, week) }.getOrNull()
-                if (f != null) {
-                    music.play(f)
-                    musicNote = tx("🎵 Haftanın müziği hazır", "🎵 This week's music is ready")
-                    delay(4_000)
-                }
+        if (ready != null) music.play(ready) else scope.launch {
+            // Müzik yoksa gösteri sessiz devam eder; müzik hazır olunca yumuşakça girer
+            val hasKey = withContext(Dispatchers.IO) { dev.litedroid.launcher.data.SettingsRepository(ctx).load().geminiKey.isNotBlank() }
+            if (!hasKey) {
+                musicNote = tx("🔇 Müzik için Gemini anahtarı gerekli, gösteri sessiz", "🔇 Music needs a Gemini key, playing silently")
+                delay(6_000)
                 musicNote = null
+                return@launch
             }
+            musicNote = tx("🎵 Yapay zekâ haftanın müziğini besteliyor…", "🎵 The AI is composing this week's music…")
+            val f = runCatching { WrappedEngine.ensureMusic(ctx, week) }.getOrNull()
+            if (f != null) {
+                music.play(f)
+                musicNote = tx("🎵 Haftanın müziği hazır", "🎵 This week's music is ready")
+            } else {
+                musicNote = tx("🔇 Müzik bu sefer üretilemedi, gösteri sessiz", "🔇 Couldn't make the music this time, playing silently")
+            }
+            delay(5_000)
+            musicNote = null
         }
         onDispose {
             music.release()

@@ -913,7 +913,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                 title = tx("Oyunlar ve araçlar", "Games and tools"),
                 subtitle = tx("Kumandayla oynanır", "Played with the remote"),
                 items = BuiltInGame.entries.map { g ->
-                    MenuItem((if (g.isTool) "🛠 " else "") + "${g.title}  ·  ${g.description}", Icons.Filled.PlayArrow) {
+                    val storyLocked = g == BuiltInGame.STORY && settings.geminiKey.isBlank()
+                    MenuItem((if (g.isTool) "🛠 " else if (storyLocked) "🔒 " else "") + "${g.title}  ·  " + (if (storyLocked) tx("Gemini anahtarı gerekli", "Needs a Gemini key") else g.description), Icons.Filled.PlayArrow) {
                         gamePickerOpen = false
                         lastGame = g
                         gameOpen = g
@@ -1558,13 +1559,16 @@ private fun settingsEntries(
         tx("Ana ekranda bu süre boyunca tuşa basılmazsa ekran koruyucu açılır.", "The screensaver starts after this long without a key press on the home screen.")) {
         vm.updateSettings { it.copy(saverMinutes = LauncherSettings.SAVER_OPTIONS.next(it.saverMinutes)) }
     },
-    SettingsEntry.Row("saver_scene", tx("Sahne", "Scene"), Icons.Filled.Star, settings.saverScene.label,
+    SettingsEntry.Row("saver_scene", tx("Sahne", "Scene"), Icons.Filled.Star,
+        if (settings.saverScene == SaverScene.CANVAS && settings.geminiKey.isBlank()) tx("Karışık (Canlı Tablo için anahtar yok)", "Mixed (no key for Living Painting)") else settings.saverScene.label,
         tx("Karışık: sinema salonu, maç günü, retro oyun ve kutup ışıkları sahneleri 40 saniyede bir değişir. " +
             "Canlı Tablo: yapay zekâ şehirleri o anki gerçek saatlerine ve havalarına göre resmeder (Gemini anahtarı gerekir).",
             "Mixed: cinema, match day, retro game and aurora scenes rotate every 40 seconds. " +
             "Living Painting: AI paints cities as they are right now, at their real local time and weather (needs a Gemini key).")) {
-        vm.updateSettings { it.copy(saverScene = SaverScene.entries.toList().next(it.saverScene)) }
+        // Anahtar yokken Canlı Tablo seçilemez
+        vm.updateSettings { s -> s.copy(saverScene = SaverScene.entries.filter { it != SaverScene.CANVAS || s.geminiKey.isNotBlank() }.next(s.saverScene)) }
     },
+    *if (settings.geminiKey.isBlank()) emptyArray<SettingsEntry>() else arrayOf<SettingsEntry>(
     SettingsEntry.Row("canvas_cities", tx("Canlı Tablo: şehirler", "Living Painting: cities"), Icons.Filled.Place, settings.canvasCities.label,
         tx("Benim şehrim: bulunduğun şehir, şu anki saatinde ve havasında. Dünya turu: İstanbul, Kapadokya, Kyoto, Paris, Reykjavik, Santorini ve daha fazlası; her biri kendi yerel saatinde ve gerçek havasında (Kyoto'da sabahsa sabah, Reykjavik'te kar yağıyorsa kar).",
             "My city: where you are, at its current time and weather. World tour: Istanbul, Cappadocia, Kyoto, Paris, Reykjavik, Santorini and more, each at its own local time and real weather.")) {
@@ -1579,6 +1583,7 @@ private fun settingsEntries(
         tx("Tablonun kaç dakikada bir değişeceği. Sık değişim daha çok yeni resim (ve Gemini ücreti) demek.", "How often the painting changes. More often means more new pictures (and Gemini cost).")) {
         vm.updateSettings { it.copy(canvasMinutes = listOf(5, 10, 20, 30).let { l -> l[(l.indexOf(it.canvasMinutes) + 1) % l.size] }) }
     },
+    ),
     SettingsEntry.Row("saver_now", tx("Şimdi başlat", "Start now"), Icons.Filled.PlayArrow, null, null) { vm.startScreensaver() },
     SettingsEntry.Row("saver_system", tx("Sistem ekran koruyucusu yap", "Set as system screensaver"), Icons.Filled.Settings,
         if (vm.systemSaverReady) tx("Uygula", "Apply") else tx("İzin gerekli", "Permission needed"),

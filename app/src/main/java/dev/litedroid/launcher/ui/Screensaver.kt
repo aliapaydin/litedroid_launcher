@@ -98,8 +98,13 @@ fun ScreensaverContent(
     leagues: Set<String>? = null,
 ) {
     // Canlı Tablo: yapay zekânın gerçek saate ve havaya göre resmettiği şehir manzaraları
-    if (scene == SaverScene.CANVAS) {
+    // Gemini anahtarı yoksa Canlı Tablo kullanılamaz: Karışık sahne gösterilir
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val aiReady = androidx.compose.runtime.remember(scene) { dev.litedroid.launcher.data.SettingsRepository(ctx).load().geminiKey.isNotBlank() }
+    if (scene == SaverScene.CANVAS && aiReady) {
         dev.litedroid.launcher.canvas.LivingCanvas(userName, modifier)
+    } else if (scene == SaverScene.CANVAS) {
+        ClassicScreensaver(SaverScene.MIXED, userName, modifier, showNowPlaying, showScores, leagues)
     } else {
         ClassicScreensaver(scene, userName, modifier, showNowPlaying, showScores, leagues)
     }
