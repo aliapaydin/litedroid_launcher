@@ -134,6 +134,7 @@ class CanvasPainter(private val context: Context, private val settings: Launcher
             JSONObject().put("city", c.city).put("offset", c.utcOffsetSec).put("code", c.code).put("day", c.isDay)
                 .put("temp", c.temp ?: JSONObject.NULL).toString()
         )
+        dev.litedroid.launcher.wrapped.WrappedStats.painting(context, id)
         load(file)
     }
 

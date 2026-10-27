@@ -100,6 +100,7 @@ object SleepTimer {
 
     /** Süre doldu: servis cihazı uyuturken çağırır (dinleyiciyi tetiklemez). */
     fun finished(context: Context) {
+        dev.litedroid.launcher.wrapped.WrappedStats.count(context, "sleep.off")
         persist(context, null, 0L)
         _endAt.value = null
         totalMs = 0L

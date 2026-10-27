@@ -270,6 +270,40 @@ object GeminiMedia {
     }
 
     // ------------------------------------------------------------------
+    // Müzik (Lyria): Wrapped'in fon müziği
+    // ------------------------------------------------------------------
+
+    private val musicRoutes = listOf(Route('I', "lyria-3.5"), Route('I', "lyria-3-clip-preview"))
+
+    /**
+     * Sözsüz müzik üretir (Lyria 3.5 birkaç dakikalık tam parça, olmazsa Lyria 3 Clip 30 sn).
+     * Dönen: (uzantı, baytlar); uzantı "mp3" ya da "wav".
+     */
+    suspend fun music(ctx: Context, key: String, prompt: String): Pair<String, ByteArray> = withContext(Dispatchers.IO) {
+        var last: Exception? = null
+        for (r in recall(ctx, "music", musicRoutes)) {
+            ensureActive()
+            try {
+                val json = post(BASE + "interactions", key, JSONObject().put("model", r.model).put("input", prompt), 300_000)
+                val blob = findBlob(json, "audio") ?: throw ApiException(400, "Yanıtta müzik yok")
+                remember(ctx, "music", r)
+                val b = blob.second
+                val ext = when {
+                    b.size > 4 && b[0] == 'R'.code.toByte() && b[1] == 'I'.code.toByte() -> "wav"
+                    blob.first?.contains("wav") == true -> "wav"
+                    else -> "mp3"
+                }
+                return@withContext ext to b
+            } catch (e: ApiException) {
+                Log.w(TAG, "music ${r.key} → ${e.code} ${e.message}")
+                if (e.auth || e.quota) throw e
+                last = e
+            }
+        }
+        throw last ?: ApiException(0, "Müzik üretilemedi")
+    }
+
+    // ------------------------------------------------------------------
     // JSON metin (masalın kendisi)
     // ------------------------------------------------------------------
 

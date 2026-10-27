@@ -13,6 +13,19 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "2.7.0",
+                tx("LiteDroid Wrapped", "LiteDroid Wrapped"),
+                listOf(
+                    tx("🎁 Her pazartesi 09:00'da geçen haftanın Wrapped'i hazır: kendiliğinden açılmaz, çan menüsüne gelir. Yeni olduğunda çanın etrafında renkli bir halka döner.", "🎁 Every Monday at 09:00 last week's Wrapped is ready: it lands in the bell menu instead of popping up, with a spinning colorful ring around the bell."),
+                    tx("Tam ekran gösteri: TV başında geçen süre, en çok izlenenler, haftanın uygulaması, saat saat ısı haritası, izleyici tipin, rekorlar, oyunlar ve masallar, Canlı Tablo resimleri, takımlarının maçları ve paylaşmalık özet kartı.", "A full-screen show: screen time, top apps, app of the week, an hour-by-hour heatmap, your viewer type, records, games and stories, Living Painting art, your teams' matches and a shareable summary card."),
+                    tx("Geçen haftayla karşılaştırma: hangi uygulama yükseldi, hangisi düştü, süre ne kadar değişti.", "Compared with last week: which apps rose or fell and how your time changed."),
+                    tx("🎵 Her haftanın müziğini yapay zekâ (Lyria) sana özel besteliyor; anahtar yoksa ya da üretilemezse gösteri sessiz oynar.", "🎵 Each week's music is composed for you by AI (Lyria); without a key, or if it fails, the show plays silently."),
+                    tx("Ayarlar → Diğer → LiteDroid Wrapped: geçmiş haftalar ve bu haftanın önizlemesi. Özet kartı QR ile telefona alınır.", "Settings → More → LiteDroid Wrapped: past weeks and a preview of this week. Send the summary card to your phone via QR."),
+                    tx("Yapay zekâ anahtarı yoksa: Canlı Tablo seçilemez (ekran koruyucu Karışık sahneye geçer), Masal Makinesi kilitli görünür (kayıtlı masallar yine dinlenir). Yapay zekâ o an çalışmazsa Canlı Tablo eski resimlerle ya da gece sahnesiyle, Çiz-Bil yapay zekâ turları atlanarak devam eder.", "Without an AI key: Living Painting can't be picked (the screensaver uses Mixed) and the Story Machine is locked (saved stories still play). If the AI fails, Living Painting keeps old paintings or the night scene and Draw & Guess skips AI rounds."),
+                    tx("Düzeltme: yüzen menü açıkken ana ekrana dönülünce menü artık kapanıyor.", "Fix: the floating menu now closes when you go back to the home screen."),
+                ),
+            ),
+            Release(
                 "2.6.0",
                 tx("Çiz-Bil", "Draw & Guess"),
                 listOf(
@@ -61,23 +74,12 @@ object Changelog {
             ),
             Release(
                 "1.7.0",
-                tx("Bilgi Yarışması, sesli soru ve Gemini", "Quiz Night, voice questions and Gemini"),
-                listOf(
-                    tx("🧠 Bilgi Yarışması: telefonlar QR'ı okutup katılır, en hızlı doğru cevap kazanır; yüzlerce Türkçe soru.", "🧠 Quiz Night: phones scan the QR to join, the fastest right answer wins; hundreds of questions."),
-                    tx("🎤 Sesli soru: konuşurken yazı canlı görünüyor, cevap ilk cümleden itibaren okunuyor.", "🎤 Voice questions: your words appear live, answers are read from the first sentence."),
-                    tx("✨ Claude'un yanında Gemini desteği.", "✨ Gemini support alongside Claude."),
-                    tx("🏆 Avrupa kupaları, takım takibi, uyku zamanlayıcısı ve sağdan kayan yüzen menü.", "🏆 European cups, team follow, the sleep timer and a sliding floating menu."),
-                ),
-            ),
-            Release(
-                "1.4.0",
-                tx("LiteDroid'in temelleri", "LiteDroid's foundations"),
+                tx("LiteDroid'in temelleri ve Bilgi Yarışması", "LiteDroid's foundations and Quiz Night"),
                 listOf(
                     tx("Apple TV tarzı cam görünüm: Casual ve Modern arayüz, vitrin stilleri, kodla çizilmiş ekran koruyucu.", "Apple TV-style glass look: Casual and Modern layouts, showcase styles, a code-drawn screensaver."),
-                    tx("Uygulamalar arası \"Kaldığın yerden devam\" ve her müzik uygulaması için \"Şimdi çalıyor\".", "\"Continue watching\" across apps and \"Now playing\" for every music app."),
-                    tx("Claude'a sor, canlı skorlar, yüzen skor şeridi ve dahili oyunlar.", "Ask Claude, live scores, a floating score strip and built-in games."),
-                    tx("Kullanım raporu ve Home tuşunu kilitleyen kutularda da LiteDroid'e yönlendirme.", "A usage report, and redirecting Home to LiteDroid on boxes that lock it."),
-                    tx("Sayısız performans iyileştirmesi ve hata düzeltmesi (0.1 Camekan'dan 1.4'e).", "Countless performance improvements and fixes (from 0.1 Camekan to 1.4)."),
+                    tx("🧠 Bilgi Yarışması: telefonlar QR'ı okutup katılır, en hızlı doğru cevap kazanır; yüzlerce Türkçe soru.", "🧠 Quiz Night: phones scan the QR to join, the fastest right answer wins; hundreds of questions."),
+                    tx("Claude'a sor (sesli soru, Gemini desteği), canlı skorlar, Avrupa kupaları, takım takibi ve yüzen skor şeridi.", "Ask Claude (voice questions, Gemini support), live scores, European cups, team follow and a floating score strip."),
+                    tx("Kaldığın yerden devam et, Şimdi çalıyor, uyku zamanlayıcısı, yüzen menü, kullanım raporu ve dahili oyunlar.", "Continue watching, Now playing, the sleep timer, floating menu, usage report and built-in games."),
                 ),
             ),
         )

@@ -198,6 +198,10 @@ private fun HomeContent(vm: LauncherViewModel) {
     var aboutOpen by remember { mutableStateOf(false) }
     var changelogOpen by remember { mutableStateOf(false) }
     var usageOpen by remember { mutableStateOf(false) }
+    // Wrapped: arşiv sayfası ve açık gösteri
+    var wrappedArchiveOpen by remember { mutableStateOf(false) }
+    var wrappedShow by remember { mutableStateOf<dev.litedroid.launcher.wrapped.WeekData?>(null) }
+    val wrappedUnseen by dev.litedroid.launcher.wrapped.WrappedEngine.unseen.collectAsState()
     var teamsOpen by remember { mutableStateOf(false) }
     var sleepDialogOpen by remember { mutableStateOf(false) }
     var updateOpen by remember { mutableStateOf(false) }
@@ -222,7 +226,7 @@ private fun HomeContent(vm: LauncherViewModel) {
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
     // Yazı penceresi de sayfa sayılır: açıkken ana ekran odağı geri almaya çalışmaz
-    val pageOpen = textTarget != null || storeOpen || aboutOpen || changelogOpen || usageOpen || teamsOpen || sleepDialogOpen || updateOpen || wifiOpen || phoneOpen || vm.updatePrompt != null || vm.updatedTo != null ||
+    val pageOpen = textTarget != null || storeOpen || aboutOpen || changelogOpen || usageOpen || wrappedArchiveOpen || wrappedShow != null || teamsOpen || sleepDialogOpen || updateOpen || wifiOpen || phoneOpen || vm.updatePrompt != null || vm.updatedTo != null ||
         (vm.updateFullScreen && updateState.inProgress) || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
@@ -356,6 +360,8 @@ private fun HomeContent(vm: LauncherViewModel) {
     // Ana ekrandayken Home'a basılınca başa dön
     LaunchedEffect(vm.homeSignal) {
         if (vm.homeSignal == 0) return@LaunchedEffect
+        wrappedShow = null
+        wrappedArchiveOpen = false
         menuFor = null
         panelOpen = false
         notifOpen = false
@@ -452,6 +458,11 @@ private fun HomeContent(vm: LauncherViewModel) {
                 textTarget = null
                 lockAction = null
             }
+            wrappedShow != null -> wrappedShow = null
+            wrappedArchiveOpen -> {
+                wrappedArchiveOpen = false
+                settingsOpen = true
+            }
             wifiOpen -> wifiOpen = false
             phoneOpen -> phoneOpen = false
             gameOpen != null -> gameOpen = null
@@ -500,7 +511,7 @@ private fun HomeContent(vm: LauncherViewModel) {
     // Animasyon değerleri State olarak tutulur ve çizim/yerleşim aşamasında okunur
     val dimState = animateFloatAsState(
         targetValue = when {
-            usageOpen || teamsOpen -> 0.96f
+            usageOpen || teamsOpen || wrappedArchiveOpen || wrappedShow != null -> 0.96f
             storeOpen || settingsOpen || searchOpen -> 0.78f
             overlayOpen -> 0.55f
             else -> 0f
@@ -579,6 +590,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                         onFavoriteSelect = { launchApp(it) },
                         onFavoriteLongPress = { menuFor = MenuTarget(it, fromDock = true) },
                         onAskClaude = { askOpen = true },
+                        onWrapped = if (wrappedUnseen != null) ({ notifOpen = true }) else null,
                     )
                     // Vitrin yüksekliği yerleşim aşamasında okunur (yeniden oluşturma yok)
                     Spacer(
@@ -760,6 +772,15 @@ private fun HomeContent(vm: LauncherViewModel) {
             val byPkg = remember(vm.installed) { vm.installed.associateBy { it.packageName } }
             val items = vm.played.take(7)
             val updateItem = updateState.releaseOrNull()?.takeIf { updateState !is UpdateState.Failed || vm.settings.updateMode == UpdateMode.AUTO }
+            val wrappedItem = wrappedUnseen?.let { start ->
+                MenuItem(
+                    tx("LiteDroid Wrapped hazır!", "Your LiteDroid Wrapped is ready!"), Icons.Filled.Star, special = true,
+                    subtitle = tx("Geçen haftanın özeti · izlemek için Tamam", "Last week's recap · press OK to watch"),
+                ) {
+                    notifOpen = false
+                    dev.litedroid.launcher.wrapped.WrappedEngine.week(context, start)?.let { wrappedShow = it }
+                }
+            }
             GlassMenu(
                 title = tx("İzlemeye devam et", "Continue watching"),
                 subtitle = when {
@@ -767,7 +788,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                     items.isEmpty() -> tx("Yarım kalan video yok", "Nothing to continue")
                     else -> tx("${items.size} yarım kalan video", "${items.size} unfinished videos")
                 },
-                items = listOfNotNull(updateItem?.let { r ->
+                items = listOfNotNull(wrappedItem) + listOfNotNull(updateItem?.let { r ->
                     val s = updateState
                     if (s.inProgress) {
                         val pct = (s as? UpdateState.Downloading)?.progress?.let { " %${(it * 100).toInt()}" } ?: ""
@@ -892,7 +913,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                 title = tx("Oyunlar ve araçlar", "Games and tools"),
                 subtitle = tx("Kumandayla oynanır", "Played with the remote"),
                 items = BuiltInGame.entries.map { g ->
-                    MenuItem((if (g.isTool) "🛠 " else "") + "${g.title}  ·  ${g.description}", Icons.Filled.PlayArrow) {
+                    val storyLocked = g == BuiltInGame.STORY && settings.geminiKey.isBlank()
+                    MenuItem((if (g.isTool) "🛠 " else if (storyLocked) "🔒 " else "") + "${g.title}  ·  " + (if (storyLocked) tx("Gemini anahtarı gerekli", "Needs a Gemini key") else g.description), Icons.Filled.PlayArrow) {
                         gamePickerOpen = false
                         lastGame = g
                         gameOpen = g
@@ -1032,6 +1054,10 @@ private fun HomeContent(vm: LauncherViewModel) {
                         settingsOpen = false
                         usageOpen = true
                     },
+                    onWrapped = {
+                        settingsOpen = false
+                        wrappedArchiveOpen = true
+                    },
                     onAndroidSettings = { startSafely(Intent(Settings.ACTION_SETTINGS)) },
                     onMediaAccess = {
                         if (vm.mediaAccess) toast(tx("Medya geçmişi izni açık", "Media history permission is on"))
@@ -1076,6 +1102,28 @@ private fun HomeContent(vm: LauncherViewModel) {
             exit = fadeOut() + slideOutVertically { it / 8 },
         ) {
             UsageReportScreen(vm)
+        }
+
+        AnimatedVisibility(
+            visible = wrappedArchiveOpen,
+            enter = fadeIn() + slideInVertically { it / 8 },
+            exit = fadeOut() + slideOutVertically { it / 8 },
+        ) {
+            dev.litedroid.launcher.wrapped.WrappedArchiveScreen(onOpen = { wrappedShow = it }, active = wrappedShow == null)
+        }
+
+        // Wrapped gösterisi her şeyin üstünde
+        val shownWeek = wrappedShow
+        // Kapanış animasyonu sürerken son hafta çizilmeye devam etsin
+        var lastWrapped by remember { mutableStateOf<dev.litedroid.launcher.wrapped.WeekData?>(null) }
+        LaunchedEffect(shownWeek) { if (shownWeek != null) lastWrapped = shownWeek }
+        AnimatedVisibility(
+            visible = shownWeek != null,
+            enter = fadeIn(tween(500)) + androidx.compose.animation.scaleIn(tween(500), initialScale = 0.92f),
+            exit = fadeOut(tween(300)),
+        ) {
+            val w = shownWeek ?: lastWrapped
+            if (w != null) dev.litedroid.launcher.wrapped.WrappedShow(w, onClose = { wrappedShow = null })
         }
 
         AnimatedVisibility(
@@ -1398,6 +1446,7 @@ private fun settingsEntries(
     onUpdates: () -> Unit,
     onCheckUpdates: () -> Unit,
     onUsageReport: () -> Unit,
+    onWrapped: () -> Unit,
     onTeams: () -> Unit,
     onAndroidSettings: () -> Unit,
     onMediaAccess: () -> Unit,
@@ -1510,13 +1559,16 @@ private fun settingsEntries(
         tx("Ana ekranda bu süre boyunca tuşa basılmazsa ekran koruyucu açılır.", "The screensaver starts after this long without a key press on the home screen.")) {
         vm.updateSettings { it.copy(saverMinutes = LauncherSettings.SAVER_OPTIONS.next(it.saverMinutes)) }
     },
-    SettingsEntry.Row("saver_scene", tx("Sahne", "Scene"), Icons.Filled.Star, settings.saverScene.label,
+    SettingsEntry.Row("saver_scene", tx("Sahne", "Scene"), Icons.Filled.Star,
+        if (settings.saverScene == SaverScene.CANVAS && settings.geminiKey.isBlank()) tx("Karışık (Canlı Tablo için anahtar yok)", "Mixed (no key for Living Painting)") else settings.saverScene.label,
         tx("Karışık: sinema salonu, maç günü, retro oyun ve kutup ışıkları sahneleri 40 saniyede bir değişir. " +
             "Canlı Tablo: yapay zekâ şehirleri o anki gerçek saatlerine ve havalarına göre resmeder (Gemini anahtarı gerekir).",
             "Mixed: cinema, match day, retro game and aurora scenes rotate every 40 seconds. " +
             "Living Painting: AI paints cities as they are right now, at their real local time and weather (needs a Gemini key).")) {
-        vm.updateSettings { it.copy(saverScene = SaverScene.entries.toList().next(it.saverScene)) }
+        // Anahtar yokken Canlı Tablo seçilemez
+        vm.updateSettings { s -> s.copy(saverScene = SaverScene.entries.filter { it != SaverScene.CANVAS || s.geminiKey.isNotBlank() }.next(s.saverScene)) }
     },
+    *if (settings.geminiKey.isBlank()) emptyArray<SettingsEntry>() else arrayOf<SettingsEntry>(
     SettingsEntry.Row("canvas_cities", tx("Canlı Tablo: şehirler", "Living Painting: cities"), Icons.Filled.Place, settings.canvasCities.label,
         tx("Benim şehrim: bulunduğun şehir, şu anki saatinde ve havasında. Dünya turu: İstanbul, Kapadokya, Kyoto, Paris, Reykjavik, Santorini ve daha fazlası; her biri kendi yerel saatinde ve gerçek havasında (Kyoto'da sabahsa sabah, Reykjavik'te kar yağıyorsa kar).",
             "My city: where you are, at its current time and weather. World tour: Istanbul, Cappadocia, Kyoto, Paris, Reykjavik, Santorini and more, each at its own local time and real weather.")) {
@@ -1531,6 +1583,7 @@ private fun settingsEntries(
         tx("Tablonun kaç dakikada bir değişeceği. Sık değişim daha çok yeni resim (ve Gemini ücreti) demek.", "How often the painting changes. More often means more new pictures (and Gemini cost).")) {
         vm.updateSettings { it.copy(canvasMinutes = listOf(5, 10, 20, 30).let { l -> l[(l.indexOf(it.canvasMinutes) + 1) % l.size] }) }
     },
+    ),
     SettingsEntry.Row("saver_now", tx("Şimdi başlat", "Start now"), Icons.Filled.PlayArrow, null, null) { vm.startScreensaver() },
     SettingsEntry.Row("saver_system", tx("Sistem ekran koruyucusu yap", "Set as system screensaver"), Icons.Filled.Settings,
         if (vm.systemSaverReady) tx("Uygula", "Apply") else tx("İzin gerekli", "Permission needed"),
@@ -1736,6 +1789,11 @@ private fun settingsEntries(
         tx("PIN sorulur; doğruysa tüm kilitler ve PIN silinir.", "Asks for the PIN; then all locks and the PIN are removed.")) { onClearLocks() },
 
     SettingsEntry.Header(tx("Diğer", "More")),
+    SettingsEntry.Row("wrapped", "LiteDroid Wrapped", Icons.Filled.Star,
+        if (dev.litedroid.launcher.wrapped.WrappedEngine.unseen.value != null) tx("Yeni!", "New!") else null,
+        tx("Her pazartesi geçen haftanın görsel özeti: en çok izlenenler, saat saat ısı haritası, rekorlar, oyunlar ve masallar, maçlar; yapay zekânın bestelediği müzikle. ",
+            "A visual recap of last week every Monday: top apps, an hour-by-hour heatmap, records, games and stories, matches; with music composed by AI. ") +
+            tx("Geçmiş haftalar ve bu haftanın önizlemesi burada.", "Past weeks and a preview of this week are here.")) { onWrapped() },
     SettingsEntry.Row("games", tx("Dahili oyunlar", "Built-in games"), Icons.Filled.PlayArrow, null,
         tx("Bilgi Yarışması, Yılan, Kutu İtme, Mini Yarış, SOS, XOX, Sudoku ve Mayın Tarlası. Modern arayüzde Ekstra sekmesinde de var.",
             "Quiz Night, Snake, Box Push, Mini Racer, SOS, Tic-Tac-Toe, Sudoku and Minesweeper. Also in the Extras tab of the Modern layout.")) { onGames() },

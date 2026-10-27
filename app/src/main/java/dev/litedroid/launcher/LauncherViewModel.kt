@@ -135,8 +135,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     var systemSaverReady by mutableStateOf(false)
         private set
 
-    var screensaverActive by mutableStateOf(false)
-        private set
+    private var saverOn by mutableStateOf(false)
+    /** Ekran koruyucu açık mı (Wrapped için süresi de ölçülür). */
+    var screensaverActive: Boolean
+        get() = saverOn
+        private set(v) {
+            if (v != saverOn) {
+                if (v) dev.litedroid.launcher.wrapped.WrappedStats.begin("saver")
+                else dev.litedroid.launcher.wrapped.WrappedStats.end(app, "saver")
+            }
+            saverOn = v
+        }
 
     /** Yüklü oyunlar (Play kategorisi "Oyun" olanlar). */
     var games by mutableStateOf<List<LauncherApp>>(emptyList())
@@ -404,6 +413,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val speak = settings.claudeSpeak
         val history = claudeTurns.filter { it.error == null && it.answer.isNotBlank() }.map { ClaudeExchange(it.question, it.answer) }
         claudeTurns += ClaudeTurn(q)
+        dev.litedroid.launcher.wrapped.WrappedStats.count(app, "claude.ask")
         val index = claudeTurns.lastIndex
         claudeStatus = ClaudeStatus.THINKING
         if (speak) speaker.startStream(I18n.locale)
@@ -709,6 +719,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     init {
         detectFreshUpdate()
         startUpdateChecks()
+        startWrapped()
+    }
+
+    /** Haftalık Wrapped: biten günleri kaydeder, Pazartesi 09:00'dan sonra haftanın özetini hazırlar. */
+    private fun startWrapped() {
+        dev.litedroid.launcher.wrapped.WrappedEngine.load(app)
+        viewModelScope.launch {
+            delay(30_000)
+            while (true) {
+                dev.litedroid.launcher.wrapped.WrappedEngine.tick(app)
+                delay(30 * 60_000L)
+            }
+        }
     }
 
     /**

@@ -178,6 +178,8 @@ class DrawGame(context: Context) {
     private var feedId = 0L
     private val lastGuessAt = HashMap<String, Long>()
     private var aiPending: Deferred<Pair<DrawWord, ByteArray>?>? = null
+    /** Yapay zekâ bir kez çizemediyse (kota, ağ, anahtar) bu oyunun kalan yapay zekâ turları atlanır. */
+    private var aiBroken = false
 
     // ------------------------------------------------------------------
     // Oyuncular (sunucu iş parçacıklarından çağrılır)
@@ -321,6 +323,7 @@ class DrawGame(context: Context) {
             round = 0,
             note = null,
         )
+        aiBroken = false
         if (null in schedule) prefetchAi()
         startWatchdog()
         nextTurn(0)
@@ -376,7 +379,10 @@ class DrawGame(context: Context) {
     private fun nextTurn(from: Int) {
         var i = from
         // Oyundan çıkmış oyuncuların sırasını atla
-        while (i < schedule.size && schedule[i] != null && _state.value.players.none { it.id == schedule[i] }) i++
+        while (i < schedule.size && (
+                (schedule[i] != null && _state.value.players.none { it.id == schedule[i] }) || (schedule[i] == null && aiBroken)
+            )
+        ) i++
         if (i >= schedule.size) {
             finish()
             return
@@ -412,7 +418,8 @@ class DrawGame(context: Context) {
                     val s = _state.value
                     if (s.phase != DrawPhase.AI_LOADING || s.round != i) return@launch
                     if (res == null) {
-                        _state.value = s.copy(note = tx("Yapay zekâ bu sefer çizemedi, sıradaki tura geçiyoruz", "The AI couldn't draw this time, moving on"))
+                        aiBroken = true
+                        _state.value = s.copy(note = tx("Yapay zekâ şu an çizemiyor, yapay zekâ turları atlanıyor", "The AI can't draw right now, skipping AI rounds"))
                         schedule(2_500) { if (_state.value.round == i) nextTurn(i + 1) }
                     } else {
                         _aiImage.value = res.second
@@ -435,6 +442,7 @@ class DrawGame(context: Context) {
                 else -> 0
             }
         )
+        dev.litedroid.launcher.wrapped.WrappedStats.count(app, if (ai) "draw.ai" else "draw.rounds")
         val ms = if (ai) AI_DRAW_MS else _state.value.drawSeconds * 1000L
         val now = System.currentTimeMillis()
         val r = _state.value.round
@@ -456,6 +464,8 @@ class DrawGame(context: Context) {
     private fun finish() {
         phaseJob?.cancel()
         watchJob?.cancel()
+        dev.litedroid.launcher.wrapped.WrappedStats.count(app, "draw.games")
+        _state.value.ranked.firstOrNull()?.let { dev.litedroid.launcher.wrapped.WrappedStats.count(app, "draw.win." + it.avatar + " " + it.name) }
         _state.value = _state.value.copy(phase = DrawPhase.FINISHED, drawerId = null, phaseMs = 0, phaseEndsAt = 0)
     }
 

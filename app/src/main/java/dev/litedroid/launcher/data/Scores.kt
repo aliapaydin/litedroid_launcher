@@ -228,6 +228,20 @@ object ScoresHub {
             .flatten()
     }
 
+    /**
+     * Wrapped için: takip edilen takımların [from]-[to] (dahil) arasında oynadığı, bitmiş maçlar.
+     * ESPN tarih aralığını tek istekte verir ("20261019-20261025").
+     */
+    suspend fun finishedBetween(followed: Map<String, Set<String>>, from: java.time.LocalDate, to: java.time.LocalDate): List<Match> =
+        kotlinx.coroutines.withContext(Dispatchers.IO) {
+            val range = from.format(DateTimeFormatter.BASIC_ISO_DATE) + "-" + to.format(DateTimeFormatter.BASIC_ISO_DATE)
+            followed.filterValues { it.isNotEmpty() }.flatMap { (code, ids) ->
+                val league = League.of(code) ?: return@flatMap emptyList()
+                runCatching { fetch(league, range) }.getOrDefault(emptyList())
+                    .filter { it.state == MatchState.DONE && (it.home.id in ids || it.away.id in ids) }
+            }.distinctBy { it.id }.sortedBy { it.start }
+        }
+
     private fun fetch(league: League, date: String): List<Match> {
         val url = URL("https://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/scoreboard?dates=$date")
         val conn = (url.openConnection() as HttpURLConnection).apply {

@@ -5,6 +5,7 @@ import dev.litedroid.launcher.I18n
 import dev.litedroid.launcher.tx
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -98,6 +99,8 @@ fun TopBar(
     onFavoriteLongPress: (LauncherApp) -> Unit,
     modifier: Modifier = Modifier,
     onAskClaude: (() -> Unit)? = null,
+    /** Yeni Wrapped varsa barda hediye düğmesi çıkar (çan menüsünü açar). */
+    onWrapped: (() -> Unit)? = null,
 ) {
     val now = rememberNow()
     Box(
@@ -152,6 +155,10 @@ fun TopBar(
             Spacer(Modifier.width(12.dp))
             BarDivider(30.dp)
             Spacer(Modifier.width(12.dp))
+            if (onWrapped != null) {
+                GiftBarButton(enabled = enabled, onFocus = { onBarFocus("wrapped", null) }, onSelect = onWrapped)
+                Spacer(Modifier.width(8.dp))
+            }
             if (onAskClaude != null) {
                 RoundBarButton(enabled = enabled, onFocus = { onBarFocus("claude", null) }, onSelect = onAskClaude, claude = true)
                 Spacer(Modifier.width(8.dp))
@@ -336,6 +343,44 @@ private fun RoundBarButton(enabled: Boolean, onFocus: () -> Unit, onSelect: () -
                 tint = if (focused) Color(0xFF111114) else Color.White,
                 modifier = Modifier.size(19.dp),
             )
+        }
+    }
+}
+
+/** Yeni Wrapped düğmesi: dönen renkli halka içinde zıplayan 🎁. */
+@Composable
+private fun GiftBarButton(enabled: Boolean, onFocus: () -> Unit, onSelect: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val sounds = LocalSounds.current
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "gift")
+    val spin by t.animateFloat(0f, 360f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(2_200, easing = androidx.compose.animation.core.LinearEasing)), label = "spin")
+    val hop by t.animateFloat(0f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(700), androidx.compose.animation.core.RepeatMode.Reverse), label = "hop")
+    Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(Modifier.size(44.dp).graphicsLayer { rotationZ = spin }) {
+            drawCircle(
+                Brush.sweepGradient(listOf(Color(0xFFFFD35C), Color(0xFFFF6FB5), Color(0xFF8E7BFF), Color(0xFF5CFFB0), Color(0xFFFFD35C))),
+                radius = size.minDimension / 2 - 2.dp.toPx(),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(3.dp.toPx()),
+            )
+        }
+        Box(
+            Modifier
+                .size(36.dp)
+                .graphicsLayer { val s = if (focused) 1.15f else 1f; scaleX = s; scaleY = s }
+                .clip(CircleShape)
+                .background(if (focused) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.09f))
+                .onFocusChanged {
+                    if (it.isFocused && !focused) {
+                        sounds?.play(Sfx.NAV)
+                        onFocus()
+                    }
+                    focused = it.isFocused
+                }
+                .onRemoteSelect(onSelect)
+                .focusable(enabled = enabled),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("🎁", fontSize = 17.sp, modifier = Modifier.graphicsLayer { translationY = -3f * hop })
         }
     }
 }

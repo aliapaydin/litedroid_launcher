@@ -63,11 +63,13 @@ class LiteDroidDream : DreamService(), LifecycleOwner, SavedStateRegistryOwner {
     override fun onDreamingStarted() {
         super.onDreamingStarted()
         ScoreOverlay.dreaming.value = true
+        dev.litedroid.launcher.wrapped.WrappedStats.begin("saver")
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
     }
 
     override fun onDreamingStopped() {
         ScoreOverlay.dreaming.value = false
+        dev.litedroid.launcher.wrapped.WrappedStats.end(this, "saver")
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         super.onDreamingStopped()
     }

@@ -363,7 +363,14 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
             return
         }
         watchForeground(pkg, event.className?.toString())
-        if (menuView != null) return
+        if (menuView != null) {
+            // Menü açıkken ana ekran öne geldi (Home tuşu, uygulama kapandı…): menü de kapanır
+            if (pkg == packageName && event.className?.toString()?.contains("MainActivity") == true) {
+                launcherInFront = true
+                handler.post { closeMenu(animated = false) }
+            }
+            return
+        }
         if (pkg == packageName) {
             // Kendi ana ekranımız öne geldi mi? (Menü penceresi bu bilgiyi bozmasın diye sınıf adına bakılır)
             if (event.className?.toString()?.contains("MainActivity") == true) launcherInFront = true
@@ -519,6 +526,10 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
             if (action == dev.litedroid.launcher.data.InputKeyAction.OFF) return false
             if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) handler.post { runInputAction(action) }
             return true
+        }
+        // Home'a basıldı: yüzen menü açıksa kapanır (tuş yine ana ekrana gider)
+        if (event.keyCode == KeyEvent.KEYCODE_HOME && menuView != null) {
+            handler.post { closeMenu(animated = false) }
         }
         // Home: varsayılan ana ekran başkasıysa tuşu yut, LiteDroid'i aç
         if (event.keyCode == KeyEvent.KEYCODE_HOME && event.action == KeyEvent.ACTION_DOWN) {

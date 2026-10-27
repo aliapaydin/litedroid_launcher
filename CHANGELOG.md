@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.7.0
+- **LiteDroid Wrapped** (`wrapped/`): weekly (Mon-Sun) recap, ready Mondays at 09:00, per profile (`filesDir/wrapped/main/`; LiteDroid has one profile today).
+  - Usage events only live ~7 days on Android, so every finished day is snapshotted (`days/<date>.json`: foreground sessions incl. LiteDroid itself via `UsageRepository.sessions`, plus the day's LiteDroid counters) every 30 min from the ViewModel. The week is computed from these (`weeks/<monday>.json`) and kept; day files are pruned after 21 days. Weeks with no usage and no counters produce no Wrapped. Locked apps are left out.
+  - Counters (`WrappedStats`, numbers only, never content): games/tools opened, records broken (`GameScores.submit`), quiz and Draw & Guess games + winners, stories (new/replay, hero), Claude questions, sleep-timer switch-offs, screensaver time (in-app + dream), Living Painting images shown, screenshots.
+  - Week data: total/daily time, 7×24 heatmap, top 15 apps (time, opens, longest), longest sitting, latest night, earliest morning, opens, distinct apps, TV-off days, followed teams' finished matches (`ScoresHub.finishedBetween`, ESPN date range) with "was the TV on" flag, viewer persona (night owl, binger, gamer, story lover, weekend, early bird, loyal, explorer, balanced).
+  - Show (`WrappedShow`): story-style progress, 11 animated pages that appear only when they have data, comparisons with the previous week (deltas, rank arrows, new entries, dethroned #1), ◀ ▶ / OK pause / Back. Summary card can be captured (accessibility screenshot) and served by QR via `ShotShareServer`.
+  - Music: `GeminiMedia.music` (Interactions API, `lyria-3.5`, falls back to `lyria-3-clip-preview`), instrumental prompt from persona, peak hour and a weekly flavor; cached next to the week (last 12 kept). Plays looped with fade-in; without a key or on failure the show runs silently (with a short note).
+  - Bell: unseen Wrapped adds a special animated card at the top of the bell menu; the Modern bell gets a spinning gradient ring, wiggle and 🎁 badge; Casual shows a gift button in the top bar. Archive in Settings → More → LiteDroid Wrapped, with a "this week so far" preview.
+- **No AI key / AI down:** Living Painting can't be selected without a Gemini key (scene cycling skips it, its settings rows hide, a stored `CANVAS` scene renders Mixed); the Story Machine shows a locked screen (saved stories still replay offline) and a lock on its Extras card / picker entry; Draw & Guess skips all remaining AI rounds after the first failure. Runtime failures already fell back (Living Painting: cached paintings or night scene; Gemini voice: device TTS).
+- Floating menu closes when the launcher comes to front (Home key or window change) instead of staying on top of the home screen.
+- In-app release notes: 1.4 folded into 1.7.
+
 ## 2.6.0
 - **Draw & Guess** (`draw/`, Extras → Çiz-Bil): LAN game on the quiz's port range (8765-8775), phone page `assets/draw/index.html`.
   - Turns rotate through joined players (1-3 each, 60/80/100 s). The drawer picks one of three words (easy/medium/hard, 218-word TR/EN list) on the phone; strokes are sent every 70 ms as ordered, idempotent batches (`seq`; points 0-1000 normalized, width in thousandths of the board, undo/clear ops) and drawn on a square paper board on the TV with quadratic smoothing.

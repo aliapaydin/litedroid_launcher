@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -154,6 +156,9 @@ data class MenuItem(
     val label: String,
     val icon: ImageVector,
     val destructive: Boolean = false,
+    /** Öne çıkan satır (ör. yeni Wrapped): renkli, parıldayan kart; [subtitle] altında küçük yazı. */
+    val special: Boolean = false,
+    val subtitle: String? = null,
     val action: () -> Unit,
 )
 
@@ -238,6 +243,10 @@ fun GlassMenu(
 
 @Composable
 private fun MenuRow(item: MenuItem, selected: Boolean) {
+    if (item.special) {
+        SpecialMenuRow(item, selected)
+        return
+    }
     val background by animateColorAsState(
         targetValue = if (selected) Color.White.copy(alpha = 0.92f) else Color.Transparent,
         label = "rowBg",
@@ -267,5 +276,39 @@ private fun MenuRow(item: MenuItem, selected: Boolean) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/** Çan menüsündeki hediye kartı: kayan altın-pembe-mavi degrade, zıplayan 🎁. */
+@Composable
+private fun SpecialMenuRow(item: MenuItem, selected: Boolean) {
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "gift")
+    val shift by t.animateFloat(0f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(2_400, easing = androidx.compose.animation.core.LinearEasing)), label = "shift")
+    val hop by t.animateFloat(0f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "hop")
+    val colors = listOf(Color(0xFFFFD35C), Color(0xFFFF6FB5), Color(0xFF8E7BFF), Color(0xFFFFD35C))
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .graphicsLayer { scaleX = if (selected) 1.03f else 1f; scaleY = if (selected) 1.03f else 1f }
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.linearGradient(
+                    colors,
+                    start = androidx.compose.ui.geometry.Offset(shift * 600f - 300f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(shift * 600f + 300f, 120f),
+                    tileMode = androidx.compose.ui.graphics.TileMode.Mirror,
+                )
+            )
+            .border(if (selected) 2.dp else 0.dp, Color.White, RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("🎁", fontSize = 26.sp, modifier = Modifier.graphicsLayer { translationY = -6f * hop; rotationZ = (hop - 0.5f) * 16f })
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(item.label, color = Color(0xFF1A1030), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            item.subtitle?.let { Text(it, color = Color(0xFF1A1030).copy(alpha = 0.75f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
     }
 }
