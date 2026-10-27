@@ -55,6 +55,7 @@ object SleepTimer {
     private const val PREFS = "litedroid_sleep"
     private const val K_END = "end_at"
     private const val K_TOTAL = "total_ms"
+    private const val K_UNTIL_END = "until_end"
 
     /** Menüdeki hazır süreler (dakika). */
     val PRESETS = listOf(15, 30, 45, 60, 90, 120)
@@ -62,6 +63,10 @@ object SleepTimer {
     private val _endAt = MutableStateFlow<Long?>(null)
     /** Kapanma anı (epoch ms) ya da kapalıysa null. */
     val endAt: StateFlow<Long?> = _endAt
+
+    private val _untilEnd = MutableStateFlow(false)
+    /** "İzlediğin bitince kapat": oynatma durup 2 dakika başlamazsa TV kapanır. */
+    val untilEnd: StateFlow<Boolean> = _untilEnd
 
     /** Kurulan toplam süre (menüde hangi hazır sürenin seçili olduğunu göstermek için). */
     var totalMs: Long = 0L
@@ -80,6 +85,16 @@ object SleepTimer {
             _endAt.value = null
             totalMs = 0L
         }
+        _untilEnd.value = _endAt.value == null && p.getBoolean(K_UNTIL_END, false)
+    }
+
+    /** Süre yerine "izlediğin bitince": süreli zamanlayıcıyı kapatır. */
+    fun startUntilEnd(context: Context) {
+        persist(context, null, 0L, untilEnd = true)
+        totalMs = 0L
+        _endAt.value = null
+        _untilEnd.value = true
+        onChange?.invoke(true)
     }
 
     fun startIn(context: Context, minutes: Int) {
@@ -102,6 +117,7 @@ object SleepTimer {
     fun finished(context: Context) {
         persist(context, null, 0L)
         _endAt.value = null
+        _untilEnd.value = false
         totalMs = 0L
     }
 
@@ -110,14 +126,16 @@ object SleepTimer {
     private fun store(context: Context, end: Long?, total: Long) {
         persist(context, end, total)
         totalMs = total
+        _untilEnd.value = false
         _endAt.value = end
         onChange?.invoke(true)
     }
 
-    private fun persist(context: Context, end: Long?, total: Long) {
+    private fun persist(context: Context, end: Long?, total: Long, untilEnd: Boolean = false) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putLong(K_END, end ?: 0L)
             .putLong(K_TOTAL, total)
+            .putBoolean(K_UNTIL_END, untilEnd)
             .apply()
     }
 

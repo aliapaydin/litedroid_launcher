@@ -202,9 +202,12 @@ private fun MenuCard(
 
         // ---- Uyku zamanlayıcısı ----
         Spacer(Modifier.height(12.dp))
+        val untilEnd by SleepTimer.untilEnd.collectAsState()
         Row(verticalAlignment = Alignment.CenterVertically) {
             SectionLabel(tx("UYKU ZAMANLAYICISI", "SLEEP TIMER"), Modifier.weight(1f))
-            if (sleepEnd != null) {
+            if (untilEnd) {
+                Text(tx("İzlediğin bitince", "When the show ends"), color = Color(0xFFB9A8FF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            } else if (sleepEnd != null) {
                 Text(
                     SleepTimer.formatRemaining(sleepEnd - tick) + " · " + SleepTimer.clock(sleepEnd),
                     color = Color(0xFFB9A8FF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
@@ -214,11 +217,17 @@ private fun MenuCard(
         Spacer(Modifier.height(6.dp))
         val activeMinutes = if (sleepEnd != null) (SleepTimer.totalMs / 60_000L).toInt() else null
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Chip(tx("Kapalı", "Off"), selected = sleepEnd == null, modifier = Modifier.weight(1.3f).focusRequester(first)) { onSleep(null) }
+            Chip(tx("Kapalı", "Off"), selected = sleepEnd == null && !untilEnd, modifier = Modifier.weight(1.3f).focusRequester(first)) { onSleep(null) }
             listOf(15, 30, 60, 90).forEach { min ->
                 Chip("$min", selected = activeMinutes == min, modifier = Modifier.weight(1f)) { onSleep(min) }
             }
         }
+        Spacer(Modifier.height(6.dp))
+        // Süre yerine: oynatma durup 2 dk başlamazsa 5 sn geri sayımla kapanır
+        Chip(
+            "🌙 " + tx("İzlediğin bitince kapat", "Turn off when the show ends"),
+            selected = untilEnd, modifier = Modifier.fillMaxWidth(),
+        ) { onSleep(if (untilEnd) null else -1) }
 
         // ---- Skor şeridi ----
         Spacer(Modifier.height(12.dp))
@@ -265,8 +274,6 @@ private fun MenuCard(
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             IconAction(tx("Ana ekran", "Home"), Icons.Filled.Home, Modifier.weight(1f)) { onHome() }
-            IconAction("Claude", Icons.Filled.Star, Modifier.weight(1f)) { onAskClaude() }
-            IconAction(tx("Görüntü", "Capture"), Icons.Filled.Share, Modifier.weight(1f)) { onScreenshot() }
             IconAction(tx("Kapat", "Close"), Icons.Filled.Clear, Modifier.weight(1f)) { onClose() }
         }
     }

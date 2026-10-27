@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.0
+- **Turn off when the show ends** (floating menu → sleep timer): `SleepTimer.untilEnd` (persisted). The accessibility service polls `MediaSessionManager.getActiveSessions` (notification-listener component) every 5 s; after something has played, 2 min with no playing/buffering session starts a 5-second "show ended" countdown (any key cancels), then the usual lock-screen sleep. Verified states on Chromecast: YouTube, Netflix, Prime Video and Apple TV all report PLAYING/STOPPED; none of the first three report duration, so end-of-episode detection is playback-stop based.
+- Floating menu: Claude and screenshot buttons removed.
+- In-app release notes kept to six entries (2.4.1 folded into 2.4.0, 1.9 into 2.0).
+
 ## 2.4.1
 - **Input button**: the accessibility key filter catches `KEYCODE_TV` / `KEYCODE_TV_INPUT` (Chromecast remote's input key arrives as `KEY_TV`) and runs the chosen action: quick panel (`EXTRA_OPEN_PANEL`, toggles), last app (recent foreground packages), floating menu, screenshot, LiteDroid home, or Off (pass through).
 

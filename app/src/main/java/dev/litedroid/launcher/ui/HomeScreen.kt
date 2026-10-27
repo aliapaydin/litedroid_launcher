@@ -840,8 +840,8 @@ private fun HomeContent(vm: LauncherViewModel) {
                     })
                     add(QuickTile(
                         "sleep", tx("Uyku", "Sleep"),
-                        sleepEnd?.let { SleepTimer.clock(it) } ?: tx("Kapalı", "Off"),
-                        Icons.Filled.DateRange, active = sleepEnd != null,
+                        sleepEnd?.let { SleepTimer.clock(it) } ?: if (SleepTimer.untilEnd.value) tx("Bitince", "At the end") else tx("Kapalı", "Off"),
+                        Icons.Filled.DateRange, active = sleepEnd != null || SleepTimer.untilEnd.value,
                     ) {
                         val current = if (sleepEnd != null) (SleepTimer.totalMs / 60_000L).toInt() else null
                         val presets = listOf(30, 60, 90)

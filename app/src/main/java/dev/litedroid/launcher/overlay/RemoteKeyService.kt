@@ -130,6 +130,8 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         Log.i(TAG, "remote shortcut connected, default home: ${defaultHome(force = true)}")
         SleepTimer.onChange = { fromUser -> handler.post { onSleepChanged(fromUser) } }
+        // Servis yeniden başladıysa (ör. güncelleme) "bitince kapat" izlemeye devam etsin
+        if (SleepTimer.untilEnd.value) handler.post { onSleepChanged(false) }
         handler.removeCallbacks(breakTick)
         handler.postDelayed(breakTick, 60_000)
         watchUpdates()
@@ -168,10 +170,108 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     // Uyku zamanlayıcısı
     // ------------------------------------------------------------------
 
+    // ---- İzlediğin bitince kapat ----
+    private var sawPlaying = false
+    private var stoppedSince = 0L
+    private var endCountdown = 0
+    private val contentTick = object : Runnable {
+        override fun run() = tickContent()
+    }
+    private val endCountdownTick = object : Runnable {
+        override fun run() = tickEndCountdown()
+    }
+
+    /** Herhangi bir uygulama şu an oynatıyor mu (medya oturumları; bildirim dinleyici izni gerekir). Bilinmiyorsa null. */
+    private fun somethingPlaying(): Boolean? = runCatching {
+        val msm = getSystemService(android.media.session.MediaSessionManager::class.java) ?: return null
+        val sessions = msm.getActiveSessions(ComponentName(this, dev.litedroid.launcher.media.MediaListenerService::class.java))
+        sessions.any {
+            when (it.playbackState?.state) {
+                android.media.session.PlaybackState.STATE_PLAYING,
+                android.media.session.PlaybackState.STATE_BUFFERING,
+                android.media.session.PlaybackState.STATE_FAST_FORWARDING,
+                android.media.session.PlaybackState.STATE_REWINDING,
+                android.media.session.PlaybackState.STATE_CONNECTING -> true
+                else -> false
+            }
+        }
+    }.getOrNull()
+
+    private fun tickContent() {
+        if (!SleepTimer.untilEnd.value) return
+        val playing = somethingPlaying()
+        val now = System.currentTimeMillis()
+        when {
+            playing == null -> Unit
+            playing -> {
+                sawPlaying = true
+                stoppedSince = 0L
+            }
+            // Oynatma durdu ya da duraklatıldı: 2 dakika içinde yeniden başlamazsa kapanış
+            sawPlaying -> {
+                if (stoppedSince == 0L) stoppedSince = now
+                if (now - stoppedSince >= CONTENT_END_WAIT_MS) {
+                    startEndCountdown()
+                    return
+                }
+            }
+        }
+        handler.postDelayed(contentTick, 5_000)
+    }
+
+    private fun startEndCountdown() {
+        Log.i(TAG, "content finished, counting down")
+        countingDown = true
+        endCountdown = 5
+        ensureNoticeWindow()
+        handler.removeCallbacks(hideNotice)
+        handler.post(endCountdownTick)
+    }
+
+    private fun tickEndCountdown() {
+        if (!countingDown || !SleepTimer.untilEnd.value) return
+        if (endCountdown <= 0) {
+            goToSleep()
+            return
+        }
+        notice.value = SleepNotice(
+            tx("İçerik bitti, TV kapanıyor", "Your show ended, turning the TV off"),
+            tx("İptal etmek için kumandada herhangi bir tuşa bas.", "Press any key on the remote to cancel."),
+            countdown = endCountdown,
+            id = notice.value?.takeIf { it.countdown != null }?.id ?: System.nanoTime(),
+            icon = "🌙",
+        )
+        endCountdown--
+        handler.postDelayed(endCountdownTick, 1_000)
+    }
+
     private fun onSleepChanged(fromUser: Boolean) {
         handler.removeCallbacks(sleepTick)
+        handler.removeCallbacks(contentTick)
+        handler.removeCallbacks(endCountdownTick)
         countingDown = false
         announced.clear()
+        if (SleepTimer.untilEnd.value) {
+            sawPlaying = somethingPlaying() == true
+            stoppedSince = 0L
+            if (fromUser) {
+                showNotice(
+                    if (somethingPlaying() == null) SleepNotice(
+                        tx("Medya izni gerekli", "Media access needed"),
+                        tx("İçeriğin bittiğini anlamak için LiteDroid'in medya geçmişi izni açık olmalı (Ayarlar → İçerik ve gizlilik).",
+                            "LiteDroid needs media history access to know when your show ends (Settings → Content and privacy)."),
+                        icon = "🌙",
+                    ) else SleepNotice(
+                        tx("İzlediğin bitince kapanacak", "Off when your show ends"),
+                        tx("Oynatma durur ve 2 dakika içinde yeniden başlamazsa TV 5 saniyelik geri sayımla kapanır.",
+                            "When playback stops and doesn't resume within 2 minutes, the TV turns off after a 5-second countdown."),
+                        icon = "🌙",
+                    )
+                )
+            }
+            handler.postDelayed(contentTick, 5_000)
+            return
+        }
         val remaining = SleepTimer.remainingMs()
         val end = SleepTimer.endAt.value
         if (remaining == null || end == null) {
@@ -614,8 +714,11 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
                         visible = menuVisible.value,
                         sleepEnd = SleepTimer.endAt.collectAsState().value,
                         onSleep = { minutes ->
-                            if (minutes == null) SleepTimer.cancel(this@RemoteKeyService)
-                            else SleepTimer.startIn(this@RemoteKeyService, minutes)
+                            when {
+                                minutes == null -> SleepTimer.cancel(this@RemoteKeyService)
+                                minutes < 0 -> SleepTimer.startUntilEnd(this@RemoteKeyService)
+                                else -> SleepTimer.startIn(this@RemoteKeyService, minutes)
+                            }
                         },
                         onClose = { closeMenu() },
                         onHome = {
@@ -751,6 +854,8 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         private const val NOTICE_MS = 5_000L
         /** Kapanmaya bu kadar dakika kala sağ altta uyarı. */
         private val WARN_MINUTES = listOf(45, 30, 15, 5)
+        /** "İzlediğin bitince": oynatma bu kadar süre durunca kapanış geri sayımı başlar. */
+        private const val CONTENT_END_WAIT_MS = 120_000L
 
         const val ADB_ENABLE =
             "adb shell settings put secure enabled_accessibility_services dev.litedroid.launcher/dev.litedroid.launcher.overlay.RemoteKeyService\n" +
