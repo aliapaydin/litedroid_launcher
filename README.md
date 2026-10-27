@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.4.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.6.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -167,6 +167,16 @@ Kahoot tarzı bir yarışma: **Ekstra → Bilgi Yarışması**.
 | ![Puan durumu](docs/screenshots/quiz-board.png) | ![Kürsü](docs/screenshots/quiz-podium.png) |
 
 <p align="center"><img src="docs/screenshots/quiz-phones.png" alt="Telefondan katılma, cevap verme ve sonuç" width="85%"></p>
+
+### 🎨 Çiz-Bil (telefonlarla)
+
+Pictionary tarzı bir parti oyunu: **Ekstra → Çiz-Bil**.
+- Telefonlar TV'deki QR kodu okutup katılır (Bilgi Yarışması'ndaki gibi, uygulama gerekmez). En fazla 8 kişi.
+- Sırası gelen, telefonunda üç kelimeden birini seçer ve **parmağıyla çizer**; çizim TV'de canlı belirir. Renkler, üç kalınlık, silgi, geri al ve temizle var.
+- Diğerleri tahminini telefondan yazar. Yanlış tahminler TV'de akar, doğru bilen "bildi!" olur. Ne kadar erken bilirsen o kadar çok puan; çizen de bilen her kişi için puan alır.
+- Süre ilerledikçe harf ipuçları açılır. Bir harf farkla yazana "Çok yakın!" yalnızca kendi telefonunda görünür.
+- **🤖 Yapay zekâ çizsin:** her turun sonunda resmi yapay zekâ çizer; iri piksellerden başlayıp yavaş yavaş netleşir, evdeki herkes birlikte tahmin eder. Gemini anahtarı gerekir; tek kişiyle de oynanır.
+- Herkesin kaç kez çizeceği (1-3) ve çizim süresi (60/80/100 sn) lobiden seçilir. Tamam turu geçer, Geri lobiye döner.
 
 ### 🎮 Kumandaya göre yapılmış yedi oyun
 

@@ -13,11 +13,14 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
-                "2.4.1",
-                tx("Input tuşu artık işe yarıyor", "The Input button now does something"),
+                "2.6.0",
+                tx("Çiz-Bil", "Draw & Guess"),
                 listOf(
-                    tx("Kumandadaki Input tuşuna iş atanabiliyor: hızlı panel (varsayılan), son uygulamaya dön (ör. Netflix ↔ YouTube), yüzen menü, ekran görüntüsü ya da LiteDroid ana ekranı.", "The remote's Input button can be assigned: quick panel (default), switch to the last app, floating menu, screenshot or LiteDroid home."),
-                    tx("Ayarlar → Kumanda → Input tuşu. Kapalı'da tuş sistemin işini yapar. Kumandayla ilgili ayarlar artık kendi kategorisinde.", "Settings → Remote → Input button. Off leaves it to the system. Remote settings now have their own category."),
+                    tx("🎨 Çiz-Bil: telefonlar QR'ı okutup katılır. Sırası gelen gizli kelimeyi telefonunda parmağıyla çizer, çizim TV'de canlı belirir; diğerleri tahminini telefondan yazar, en hızlı bilen en çok puanı alır.", "🎨 Draw & Guess: phones scan the QR to join. Whoever's turn it is draws the secret word with a finger, live on the TV; the others type guesses, the fastest right answer scores most."),
+                    tx("Üç kelimeden birini seç (kolay, orta, zor), renkler, kalınlık, silgi ve geri al. Süre ilerledikçe harf ipuçları açılır, \"çok yakın\" uyarısı yalnızca sana görünür.", "Pick one of three words (easy, medium, hard), colors, brush sizes, eraser and undo. Letter hints open as time runs out; \"so close\" is shown only to you."),
+                    tx("🤖 Yapay zekâ çizsin turu: her turun sonunda resmi yapay zekâ çizer, iri piksellerden başlayıp yavaş yavaş netleşir, evdeki herkes birlikte tahmin eder (Gemini anahtarı gerekir). Tek kişiyle de oynanır.", "🤖 AI draws round: after each round the AI paints a picture that sharpens from big pixels, and everyone guesses together (needs a Gemini key). Works solo too."),
+                    tx("Yüzen menü sadeleşti: Claude ve ekran görüntüsü düğmeleri kaldırıldı (ekran görüntüsü Input tuşuna atanabilir).", "A simpler floating menu: the Claude and screenshot buttons are gone (screenshots can go on the Input button)."),
+                    tx("2.5.0'daki \"İzlediğin bitince kapat\" kaldırıldı: uygulamalar oynatmanın bittiğini güvenilir şekilde bildirmiyor. Uyku zamanlayıcısı süreyle ve saatle çalışmaya devam ediyor.", "\"Turn off when the show ends\" from 2.5.0 is gone: apps don't reliably report when playback ends. The sleep timer still works by duration or time."),
                 ),
             ),
             Release(
@@ -30,6 +33,7 @@ object Changelog {
                     tx("☕ Mola hatırlatıcısı: bir uygulamada seçtiğin süre (30 dk - 2 sa) dolunca nazik bir hatırlatma.", "☕ Break reminder: a gentle nudge after the time you choose (30 min - 2 h) in one app."),
                     tx("🔒 Uygulama kilidi: seçtiğin uygulamalar açılınca 4 haneli PIN sorulur. Ana ekranda uygulamada Tamam'a basılı tut → Kilitle.", "🔒 App lock: chosen apps ask for a 4-digit PIN. Hold OK on an app on the home screen → Lock."),
                     tx("İyileştirmeler: Oyunlar sekmesi artık Ekstra (Oyunlar ve Araçlar rafları), hızlı panel sadeleşti, üst bardaki düğmesi aşağı ok oldu; ayarlarda kategoriler kayıyor, liste sonu esneyerek belli oluyor.", "Improvements: the Games tab is now Extras (Games and Tools shelves), the quick panel is simpler with a down-arrow button; settings categories scroll and list ends bounce."),
+                    tx("Kumandadaki Input tuşuna iş atanabiliyor: hızlı panel, son uygulamaya dön, ekran görüntüsü… (Ayarlar → Kumanda).", "The remote's Input button can be assigned: quick panel, last app, screenshot… (Settings → Remote)."),
                     tx("Düzeltmeler: yazı pencereleri hep odağı alıyor; profil seçiliyken saat sıkışmıyor.", "Fixes: text windows always get the focus; the clock no longer squeezes next to the profile."),
                 ),
             ),
@@ -45,21 +49,14 @@ object Changelog {
             ),
             Release(
                 "2.0.0",
-                tx("Masal Makinesi ve Gemini sesi", "Story Machine and Gemini voice"),
+                tx("Masal Makinesi, Gemini sesi ve kendi kendine güncelleme", "Story Machine, Gemini voice and self-update"),
                 listOf(
                     tx("🌙 Masal Makinesi: kahramanı, yeri ve konuyu seç; yapay zekâ masalı yazar, her sayfasını çizer ve anlatır. Ortada çocuk yolu seçer, karakterler kendi sesleriyle konuşur.", "🌙 Story Machine: pick a hero, a place and a theme; AI writes, illustrates and narrates the story. The child picks the path, characters have their own voices."),
                     tx("Film gibi akış, sayfaya göre değişen ninni müziği, bitince TV'nin kapanması ve ücretsiz yeniden dinlenen masal kitaplığı.", "Film-like pages, a mood-following lullaby, optional TV-off at the end and a library that replays for free."),
                     tx("🎙️ Claude'a sor cevapları Gemini'nin doğal sesleriyle okunuyor (Sulafat ve dokuz ses daha).", "🎙️ Ask Claude answers are read in Gemini's natural voices (Sulafat and nine more)."),
+                    tx("🔄 Kendi kendine güncelleme: yeni sürümler GitHub'dan iniyor; Otomatik kur, Sadece haber ver ya da Kapalı. Ertele, ilerlemeyi izle, bitince \"Güncellendi\" ekranı.", "🔄 Self-update from GitHub: Automatic, Notify only or Off. Snooze, watch the progress, an \"Updated\" screen when done."),
+                    tx("💣 Mayın Tarlası: üç zorluk, ilk kare hep güvenli.", "💣 Minesweeper: three levels, the first square is always safe."),
                     tx("Düzeltmeler: güncelleme pencereleri ekrana sığıyor, üst üste binmiyor ve kumanda arkaya kaçmıyor.", "Fixes: update windows fit the screen, never stack, and the remote no longer slips behind them."),
-                ),
-            ),
-            Release(
-                "1.9.0",
-                tx("Kendi kendine güncelleme ve Mayın Tarlası", "Self-update and Minesweeper"),
-                listOf(
-                    tx("🔄 LiteDroid yeni sürümleri GitHub'dan kendisi indirip kuruyor: Otomatik kur, Sadece haber ver ya da Kapalı. Ertele (1 / 3 saat), tam ekran ya da köşede ilerleme, bitince \"Güncellendi\" ekranı.", "🔄 LiteDroid downloads and installs new versions from GitHub: Automatic, Notify only or Off. Snooze (1 / 3 h), full-screen or corner progress, an \"Updated\" screen when done."),
-                    tx("💣 Mayın Tarlası: üç zorluk, ilk kare hep güvenli, en iyi süreler kaydediliyor.", "💣 Minesweeper: three levels, the first square is always safe, best times are saved."),
-                    tx("Düzeltmeler: güncellemeden sonraki açılış hatası giderildi, indirme boyutu gösteriliyor.", "Fixes: a startup crash after updating, and the download size is shown."),
                 ),
             ),
             Release(

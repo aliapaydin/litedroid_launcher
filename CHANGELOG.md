@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.6.0
+- **Draw & Guess** (`draw/`, Extras → Çiz-Bil): LAN game on the quiz's port range (8765-8775), phone page `assets/draw/index.html`.
+  - Turns rotate through joined players (1-3 each, 60/80/100 s). The drawer picks one of three words (easy/medium/hard, 218-word TR/EN list) on the phone; strokes are sent every 70 ms as ordered, idempotent batches (`seq`; points 0-1000 normalized, width in thousandths of the board, undo/clear ops) and drawn on a square paper board on the TV with quadratic smoothing.
+  - Guessers type on their phones: Turkish-folded matching (`ç→c`, `ı→i`…, any word in the guess), "so close" (edit distance 1-2) shown only to the guesser, wrong guesses stream on the TV. Score: 100 + up to 300 for speed, +50 for the first; the drawer earns 50-100 per correct guesser. Letter hints open at 50 % and 75 %. Round ends early when everyone guessed; a drawer silent for 20 s ends the round.
+  - **AI draws** round (Gemini key): a doodle via `GeminiMedia.image` from the English word, prefetched during earlier rounds, revealed through 10 pixelation levels (5 s each); everyone guesses. Solo play is AI-only.
+  - Quiz UI helpers (`QuizChip`, `StartButton`, `PlayerSlot`, `PodiumColumn`, `Confetti`, `TimerRing`) are now `internal` and shared.
+- Floating menu: Claude and screenshot buttons removed.
+- **Removed** 2.5.0's "turn off when the show ends" (media-session stop detection was unreliable in practice). 2.5.0 was never published as a release; 2.6.0 replaces it on devices where it was sideloaded.
+- In-app release notes kept to six entries (2.4.1 folded into 2.4.0, 1.9 into 2.0).
+
 ## 2.4.1
 - **Input button**: the accessibility key filter catches `KEYCODE_TV` / `KEYCODE_TV_INPUT` (Chromecast remote's input key arrives as `KEY_TV`) and runs the chosen action: quick panel (`EXTRA_OPEN_PANEL`, toggles), last app (recent foreground packages), floating menu, screenshot, LiteDroid home, or Off (pass through).
 

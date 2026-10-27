@@ -265,7 +265,7 @@ private fun Lobby(game: QuizGame, state: QuizState, url: String?) {
 }
 
 @Composable
-private fun OptionLabel(text: String) {
+internal fun OptionLabel(text: String) {
     Text(
         text.uppercase(), color = Color.White.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Bold,
         letterSpacing = 1.5.sp, modifier = Modifier.padding(bottom = 6.dp),
@@ -273,7 +273,7 @@ private fun OptionLabel(text: String) {
 }
 
 @Composable
-private fun PlayerSlot(p: QuizPlayer?, modifier: Modifier) {
+internal fun PlayerSlot(p: QuizPlayer?, modifier: Modifier) {
     val shape = RoundedCornerShape(20.dp)
     if (p == null) {
         Box(
@@ -308,7 +308,7 @@ private fun PlayerSlot(p: QuizPlayer?, modifier: Modifier) {
 }
 
 @Composable
-private fun QuizChip(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun QuizChip(label: String, selected: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Box(
         Modifier
@@ -330,7 +330,7 @@ private fun QuizChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StartButton(label: String, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+internal fun StartButton(label: String, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val glow by rememberInfiniteTransition(label = "start").animateFloat(
         0.85f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "glow",
@@ -410,7 +410,7 @@ private fun PlaySurface(game: QuizGame, content: @Composable BoxScope.() -> Unit
 
 /** Aşamanın kalan süresi (ms), her karede güncellenir. */
 @Composable
-private fun rememberRemaining(endsAt: Long): Long {
+internal fun rememberRemaining(endsAt: Long): Long {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(endsAt) {
         while (true) {
@@ -511,7 +511,7 @@ private fun BoxScope.QuestionView(state: QuizState) {
 }
 
 @Composable
-private fun TimerRing(remaining: Long, total: Long) {
+internal fun TimerRing(remaining: Long, total: Long) {
     val secs = ((remaining + 999) / 1000).toInt()
     val urgent = remaining < 5_000
     val pulse by rememberInfiniteTransition(label = "pulse").animateFloat(1f, 1.12f, infiniteRepeatable(tween(400), RepeatMode.Reverse), label = "p")
@@ -722,7 +722,7 @@ private fun Finished(game: QuizGame, state: QuizState) {
 }
 
 @Composable
-private fun PodiumColumn(p: QuizPlayer?, place: Int, height: Dp, delayMs: Int) {
+internal fun PodiumColumn(p: QuizPlayer?, place: Int, height: Dp, delayMs: Int) {
     val rise = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         delay(delayMs.toLong())
@@ -759,7 +759,7 @@ private fun PodiumColumn(p: QuizPlayer?, place: Int, height: Dp, delayMs: Int) {
 
 /** Hafif konfeti: 60 parça, tek Canvas, sonsuz döngü. */
 @Composable
-private fun Confetti() {
+internal fun Confetti() {
     val pieces = remember {
         List(60) {
             floatArrayOf(Random.nextFloat(), Random.nextFloat(), 0.5f + Random.nextFloat(), Random.nextFloat() * 360f, Random.nextInt(5).toFloat())
