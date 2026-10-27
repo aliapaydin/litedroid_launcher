@@ -265,8 +265,6 @@ private fun MenuCard(
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             IconAction(tx("Ana ekran", "Home"), Icons.Filled.Home, Modifier.weight(1f)) { onHome() }
-            IconAction("Claude", Icons.Filled.Star, Modifier.weight(1f)) { onAskClaude() }
-            IconAction(tx("Görüntü", "Capture"), Icons.Filled.Share, Modifier.weight(1f)) { onScreenshot() }
             IconAction(tx("Kapat", "Close"), Icons.Filled.Clear, Modifier.weight(1f)) { onClose() }
         }
     }
