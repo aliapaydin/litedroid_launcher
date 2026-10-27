@@ -303,6 +303,8 @@ class QuizGame(context: Context) {
         else {
             phaseJob?.cancel()
             _state.value = s.copy(phase = QuizPhase.FINISHED, phaseMs = 0, phaseEndsAt = 0)
+            dev.litedroid.launcher.wrapped.WrappedStats.count(app, "quiz.games")
+            s.ranked.firstOrNull()?.let { dev.litedroid.launcher.wrapped.WrappedStats.count(app, "quiz.win." + it.avatar + " " + it.name) }
         }
     }
 

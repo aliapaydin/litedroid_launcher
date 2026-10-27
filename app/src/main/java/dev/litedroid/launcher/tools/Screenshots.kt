@@ -85,6 +85,7 @@ object ScreenshotStore {
         val name = "LiteDroid_" + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".jpg"
         val f = File(dir(ctx), name)
         f.outputStream().use { bmp.compress(Bitmap.CompressFormat.JPEG, 92, it) }
+        dev.litedroid.launcher.wrapped.WrappedStats.count(ctx, "shot")
         // Cihazın galerisine de (dosya yöneticileri ve Google Fotoğraflar görebilsin)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             runCatching {

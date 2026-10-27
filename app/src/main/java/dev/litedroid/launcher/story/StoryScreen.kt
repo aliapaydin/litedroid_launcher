@@ -245,6 +245,8 @@ class StoryController(private val context: Context, private val scope: Coroutine
         }
         savePicks()
         lastAction = { newStory() }
+        dev.litedroid.launcher.wrapped.WrappedStats.count(context, "story.new")
+        dev.litedroid.launcher.wrapped.WrappedStats.count(context, "story.hero." + HEROES[hero].label)
         val en = !tx("tr", "en").startsWith("tr")
         val req = StoryRequest(
             hero = HEROES[hero].prompt ?: HEROES[hero].label,
@@ -294,6 +296,7 @@ class StoryController(private val context: Context, private val scope: Coroutine
 
     fun replay(s: Story) {
         lastAction = { replay(s) }
+        dev.litedroid.launcher.wrapped.WrappedStats.count(context, "story.replay")
         job?.cancel()
         job = scope.launch {
             if (music) lullaby.start()

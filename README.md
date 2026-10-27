@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.6.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.7.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -226,6 +226,17 @@ Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
 Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses, Ekran koruyucu, Canlı skorlar, Claude'a sor, İçerik ve gizlilik** ve **Diğer**. Odaktaki satırın açıklaması altta görünür, kumandayla aradığını bulmak kolaydır. **Diğer → Sürüm notları**'nda ilk sürümden bugüne tüm yenilikler sürüm sürüm listelenir.
 
 <p align="center"><img src="docs/screenshots/release-notes.png" alt="Sürüm notları" width="100%"></p>
+
+### 🎁 LiteDroid Wrapped (haftalık)
+
+Spotify Wrapped gibi, ama her hafta ve TV'n için:
+- Her **pazartesi 09:00**'da geçen haftanın özeti hazırlanır. Kendiliğinden açılmaz, **çan menüsüne** gelir. Yeni Wrapped varken çanın etrafında renkli bir halka döner, çan sallanır.
+- Açınca tam ekran, animasyonlu bir gösteri başlar: TV başında geçen süre ve günlere göre dağılım, en çok izlenen 5 uygulama, haftanın uygulaması, saat saat ısı haritası, **izleyici tipin** (Gece Kuşu 🦉, Maraton Ustası 🍿, Oyun Canavarı 🎮…), rekorlar (en uzun oturum, en geç kapanış…), oyunlar, yarışmalar, masallar, Canlı Tablo resimleri ve takımlarının maçları.
+- Geçen haftanın verisi varsa karşılaştırmalar eklenir: süre ne kadar arttı/azaldı, hangi uygulama yükseldi ya da düştü, yeni girenler.
+- 🎵 Her haftanın müziğini yapay zekâ (Lyria) sana özel besteler (Gemini anahtarı gerekir; yoksa cihazda üretilen bir fon çalar).
+- Sondaki özet kartı **QR ile telefona** alınabilir.
+- **Ayarlar → Diğer → LiteDroid Wrapped**: geçmiş haftaları yeniden izle ya da bu haftanın şimdiye kadarki önizlemesine bak.
+- Uygulama süreleri için kullanım istatistikleri izni gerekir. Kilitli uygulamalar Wrapped'te görünmez. Her şey TV'de kalır, hiçbir yere gönderilmez (müzik için yalnızca kısa bir tarif Gemini'ye gider).
 
 ### 📊 Kullanım raporu
 

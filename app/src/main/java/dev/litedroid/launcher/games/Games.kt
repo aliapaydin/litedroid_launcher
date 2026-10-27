@@ -177,7 +177,10 @@ object GameScores {
     fun submit(ctx: Context, id: String, value: Int, lowerIsBetter: Boolean = false): Boolean {
         val old = best(ctx, id)
         val better = if (lowerIsBetter) (old == 0 || value < old) else value > old
-        if (better) prefs(ctx).edit().putInt(id, value).apply()
+        if (better) {
+            prefs(ctx).edit().putInt(id, value).apply()
+            dev.litedroid.launcher.wrapped.WrappedStats.record(ctx, id, value)
+        }
         return better
     }
 }
@@ -353,6 +356,9 @@ fun GameGlyph(game: BuiltInGame, size: Dp, color: Color = Color.White) {
 /** Tam ekran oyun sayfası: başlık, açıklama, tuş ipucu ve oyunun kendisi. Geri tuşu çıkar. */
 @Composable
 fun GameScreen(game: BuiltInGame, modifier: Modifier = Modifier, onExit: () -> Unit = {}) {
+    // Wrapped için: hangi oyun/araç kaç kez açıldı
+    val statsCtx = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(game) { dev.litedroid.launcher.wrapped.WrappedStats.count(statsCtx, (if (game.isTool) "tool." else "game.") + game.name) }
     // Bilgi yarışması kendi tam ekran düzenini kullanır
     if (game == BuiltInGame.QUIZ) {
         dev.litedroid.launcher.quiz.QuizScreen(modifier)

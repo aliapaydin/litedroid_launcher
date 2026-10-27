@@ -131,10 +131,30 @@ class UsageRepository(context: Context) {
         )
     }
 
-    private data class Session(val pkg: String, val start: Long, val end: Long)
+    data class Session(val pkg: String, val start: Long, val end: Long)
+
+    /**
+     * Wrapped için ham oturumlar: [from, to) aralığı, LiteDroid'in kendisi dahil (ayrı paket adıyla).
+     * Rapora girmeyen sistem bileşenleri atılır. İzin yoksa null.
+     */
+    suspend fun sessions(from: Long, to: Long): List<Session>? = withContext(Dispatchers.IO) {
+        if (!hasPermission()) return@withContext null
+        val usm = ctx.getSystemService(UsageStatsManager::class.java) ?: return@withContext null
+        runCatching { sessionsOf(usm, from, to, includeSelf = true) }.getOrNull()
+            ?.mapNotNull { s ->
+                val a = maxOf(s.start, from)
+                val b = minOf(s.end, to)
+                if (b > a && (s.pkg == ctx.packageName || displayName(s.pkg) != null)) s.copy(start = a, end = b) else null
+            }
+    }
+
+    /** Rapordaki görünen ad (sistem bileşeniyse null). */
+    fun label(pkg: String): String? = if (pkg == ctx.packageName) "LiteDroid" else displayName(pkg)
+
+    fun icon(pkg: String): ImageBitmap? = iconOf(pkg)
 
     /** Olay akışından ön plan oturumları; aynı uygulamanın 15 sn'den kısa aralıklı parçaları birleştirilir. */
-    private fun sessionsOf(usm: UsageStatsManager, from: Long, to: Long): List<Session> {
+    private fun sessionsOf(usm: UsageStatsManager, from: Long, to: Long, includeSelf: Boolean = false): List<Session> {
         val events = usm.queryEvents(from, to) ?: return emptyList()
         val raw = ArrayList<Session>()
         var cur: String? = null
@@ -142,7 +162,7 @@ class UsageRepository(context: Context) {
         fun close(t: Long) {
             val p = cur ?: return
             val end = minOf(t, curStart + MAX_SESSION_MS)
-            if (end > curStart && p !in IGNORED && p != ctx.packageName) raw += Session(p, curStart, end)
+            if (end > curStart && p !in IGNORED && (includeSelf || p != ctx.packageName)) raw += Session(p, curStart, end)
             cur = null
         }
         val e = UsageEvents.Event()

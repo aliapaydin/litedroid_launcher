@@ -82,6 +82,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.FilterQuality
@@ -277,6 +284,7 @@ fun ModernHome(
                 userName = settings.userName,
                 showGreeting = settings.showGreeting,
                 notificationCount = vm.unseenContinue + (if (Updater.state.collectAsState().value.let { it is UpdateState.Available || it is UpdateState.NeedsConfirm }) 1 else 0),
+                wrappedNew = dev.litedroid.launcher.wrapped.WrappedEngine.unseen.collectAsState().value != null,
                 onTab = { tab = it },
                 onSearch = onSearch,
                 onNotifications = onNotifications,
@@ -336,6 +344,7 @@ private fun ModernTopBar(
     userName: String,
     showGreeting: Boolean,
     notificationCount: Int,
+    wrappedNew: Boolean,
     onTab: (ModernTab) -> Unit,
     onSearch: () -> Unit,
     onNotifications: () -> Unit,
@@ -384,7 +393,7 @@ private fun ModernTopBar(
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconCircle(fm, "top_claude", enabled, Icons.Filled.Search, tx("Claude'a sor", "Ask Claude"), badge = false, onSelect = onAskClaude, accent = true)
             IconCircle(fm, "top_search", enabled, Icons.Filled.Search, tx("Ara", "Search"), badge = false, onSelect = onSearch)
-            IconCircle(fm, "top_bell", enabled, Icons.Filled.Notifications, tx("Bildirimler", "Notifications"), badge = notificationCount > 0, onSelect = onNotifications)
+            IconCircle(fm, "top_bell", enabled, Icons.Filled.Notifications, tx("Bildirimler", "Notifications"), badge = notificationCount > 0 || wrappedNew, onSelect = onNotifications, gift = wrappedNew)
             // Açılır hızlı panel: aşağı ok (tüm ayarlar profil resminde)
             IconCircle(fm, "top_gear", enabled, Icons.Filled.KeyboardArrowDown, tx("Hızlı panel", "Quick panel"), badge = false, onSelect = onSettings)
         }
@@ -470,6 +479,8 @@ private fun IconCircle(
     badge: Boolean,
     onSelect: () -> Unit,
     accent: Boolean = false,
+    /** Yeni Wrapped var: çanın etrafında dönen renkli halka, sallanan çan ve 🎁 rozeti. */
+    gift: Boolean = false,
 ) {
     RegisterKey(fm, key)
     val motion = LocalMotion.current
@@ -480,11 +491,29 @@ private fun IconCircle(
         spring(dampingRatio = motion.tileDamping, stiffness = motion.tileStiffness),
         label = "iconScale",
     )
+    val giftAnim = rememberInfiniteTransition(label = "gift")
+    val ringSpin by giftAnim.animateFloat(0f, 360f, infiniteRepeatable(tween(2_200, easing = LinearEasing)), label = "ring")
+    val wiggle by giftAnim.animateFloat(-1f, 1f, infiniteRepeatable(tween(180), RepeatMode.Reverse), label = "wiggle")
+    val wigglePhase by giftAnim.animateFloat(0f, 1f, infiniteRepeatable(tween(3_000, easing = LinearEasing)), label = "phase")
     Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+        if (gift) {
+            // Dönen altın-pembe-mor halka ve hafif parıltı
+            Canvas(Modifier.size(46.dp).graphicsLayer { rotationZ = ringSpin }) {
+                drawCircle(
+                    Brush.sweepGradient(listOf(Color(0xFFFFD35C), Color(0xFFFF6FB5), Color(0xFF8E7BFF), Color(0xFF5CFFB0), Color(0xFFFFD35C))),
+                    radius = size.minDimension / 2 - 2.dp.toPx(),
+                    style = Stroke(3.dp.toPx()),
+                )
+            }
+        }
         Box(
             Modifier
                 .size(38.dp)
-                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .graphicsLayer {
+                    scaleX = scale; scaleY = scale
+                    // Üç saniyede bir kısa bir sallanma
+                    if (gift && wigglePhase < 0.18f) rotationZ = wiggle * 14f
+                }
                 .clip(CircleShape)
                 .background(if (focused) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.07f))
                 .then(if (focused) Modifier else Modifier.border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape))
@@ -504,7 +533,9 @@ private fun IconCircle(
                 Icon(icon, description, tint = if (focused) Color(0xFF0E1222) else Color.White, modifier = Modifier.size(20.dp))
             }
         }
-        if (badge) {
+        if (gift) {
+            Text("🎁", fontSize = 12.sp, modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp))
+        } else if (badge) {
             Box(
                 Modifier
                     .align(Alignment.TopEnd)

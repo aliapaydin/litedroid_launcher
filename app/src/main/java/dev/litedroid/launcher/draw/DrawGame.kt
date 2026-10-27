@@ -435,6 +435,7 @@ class DrawGame(context: Context) {
                 else -> 0
             }
         )
+        dev.litedroid.launcher.wrapped.WrappedStats.count(app, if (ai) "draw.ai" else "draw.rounds")
         val ms = if (ai) AI_DRAW_MS else _state.value.drawSeconds * 1000L
         val now = System.currentTimeMillis()
         val r = _state.value.round
@@ -456,6 +457,8 @@ class DrawGame(context: Context) {
     private fun finish() {
         phaseJob?.cancel()
         watchJob?.cancel()
+        dev.litedroid.launcher.wrapped.WrappedStats.count(app, "draw.games")
+        _state.value.ranked.firstOrNull()?.let { dev.litedroid.launcher.wrapped.WrappedStats.count(app, "draw.win." + it.avatar + " " + it.name) }
         _state.value = _state.value.copy(phase = DrawPhase.FINISHED, drawerId = null, phaseMs = 0, phaseEndsAt = 0)
     }
 
