@@ -3,6 +3,8 @@ package dev.litedroid.launcher.wrapped
 import android.content.Context
 import android.util.Log
 import dev.litedroid.launcher.data.GeminiMedia
+import dev.litedroid.launcher.data.ProfileTimeline
+import dev.litedroid.launcher.data.Profiles
 import dev.litedroid.launcher.data.ScoresHub
 import dev.litedroid.launcher.data.SettingsRepository
 import dev.litedroid.launcher.data.UsageRepository
@@ -34,8 +36,8 @@ import java.time.temporal.TemporalAdjusters
  */
 object WrappedEngine {
     private const val TAG = "LiteDroidWrapped"
-    /** Şimdilik LiteDroid'de tek profil var; ileride çoklu profilde her biri kendi klasörünü alır. */
-    const val PROFILE = "main"
+    /** Her profilin kendi Wrapped'i var; arşiv ve çan etkin profile göre. */
+    private fun active() = Profiles.activeId
     const val READY_HOUR = 9
 
     private val lock = Mutex()
@@ -44,21 +46,27 @@ object WrappedEngine {
     val unseen: StateFlow<LocalDate?> = _unseen
     private var loaded = false
 
-    private fun root(ctx: Context) = File(ctx.filesDir, "wrapped/$PROFILE").apply { mkdirs() }
-    private fun daysDir(ctx: Context) = File(root(ctx), "days").apply { mkdirs() }
-    private fun weeksDir(ctx: Context) = File(root(ctx), "weeks").apply { mkdirs() }
+    private fun root(ctx: Context, pid: String = active()) = File(ctx.filesDir, "wrapped/$pid").apply { mkdirs() }
+    private fun daysDir(ctx: Context, pid: String = active()) = File(root(ctx, pid), "days").apply { mkdirs() }
+    private fun weeksDir(ctx: Context, pid: String = active()) = File(root(ctx, pid), "weeks").apply { mkdirs() }
     private fun prefs(ctx: Context) = ctx.applicationContext.getSharedPreferences("litedroid_wrapped", Context.MODE_PRIVATE)
 
     fun load(ctx: Context) {
         if (loaded) return
         loaded = true
-        _unseen.value = prefs(ctx).getString("unseen_$PROFILE", null)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        Profiles.load(ctx)
+        reload(ctx)
+    }
+
+    /** Profil değişince çandaki "yeni Wrapped" o profile göre. */
+    fun reload(ctx: Context) {
+        _unseen.value = prefs(ctx).getString("unseen_${active()}", null)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     }
 
     fun markSeen(ctx: Context, week: LocalDate) {
         if (_unseen.value == week) {
             _unseen.value = null
-            prefs(ctx).edit().remove("unseen_$PROFILE").apply()
+            prefs(ctx).edit().remove("unseen_${active()}").apply()
         }
     }
 
@@ -74,10 +82,10 @@ object WrappedEngine {
             .sortedByDescending { it.start }
             .map { WeekRef(it.start, it.totalMs, it.persona, it.apps.firstOrNull()?.label) }
 
-    fun week(ctx: Context, start: LocalDate): WeekData? =
-        File(weeksDir(ctx), "$start.json").takeIf { it.exists() }?.let { f -> runCatching { WeekData.from(JSONObject(f.readText())) }.getOrNull() }
+    fun week(ctx: Context, start: LocalDate, pid: String = active()): WeekData? =
+        File(weeksDir(ctx, pid), "$start.json").takeIf { it.exists() }?.let { f -> runCatching { WeekData.from(JSONObject(f.readText())) }.getOrNull() }
 
-    fun previous(ctx: Context, w: WeekData): WeekData? = week(ctx, w.start.minusDays(7))
+    fun previous(ctx: Context, w: WeekData): WeekData? = week(ctx, w.start.minusDays(7), w.profile)
 
     // ------------------------------------------------------------------
     // Günlük kayıt ve haftalık üretim
@@ -99,21 +107,37 @@ object WrappedEngine {
     private suspend fun snapshotDays(ctx: Context) {
         val today = LocalDate.now(zone())
         val usage = UsageRepository(ctx)
+        val profiles = Profiles.list.value.map { it.id }
         // Android olayları ~7 gün tutar: daha eskisi kaydedilemez
         for (back in 7 downTo 1) {
             val d = today.minusDays(back.toLong())
-            val f = File(daysDir(ctx), "$d.json")
-            if (f.exists()) continue
-            f.writeText(dayJson(ctx, usage, d, startOf(d), startOf(d.plusDays(1))).toString())
-            WrappedStats.clear(ctx, d.toString())
+            val missing = profiles.filter { !File(daysDir(ctx, it), "$d.json").exists() }
+            if (missing.isEmpty()) continue
+            val from = startOf(d)
+            val to = startOf(d.plusDays(1))
+            val sessions = usage.sessions(from, to)
+            for (pid in missing) {
+                File(daysDir(ctx, pid), "$d.json").writeText(dayJson(ctx, usage, d, sessions, pid, from, to).toString())
+                WrappedStats.clear(ctx, d.toString(), pid)
+            }
         }
     }
 
-    /** Bir günün kaydı: oturumlar (paket sırası + başlangıç + bitiş) ve LiteDroid sayaçları. */
-    private suspend fun dayJson(ctx: Context, usage: UsageRepository, d: LocalDate, from: Long, to: Long): JSONObject {
-        val sessions = usage.sessions(from, to)
+    /**
+     * Bir günün bir profile ait kaydı: o profil açıkken geçen oturumlar (paket sırası + başlangıç + bitiş)
+     * ve profilin LiteDroid sayaçları.
+     */
+    private fun dayJson(ctx: Context, usage: UsageRepository, d: LocalDate, all: List<UsageRepository.Session>?, pid: String, from: Long, to: Long): JSONObject {
+        val ranges = ProfileTimeline.intervals(ctx, pid, from, to)
+        val sessions = all?.flatMap { s ->
+            ranges.mapNotNull { r ->
+                val a = maxOf(s.start, r.first)
+                val b = minOf(s.end, r.last + 1)
+                if (b > a) s.copy(start = a, end = b) else null
+            }
+        }
         val pkgs = sessions.orEmpty().map { it.pkg }.distinct()
-        val stats = WrappedStats.read(ctx, d.toString())
+        val stats = WrappedStats.read(ctx, d.toString(), pid)
         return JSONObject()
             .put("date", d.toString())
             .put("usage", sessions != null)
@@ -127,34 +151,38 @@ object WrappedEngine {
     }
 
     private suspend fun buildDueWeeks(ctx: Context) {
+        for (pid in Profiles.list.value.map { it.id }) buildDueWeeks(ctx, pid)
+    }
+
+    private suspend fun buildDueWeeks(ctx: Context, pid: String) {
         val now = LocalDateTime.now(zone())
         val thisMonday = mondayOf(now.toLocalDate())
         var last = thisMonday.minusDays(7)
         if (now.isBefore(thisMonday.atTime(READY_HOUR, 0))) last = last.minusDays(7)
         val p = prefs(ctx)
-        val skipped = HashSet(p.getStringSet("skipped_$PROFILE", emptySet()).orEmpty())
+        val skipped = HashSet(p.getStringSet("skipped_$pid", emptySet()).orEmpty())
         fun skip(d: LocalDate) {
             skipped += d.toString()
-            p.edit().putStringSet("skipped_$PROFILE", HashSet(skipped)).apply()
+            p.edit().putStringSet("skipped_$pid", HashSet(skipped)).apply()
         }
         for (start in listOf(last.minusDays(7), last)) {
-            if (File(weeksDir(ctx), "$start.json").exists() || start.toString() in skipped) continue
-            val days = (0..6).map { File(daysDir(ctx), "${start.plusDays(it.toLong())}.json") }
+            if (File(weeksDir(ctx, pid), "$start.json").exists() || start.toString() in skipped) continue
+            val days = (0..6).map { File(daysDir(ctx, pid), "${start.plusDays(it.toLong())}.json") }
             if (days.none { it.exists() }) {
                 // Bu hafta için kayıt yok (LiteDroid henüz kurulmamıştı)
                 skip(start)
                 continue
             }
-            val w = compute(ctx, start, days.map { f -> f.takeIf { it.exists() }?.let { runCatching { JSONObject(it.readText()) }.getOrNull() } }, preview = false)
+            val w = compute(ctx, pid, start, days.map { f -> f.takeIf { it.exists() }?.let { runCatching { JSONObject(it.readText()) }.getOrNull() } }, preview = false)
             if (w.isEmpty) {
                 // Bu profil o hafta hiç kullanılmadı: rapor üretilmez
                 skip(start)
                 continue
             }
-            File(weeksDir(ctx), "$start.json").writeText(w.toJson().toString())
+            File(weeksDir(ctx, pid), "$start.json").writeText(w.toJson().toString())
             if (start == last) {
-                _unseen.value = start
-                p.edit().putString("unseen_$PROFILE", start.toString()).apply()
+                if (pid == active()) _unseen.value = start
+                p.edit().putString("unseen_$pid", start.toString()).apply()
             }
             Log.i(TAG, "wrapped ready for $start")
             // Müziği şimdiden hazırla: açınca beklemesin
@@ -168,22 +196,26 @@ object WrappedEngine {
         val today = LocalDate.now(zone())
         val start = mondayOf(today)
         val usage = UsageRepository(ctx)
+        val pid = active()
         val days = (0..6).map { i ->
             val d = start.plusDays(i.toLong())
             when {
                 d.isAfter(today) -> null
-                d == today -> dayJson(ctx, usage, d, startOf(d), System.currentTimeMillis())
-                else -> File(daysDir(ctx), "$d.json").takeIf { it.exists() }?.let { runCatching { JSONObject(it.readText()) }.getOrNull() }
+                d == today -> {
+                    val now = System.currentTimeMillis()
+                    dayJson(ctx, usage, d, usage.sessions(startOf(d), now), pid, startOf(d), now)
+                }
+                else -> File(daysDir(ctx, pid), "$d.json").takeIf { it.exists() }?.let { runCatching { JSONObject(it.readText()) }.getOrNull() }
             }
         }
-        compute(ctx, start, days, preview = true)
+        compute(ctx, pid, start, days, preview = true)
     }
 
     private class S(val pkg: String, val label: String, val start: Long, val end: Long) {
         val ms get() = end - start
     }
 
-    private suspend fun compute(ctx: Context, start: LocalDate, days: List<JSONObject?>, preview: Boolean): WeekData {
+    private suspend fun compute(ctx: Context, pid: String, start: LocalDate, days: List<JSONObject?>, preview: Boolean): WeekData {
         val self = ctx.packageName
         val tz = zone()
         val all = ArrayList<S>()
@@ -210,7 +242,7 @@ object WrappedEngine {
         }
         // Bugünün henüz kaydedilmemiş sayaçları (önizleme)
         if (preview) {
-            val t = WrappedStats.read(ctx, LocalDate.now(tz).toString())
+            val t = WrappedStats.read(ctx, LocalDate.now(tz).toString(), pid)
             t.counters.forEach { (k, v) -> counters[k] = (counters[k] ?: 0) + v }
             t.times.forEach { (k, v) -> times[k] = (times[k] ?: 0L) + v }
             t.records.forEach { (k, v) -> records[k] = maxOf(records[k] ?: 0, v) }
@@ -218,7 +250,7 @@ object WrappedEngine {
         }
 
         // Kilitli uygulamalar Wrapped'te görünmez (gizli kalsınlar diye kilitlendiler)
-        val settings = SettingsRepository(ctx).load()
+        val settings = SettingsRepository(ctx, forProfile = pid).load()
         val apps = all.filter { it.pkg != self && it.pkg !in settings.lockedApps }
         val mine = all.filter { it.pkg == self }
         val weekStartMs = startOf(start)
@@ -278,7 +310,7 @@ object WrappedEngine {
 
         val w = WeekData(
             start = start,
-            profile = PROFILE,
+            profile = pid,
             name = settings.userName,
             usageAccess = usageAccess,
             totalMs = total,
@@ -327,8 +359,8 @@ object WrappedEngine {
     // Müzik
     // ------------------------------------------------------------------
 
-    fun musicFile(ctx: Context, start: LocalDate): File? =
-        listOf("mp3", "wav").map { File(weeksDir(ctx), "$start.$it") }.firstOrNull { it.exists() && it.length() > 10_000 }
+    fun musicFile(ctx: Context, start: LocalDate, pid: String = active()): File? =
+        listOf("mp3", "wav").map { File(weeksDir(ctx, pid), "$start.$it") }.firstOrNull { it.exists() && it.length() > 10_000 }
 
     /**
      * Haftanın müziği: yoksa Lyria ile üretir (Gemini anahtarı gerekir). Her hafta farklı bir parça:
@@ -336,7 +368,7 @@ object WrappedEngine {
      * Anahtar yoksa ya da üretilemezse null (gösteri cihazda üretilen müzikle çalar).
      */
     suspend fun ensureMusic(ctx: Context, w: WeekData): File? = withContext(Dispatchers.IO) {
-        musicFile(ctx, w.start)?.let { return@withContext it }
+        musicFile(ctx, w.start, w.profile)?.let { return@withContext it }
         val key = SettingsRepository(ctx).load().geminiKey.trim()
         if (key.isEmpty()) return@withContext null
         val flavors = listOf(
@@ -354,7 +386,7 @@ object WrappedEngine {
             "made for ${w.name}'s week. Style: ${w.persona.music}, $flavor. Feeling: $energy. " +
             "About two minutes long, around 110-124 BPM, a short intro, steady build-up and a big happy finale, loop-friendly ending."
         val (ext, bytes) = GeminiMedia.music(ctx, key, prompt)
-        val f = File(weeksDir(ctx), "${w.start}.$ext")
+        val f = File(weeksDir(ctx, w.profile), "${w.start}.$ext")
         f.writeBytes(bytes)
         Log.i(TAG, "music ready for ${w.start} (${bytes.size / 1024} KB)")
         f
@@ -362,9 +394,13 @@ object WrappedEngine {
 
     /** 3 haftadan eski günlük kayıtlar ve 12 haftadan eski müzikler silinir; haftalık özetler kalır. */
     private fun prune(ctx: Context) {
+        Profiles.list.value.forEach { prune(ctx, it.id) }
+    }
+
+    private fun prune(ctx: Context, pid: String) {
         val old = LocalDate.now(zone()).minusDays(21).toString()
-        daysDir(ctx).listFiles().orEmpty().filter { it.name.removeSuffix(".json") < old }.forEach { it.delete() }
-        val music = weeksDir(ctx).listFiles { f -> f.name.endsWith(".mp3") || f.name.endsWith(".wav") }.orEmpty().sortedByDescending { it.name }
+        daysDir(ctx, pid).listFiles().orEmpty().filter { it.name.removeSuffix(".json") < old }.forEach { it.delete() }
+        val music = weeksDir(ctx, pid).listFiles { f -> f.name.endsWith(".mp3") || f.name.endsWith(".wav") }.orEmpty().sortedByDescending { it.name }
         music.drop(12).forEach { it.delete() }
     }
 }

@@ -1,6 +1,8 @@
 package dev.litedroid.launcher
 
 import dev.litedroid.launcher.data.UpdateMode
+import dev.litedroid.launcher.data.Profile
+import dev.litedroid.launcher.data.Profiles
 import dev.litedroid.launcher.data.VoiceEngine
 import dev.litedroid.launcher.data.CloudVoice
 import dev.litedroid.launcher.data.GeminiMedia
@@ -210,6 +212,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     override fun onCleared() {
         runCatching { connectivity?.unregisterNetworkCallback(networkCallback) }
+        runCatching { app.unregisterReceiver(screenOnReceiver) }
         speaker.shutdown()
         voiceTestPlayer.stop()
         voice.cancel()
@@ -825,7 +828,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // ---------------- Çan: izlemeye devam et ----------------
 
-    private val bellPrefs = app.getSharedPreferences("litedroid_bell", android.content.Context.MODE_PRIVATE)
+    private val bellPrefs get() = app.getSharedPreferences(Profiles.scoped("litedroid_bell"), android.content.Context.MODE_PRIVATE)
     private var continueSeenAt by mutableStateOf(bellPrefs.getLong("seen_at", 0L))
 
     /** Çan menüsü en son açıldığından beri güncellenen "devam et" içerikleri. */
@@ -898,7 +901,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private fun restartIdleTimer() {
         idleJob?.cancel()
-        val minutes = settings.saverMinutes
+        // "Kim İzliyor?" ekranında ekran koruyucu her zaman 1 dakikada açılır
+        val minutes = if (pickerOpen) 1 else settings.saverMinutes
         if (!resumed || minutes <= 0 || screensaverActive) return
         idleJob = viewModelScope.launch {
             delay(minutes * 60_000L)
@@ -919,6 +923,88 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun onHomePressed() {
         dismissScreensaver()
         homeSignal++
+    }
+
+    // ---------------- Profiller ----------------
+
+    /** "Kim İzliyor?" ekranı açık mı. */
+    var pickerOpen by mutableStateOf(false)
+        private set
+
+    /** Profile girişte altta çıkan "Hoş geldin" kutusu. */
+    var welcome by mutableStateOf<Profile?>(null)
+        private set
+    private var welcomeJob: Job? = null
+
+    /** Birden fazla profil varsa açılışta ve TV uyanınca "Kim İzliyor?" gösterilir. */
+    val hasManyProfiles: Boolean get() = Profiles.list.value.size >= 2
+
+    /** Açılışta / TV uyanınca zorunlu (Geri kapatamaz); sağ üstteki profilden açılınca değil. */
+    var pickerForced by mutableStateOf(true)
+        private set
+
+    fun openPicker(forced: Boolean = true) {
+        dismissScreensaver()
+        pickerForced = forced
+        pickerOpen = true
+        restartIdleTimer()
+    }
+
+    fun closePicker() {
+        pickerOpen = false
+        restartIdleTimer()
+    }
+
+    /** Seçilen profile geç (PIN doğrulandıktan sonra çağrılır). */
+    fun enterProfile(p: Profile) {
+        if (p.id != Profiles.activeId) switchProfile(p.id)
+        pickerOpen = false
+        homeSignal++
+        restartIdleTimer()
+        welcomeJob?.cancel()
+        welcome = Profiles.get(p.id) ?: p
+        welcomeJob = viewModelScope.launch {
+            delay(3_500)
+            welcome = null
+        }
+    }
+
+    /** Etkin profili değiştirir ve o profilin ayarlarını, uygulama düzenini ve verilerini yükler. */
+    private fun switchProfile(id: String) {
+        stopClaude()
+        claudeTurns.clear()
+        Profiles.setActive(app, id)
+        settings = settingsRepo.load().also { I18n.lang = it.language }
+        themeIndex = repo.themeIndex.coerceIn(0, Wallpapers.all.lastIndex)
+        shelfStyle = ShelfStyle.entries.getOrElse(repo.shelfStyle) { ShelfStyle.CINEMATIC }
+        showHidden = false
+        continueSeenAt = bellPrefs.getLong("seen_at", 0L)
+        dev.litedroid.launcher.tools.AvatarStore.reload(app)
+        dev.litedroid.launcher.wrapped.WrappedEngine.reload(app)
+        played = emptyList()
+        usageRecent = emptyList()
+        refresh()
+        refreshContent()
+        ScoresHub.configure(settings)
+        ScoreOverlay.sync(app, settings)
+    }
+
+    /** TV uyanınca (ekran açılınca) profil seçimi: başkası izleyecekse kendi profiline geçsin. */
+    private val screenOnReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context, intent: android.content.Intent) {
+            if (hasManyProfiles) openPicker()
+        }
+    }
+
+    init {
+        Profiles.load(app)
+        if (hasManyProfiles) pickerOpen = true
+        runCatching {
+            androidx.core.content.ContextCompat.registerReceiver(
+                app, screenOnReceiver, android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_ON),
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+        }
     }
 
     private companion object {

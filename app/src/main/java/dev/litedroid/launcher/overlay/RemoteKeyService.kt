@@ -135,6 +135,31 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         watchUpdates()
         SleepTimer.load(this)
         onSleepChanged(fromUser = false)
+        runCatching {
+            androidx.core.content.ContextCompat.registerReceiver(
+                this, screenOnReceiver, android.content.IntentFilter(Intent.ACTION_SCREEN_ON),
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+        }
+    }
+
+    /**
+     * TV uyandı: birden fazla profil varsa hangi uygulama açık kalmış olursa olsun "Kim İzliyor?" ekranı açılır,
+     * akşamdan kalan profille başkası izlemeye başlamasın.
+     */
+    private val screenOnReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context, intent: Intent) {
+            dev.litedroid.launcher.data.Profiles.load(this@RemoteKeyService)
+            if (dev.litedroid.launcher.data.Profiles.list.value.size < 2) return
+            closeMenu(animated = false)
+            runCatching {
+                startActivity(
+                    Intent(this@RemoteKeyService, dev.litedroid.launcher.MainActivity::class.java)
+                        .putExtra(dev.litedroid.launcher.MainActivity.EXTRA_PICK_PROFILE, true)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                )
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -739,6 +764,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     override fun onDestroy() {
         if (instance === this) instance = null
+        runCatching { unregisterReceiver(screenOnReceiver) }
         handler.removeCallbacks(breakTick)
         hideLock()
         closeMenu(animated = false)

@@ -11,7 +11,9 @@ import java.time.LocalDate
  * o günün kaydına taşır ve buradan siler. İçerik (soru metni, site adresi) asla tutulmaz, yalnızca sayılar.
  */
 object WrappedStats {
-    private fun prefs(ctx: Context) = ctx.applicationContext.getSharedPreferences("litedroid_stats", Context.MODE_PRIVATE)
+    /** Sayaçlar etkin profile yazılır ([forProfile] ile başka profilinki okunur). */
+    private fun prefs(ctx: Context, forProfile: String = dev.litedroid.launcher.data.Profiles.activeId) =
+        ctx.applicationContext.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped("litedroid_stats", forProfile), Context.MODE_PRIVATE)
     private fun today() = LocalDate.now().toString()
 
     /** Bir olayı say: [key] örneğin "game.SNAKE", "story.new", "claude.ask". */
@@ -73,8 +75,8 @@ object WrappedStats {
         val isEmpty get() = counters.isEmpty() && times.isEmpty() && records.isEmpty() && paintings.isEmpty()
     }
 
-    internal fun read(ctx: Context, date: String): Day {
-        val all = prefs(ctx).all
+    internal fun read(ctx: Context, date: String, profile: String = dev.litedroid.launcher.data.Profiles.activeId): Day {
+        val all = prefs(ctx, profile).all
         val c = HashMap<String, Int>()
         val t = HashMap<String, Long>()
         val r = HashMap<String, Int>()
@@ -93,8 +95,8 @@ object WrappedStats {
     }
 
     /** Gün kaydına taşınan günlerin ve 3 haftadan eski artıkların sayaçlarını siler. */
-    internal fun clear(ctx: Context, date: String) {
-        val p = prefs(ctx)
+    internal fun clear(ctx: Context, date: String, profile: String = dev.litedroid.launcher.data.Profiles.activeId) {
+        val p = prefs(ctx, profile)
         val old = LocalDate.now().minusDays(21).toString()
         val e = p.edit()
         for (k in p.all.keys) {

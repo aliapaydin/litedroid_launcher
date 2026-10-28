@@ -70,6 +70,14 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
+    /** TV uyandı (kumanda servisi açtı): "Kim İzliyor?" ekranı. */
+    private fun handlePickProfile(intent: Intent?): Boolean {
+        if (intent?.getBooleanExtra(EXTRA_PICK_PROFILE, false) != true) return false
+        intent.removeExtra(EXTRA_PICK_PROFILE)
+        viewModel.openPicker()
+        return true
+    }
+
     private fun handleOpenPanel(intent: Intent?): Boolean {
         if (intent?.getBooleanExtra(EXTRA_OPEN_PANEL, false) != true) return false
         intent.removeExtra(EXTRA_OPEN_PANEL)
@@ -193,6 +201,7 @@ class MainActivity : ComponentActivity() {
         if (handleOpenClaude(intent)) return
         if (handleOpenBrowser(intent)) return
         if (handleOpenPanel(intent)) return
+        if (handlePickProfile(intent)) return
         if (intent.hasCategory(Intent.CATEGORY_HOME)) viewModel.onHomePressed()
     }
 
@@ -216,5 +225,8 @@ class MainActivity : ComponentActivity() {
 
         /** Kumandadaki Input tuşu: LiteDroid hızlı paneliyle açılır. */
         const val EXTRA_OPEN_PANEL = "open_panel"
+
+        /** "Kim İzliyor?" ekranıyla aç (TV uyanınca). */
+        const val EXTRA_PICK_PROFILE = "pick_profile"
     }
 }

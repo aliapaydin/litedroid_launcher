@@ -1,6 +1,7 @@
 package dev.litedroid.launcher.ui
 
 import dev.litedroid.launcher.data.UpdateMode
+import dev.litedroid.launcher.data.Profiles
 import dev.litedroid.launcher.data.UpdateState
 import dev.litedroid.launcher.data.Updater
 import dev.litedroid.launcher.data.VoiceListener
@@ -198,6 +199,9 @@ private fun HomeContent(vm: LauncherViewModel) {
     var aboutOpen by remember { mutableStateOf(false) }
     var changelogOpen by remember { mutableStateOf(false) }
     var usageOpen by remember { mutableStateOf(false) }
+    // Profiller: yönetim sayfası ve yetişkin doğrulaması
+    var profilesOpen by remember { mutableStateOf(false) }
+    var profileGate by remember { mutableStateOf(false) }
     // Wrapped: arşiv sayfası ve açık gösteri
     var wrappedArchiveOpen by remember { mutableStateOf(false) }
     var wrappedShow by remember { mutableStateOf<dev.litedroid.launcher.wrapped.WeekData?>(null) }
@@ -226,7 +230,7 @@ private fun HomeContent(vm: LauncherViewModel) {
 
     // Tam ekran sayfalar açıkken ana ekran odak alamaz
     // Yazı penceresi de sayfa sayılır: açıkken ana ekran odağı geri almaya çalışmaz
-    val pageOpen = textTarget != null || storeOpen || aboutOpen || changelogOpen || usageOpen || wrappedArchiveOpen || wrappedShow != null || teamsOpen || sleepDialogOpen || updateOpen || wifiOpen || phoneOpen || vm.updatePrompt != null || vm.updatedTo != null ||
+    val pageOpen = vm.pickerOpen || profilesOpen || profileGate || textTarget != null || storeOpen || aboutOpen || changelogOpen || usageOpen || wrappedArchiveOpen || wrappedShow != null || teamsOpen || sleepDialogOpen || updateOpen || wifiOpen || phoneOpen || vm.updatePrompt != null || vm.updatedTo != null ||
         (vm.updateFullScreen && updateState.inProgress) || settingsOpen || searchOpen || gameOpen != null || askOpen || panelOpen
     val overlayOpen = menuFor != null || panelOpen || notifOpen || gamePickerOpen || pageOpen
     val motionPaused = rememberUpdatedState(overlayOpen || vm.screensaverActive || !settings.wallpaperMotion)
@@ -362,6 +366,8 @@ private fun HomeContent(vm: LauncherViewModel) {
         if (vm.homeSignal == 0) return@LaunchedEffect
         wrappedShow = null
         wrappedArchiveOpen = false
+        profilesOpen = false
+        profileGate = false
         menuFor = null
         panelOpen = false
         notifOpen = false
@@ -550,7 +556,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                     onAskClaude = { askOpen = true },
                     onNotifications = { notifOpen = true },
                     onQuickSettings = { panelOpen = true },
-                    onProfile = { settingsOpen = true },
+                    onProfile = { vm.openPicker(forced = false) },
                 )
             } else {
                 AnimatedWallpaper(
@@ -580,7 +586,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                         showGreeting = settings.showGreeting,
                         favorites = vm.favorites,
                         enabled = !pageOpen,
-                        onProfile = { settingsOpen = true },
+                        onProfile = { vm.openPicker(forced = false) },
                         onSettings = { panelOpen = true },
                         onBarFocus = { key, app ->
                             barFocus = key
@@ -1058,6 +1064,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                         settingsOpen = false
                         wrappedArchiveOpen = true
                     },
+                    onProfiles = { profileGate = true },
                     onAndroidSettings = { startSafely(Intent(Settings.ACTION_SETTINGS)) },
                     onMediaAccess = {
                         if (vm.mediaAccess) toast(tx("Medya geçmişi izni açık", "Media history permission is on"))
@@ -1412,6 +1419,41 @@ private fun HomeContent(vm: LauncherViewModel) {
             )
         }
 
+        // ---------- Kim İzliyor? ve profil yönetimi ----------
+        AnimatedVisibility(
+            visible = vm.pickerOpen,
+            enter = fadeIn(tween(400)),
+            exit = fadeOut(tween(300)),
+        ) {
+            WhoIsWatchingScreen(
+                forced = vm.pickerForced,
+                onPick = { vm.enterProfile(it) },
+                onManage = { profilesOpen = true },
+                onClose = { vm.closePicker() },
+            )
+        }
+        AnimatedVisibility(
+            visible = profilesOpen,
+            enter = fadeIn() + slideInVertically { it / 8 },
+            exit = fadeOut() + slideOutVertically { it / 8 },
+        ) {
+            ProfileManagerScreen(onClose = {
+                profilesOpen = false
+                vm.reloadSettings()
+            })
+        }
+        if (profileGate) {
+            AdultGate(
+                onOk = {
+                    profileGate = false
+                    settingsOpen = false
+                    profilesOpen = true
+                },
+                onCancel = { profileGate = false },
+            )
+        }
+        WelcomeToast(vm.welcome)
+
         // ---------- Ekran koruyucu (en üstte) ----------
         AnimatedVisibility(
             visible = vm.screensaverActive,
@@ -1447,6 +1489,7 @@ private fun settingsEntries(
     onCheckUpdates: () -> Unit,
     onUsageReport: () -> Unit,
     onWrapped: () -> Unit,
+    onProfiles: () -> Unit,
     onTeams: () -> Unit,
     onAndroidSettings: () -> Unit,
     onMediaAccess: () -> Unit,
@@ -1497,6 +1540,10 @@ private fun settingsEntries(
     },
 
     SettingsEntry.Header(tx("Profil", "Profile")),
+    SettingsEntry.Row("profiles", tx("Profiller", "Profiles"), Icons.Filled.Face, "${Profiles.list.value.size}/${Profiles.MAX}",
+        tx("Kim İzliyor? ekranındaki profiller: ekle (yetişkin ya da çocuk), ad, simge, renk, PIN ve silme. Her profilin ayarları, favorileri, rekorları, masalları ve Wrapped'i ayrıdır. ",
+            "The profiles on Who's watching?: add (adult or kid), name, icon, color, PIN and delete. Each profile keeps its own settings, favorites, records, stories and Wrapped. ") +
+            tx("Yetişkin PIN'i sorulabilir.", "An adult PIN may be asked.")) { onProfiles() },
     SettingsEntry.Row("name", tx("Kullanıcı adı", "User name"), Icons.Filled.Person, settings.userName,
         tx("Üst barda ve selamlamada görünen ad.", "The name shown in the top bar and greeting.")) { onEditName() },
     SettingsEntry.Row("greeting", tx("Selamlama", "Greeting"), Icons.Filled.Face, if (settings.showGreeting) tx("Açık", "On") else tx("Kapalı", "Off"),

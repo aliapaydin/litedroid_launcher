@@ -168,7 +168,7 @@ private class PageAssets(val audio: Pcm?, val hasImage: Boolean, val error: Thro
  */
 class StoryController(private val context: Context, private val scope: CoroutineScope) {
 
-    private val prefs = context.getSharedPreferences("litedroid_story", Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped("litedroid_story"), Context.MODE_PRIVATE)
     val settings: LauncherSettings = SettingsRepository(context).load()
     val key: String = settings.geminiKey.trim()
     val library = StoryLibrary(context)

@@ -170,7 +170,8 @@ fun GameSurface(
 
 /** En iyi skorlar (oyun başına tek sayı). */
 object GameScores {
-    private fun prefs(ctx: Context) = ctx.getSharedPreferences("litedroid_games", Context.MODE_PRIVATE)
+    /** Rekorlar profile özel. */
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped("litedroid_games"), Context.MODE_PRIVATE)
     fun best(ctx: Context, id: String): Int = prefs(ctx).getInt(id, 0)
 
     /** Yeni rekor ise kaydeder ve true döner. [lowerIsBetter] hamle sayısı gibi değerler için. */

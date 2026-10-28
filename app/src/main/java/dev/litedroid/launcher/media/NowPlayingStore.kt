@@ -132,7 +132,7 @@ object NowPlayingStore {
     fun listenerComponent(context: Context) = ComponentName(context, MediaListenerService::class.java)
 
     fun load(context: Context): List<PlayedItem> {
-        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, "[]") ?: "[]"
+        val raw = context.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped(PREFS), Context.MODE_PRIVATE).getString(KEY, "[]") ?: "[]"
         return runCatching {
             val arr = JSONArray(raw)
             (0 until arr.length()).map { i ->
@@ -156,7 +156,7 @@ object NowPlayingStore {
     }
 
     fun clear(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).apply()
+        context.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped(PREFS), Context.MODE_PRIVATE).edit().remove(KEY).apply()
         File(context.filesDir, "art").deleteRecursively()
     }
 
@@ -399,7 +399,7 @@ object NowPlayingStore {
                     .put("anon", p.anonymous)
             )
         }
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, arr.toString()).apply()
+        context.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped(PREFS), Context.MODE_PRIVATE).edit().putString(KEY, arr.toString()).apply()
     }
 
     private val TRACKED_STATES = setOf(

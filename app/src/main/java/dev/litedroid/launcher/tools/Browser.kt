@@ -115,7 +115,7 @@ private fun toUrl(input: String): String {
 
 private object BrowserHistory {
     fun load(ctx: Context): List<Pair<String, String>> = runCatching {
-        val a = JSONArray(ctx.getSharedPreferences("litedroid_browser", Context.MODE_PRIVATE).getString("history", "[]"))
+        val a = JSONArray(ctx.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped("litedroid_browser"), Context.MODE_PRIVATE).getString("history", "[]"))
         (0 until a.length()).map { a.getJSONObject(it).let { o -> o.getString("t") to o.getString("u") } }
     }.getOrDefault(emptyList())
 
@@ -123,11 +123,11 @@ private object BrowserHistory {
         if (!url.startsWith("http")) return
         val list = (listOf(title.ifBlank { url } to url) + load(ctx).filter { it.second != url }).take(12)
         val a = JSONArray().apply { list.forEach { put(JSONObject().put("t", it.first).put("u", it.second)) } }
-        ctx.getSharedPreferences("litedroid_browser", Context.MODE_PRIVATE).edit().putString("history", a.toString()).apply()
+        ctx.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped("litedroid_browser"), Context.MODE_PRIVATE).edit().putString("history", a.toString()).apply()
     }
 
     fun clear(ctx: Context) {
-        ctx.getSharedPreferences("litedroid_browser", Context.MODE_PRIVATE).edit().remove("history").apply()
+        ctx.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped("litedroid_browser"), Context.MODE_PRIVATE).edit().remove("history").apply()
     }
 }
 
