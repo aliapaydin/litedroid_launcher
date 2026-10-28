@@ -52,6 +52,7 @@ import dev.litedroid.launcher.media.NowPlayingStore
 import dev.litedroid.launcher.media.PlayedItem
 import dev.litedroid.launcher.ui.ShelfStyle
 import dev.litedroid.launcher.ui.Wallpapers
+import dev.litedroid.launcher.ui.Wallpaper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -891,9 +892,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun cycleTheme() {
-        themeIndex = (themeIndex + 1) % Wallpapers.all.size
+        themeIndex = (themeIndex + 1) % wallpapers.size
         repo.themeIndex = themeIndex
     }
+
+    /** Çocuk profilinde renkli çocuk temaları, diğerlerinde normal duvar kâğıtları. */
+    val wallpapers: List<Wallpaper> get() = if (Profiles.activeProfile?.isChild == true) Wallpapers.kids else Wallpapers.all
+    val wallpaper: Wallpaper get() = wallpapers[themeIndex.mod(wallpapers.size)]
 
     fun cycleShelfStyle() {
         shelfStyle = ShelfStyle.entries[(shelfStyle.ordinal + 1) % ShelfStyle.entries.size]
@@ -1001,7 +1006,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         claudeTurns.clear()
         Profiles.setActive(app, id)
         settings = settingsRepo.load().also { I18n.lang = it.language }
-        themeIndex = repo.themeIndex.coerceIn(0, Wallpapers.all.lastIndex)
+        themeIndex = repo.themeIndex.coerceIn(0, wallpapers.lastIndex)
+        showHidden = false
         shelfStyle = ShelfStyle.entries.getOrElse(repo.shelfStyle) { ShelfStyle.CINEMATIC }
         showHidden = false
         continueSeenAt = bellPrefs.getLong("seen_at", 0L)

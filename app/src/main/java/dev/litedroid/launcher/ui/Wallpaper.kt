@@ -51,6 +51,14 @@ object Wallpapers {
         Wallpaper("Kum", "Sand", Color(0xFF1A140C), listOf(Color(0xFFC08A3E), Color(0xFF8A4B2A), Color(0xFFE0B870))),
         Wallpaper("Grafit", "Graphite", Color(0xFF101012), listOf(Color(0xFF4A4A58), Color(0xFF2E2E38), Color(0xFF5E5E6C))),
     )
+
+    /** Çocuk profillerinin renkli, şeker tonlu duvar kâğıtları. */
+    val kids = listOf(
+        Wallpaper("Şeker", "Candy", Color(0xFF2A1450), listOf(Color(0xFFFF5FA2), Color(0xFFFFB13D), Color(0xFF8E6BFF))),
+        Wallpaper("Okyanus", "Ocean", Color(0xFF0B2350), listOf(Color(0xFF22D3EE), Color(0xFF4ADE80), Color(0xFF3B82F6))),
+        Wallpaper("Gökkuşağı", "Rainbow", Color(0xFF231A55), listOf(Color(0xFFFF6B6B), Color(0xFFFFD93D), Color(0xFF6BCBFF))),
+        Wallpaper("Dondurma", "Ice cream", Color(0xFF2B1B46), listOf(Color(0xFFFF9EC4), Color(0xFF9EF0D0), Color(0xFFFFE29A))),
+    )
 }
 
 /**

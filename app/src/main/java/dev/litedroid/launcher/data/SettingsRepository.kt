@@ -225,7 +225,17 @@ class SettingsRepository(context: Context, private val forProfile: String? = nul
         Profiles.load(ctx)
     }
 
-    fun load(): LauncherSettings = LauncherSettings(
+    /**
+     * Çocuk profilinde canlı skorlar hiç yok: yüzen şerit, ekran koruyucu skor kartı ve ligler kapalı.
+     * Cihazın ortak ayarları (anahtarlar, Wi-Fi, güncellemeler, kumanda…) ebeveynin bıraktığı gibidir.
+     */
+    fun load(): LauncherSettings {
+        val s = loadRaw()
+        if (Profiles.get(pid)?.isChild != true) return s
+        return s.copy(floatingScores = false, saverScores = false, scoreLeagues = emptySet(), followedTeams = emptyMap(), claudeWebSearch = false)
+    }
+
+    private fun loadRaw(): LauncherSettings = LauncherSettings(
         language = enumOr(src(K_LANGUAGE).getString(K_LANGUAGE, null), AppLanguage.TR),
         layout = enumOr(src(K_LAYOUT).getString(K_LAYOUT, null), UiLayout.CASUAL),
         weatherEnabled = src(K_WEATHER).getBoolean(K_WEATHER, true),

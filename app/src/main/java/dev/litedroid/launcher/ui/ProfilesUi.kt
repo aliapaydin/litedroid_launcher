@@ -444,7 +444,8 @@ fun SlotPinDialog(
 /** Tek makara: sayılar aşağı yukarı kayarak döner, ortadaki seçili rakamdır. */
 @Composable
 private fun Reel(pos: Int, focused: Boolean, masked: Boolean = false, filled: Boolean = false) {
-    val a by animateFloatAsState(pos.toFloat(), spring(dampingRatio = 0.62f, stiffness = 420f), label = "reel")
+    // Hızlı ve akıcı: sert bir yay, kısa sürede oturur (basılı tutunca da yetişir)
+    val a by animateFloatAsState(pos.toFloat(), spring(dampingRatio = 0.82f, stiffness = 1700f, visibilityThreshold = 0.002f), label = "reel")
     val glow by rememberInfiniteTransition(label = "g").animateFloat(0.6f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "g")
     val shape = RoundedCornerShape(20.dp)
     Box(

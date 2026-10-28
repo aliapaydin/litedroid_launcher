@@ -220,7 +220,9 @@ private fun MenuCard(
             }
         }
 
-        // ---- Skor şeridi ----
+        // ---- Skor şeridi (çocuk profilinde yok) ----
+        val kid = remember { dev.litedroid.launcher.data.Profiles.activeProfile?.isChild == true }
+        if (!kid) {
         Spacer(Modifier.height(12.dp))
         SectionLabel(tx("SKOR ŞERİDİ", "SCORE STRIP"))
         Spacer(Modifier.height(6.dp))
@@ -259,6 +261,7 @@ private fun MenuCard(
                     )
                 }
             }
+        }
         }
 
         // ---- Kısayollar ----

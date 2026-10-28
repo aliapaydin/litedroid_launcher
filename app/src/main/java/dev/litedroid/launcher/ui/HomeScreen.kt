@@ -592,7 +592,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                 )
             } else {
                 AnimatedWallpaper(
-                    wallpaper = Wallpapers.all[vm.themeIndex],
+                    wallpaper = vm.wallpaper,
                     accent = shelfFocus?.app?.accent,
                     paused = { motionPaused.value },
                 )
@@ -754,18 +754,19 @@ private fun HomeContent(vm: LauncherViewModel) {
                                         menuFor = null
                                     })
                                 }
-                                add(MenuItem(tx("Gizle", "Hide"), Icons.Filled.Clear) {
+                                if (!childActive) add(MenuItem(tx("Gizle", "Hide"), Icons.Filled.Clear) {
                                     vm.setHidden(app.packageName, true)
                                     menuFor = null
                                 })
-                            } else {
+                            } else if (!childActive) {
                                 add(MenuItem(tx("Ana ekranda göster", "Show on home screen"), Icons.Filled.Done) {
                                     vm.setHidden(app.packageName, false)
                                     menuFor = null
                                 })
                             }
                         }
-                        if (app.packageName != context.packageName) {
+                        // Çocuk profilinde kilit, uygulama bilgisi ve kaldırma yok
+                        if (app.packageName != context.packageName && !childActive) {
                             val locked = app.packageName in settings.lockedApps
                             add(MenuItem(if (locked) tx("Kilidi kaldır", "Remove lock") else tx("Kilitle (PIN)", "Lock with PIN"), Icons.Filled.Lock) {
                                 menuFor = null
@@ -786,13 +787,13 @@ private fun HomeContent(vm: LauncherViewModel) {
                                 }
                             })
                         }
-                        add(MenuItem(tx("Uygulama bilgisi", "App info"), Icons.Filled.Info) {
+                        if (!childActive) add(MenuItem(tx("Uygulama bilgisi", "App info"), Icons.Filled.Info) {
                             menuFor = null
                             startSafely(
                                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${app.packageName}"))
                             )
                         })
-                        if (!target.fromDock) {
+                        if (!target.fromDock && !childActive) {
                             add(MenuItem(tx("Kaldır", "Uninstall"), Icons.Filled.Delete, destructive = true) {
                                 menuFor = null
                                 startSafely(Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.packageName}")))
@@ -884,7 +885,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                     add(QuickTile("sound", tx("Ses efektleri", "Sound effects"), if (settings.soundsEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.sound, active = settings.soundsEnabled) {
                         vm.updateSettings { it.copy(soundsEnabled = !it.soundsEnabled) }
                     })
-                    add(QuickTile(
+                    if (!childActive) add(QuickTile(
                         "scores", tx("Yüzen skor", "Floating scores"),
                         when {
                             !settings.floatingScores -> tx("Kapalı", "Off")
@@ -911,10 +912,11 @@ private fun HomeContent(vm: LauncherViewModel) {
                         }
                         if (next == null) SleepTimer.cancel(context) else SleepTimer.startIn(context, next)
                     })
-                    add(QuickTile("weather", tx("Hava durumu", "Weather"), if (settings.weatherEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.weather, active = settings.weatherEnabled) {
+                    if (!childActive) add(QuickTile("weather", tx("Hava durumu", "Weather"), if (settings.weatherEnabled) tx("Açık", "On") else tx("Kapalı", "Off"), QuickIcons.weather, active = settings.weatherEnabled) {
                         vm.updateSettings { it.copy(weatherEnabled = !it.weatherEnabled) }
                     })
-                    add(QuickTile(
+                    // Çocuklar gizli uygulamaları göremez
+                    if (!childActive) add(QuickTile(
                         "hidden", tx("Gizli uygulamalar", "Hidden apps"),
                         if (showHidden) tx("Gösteriliyor", "Shown") else tx("${hiddenApps.size} gizli", "${hiddenApps.size} hidden"),
                         QuickIcons.hidden, active = showHidden,
@@ -924,16 +926,16 @@ private fun HomeContent(vm: LauncherViewModel) {
                         add(QuickTile("shelf", tx("Vitrin", "Showcase"), vm.shelfStyle.label, QuickIcons.showcase, active = true) { vm.cycleShelfStyle() })
                     }
                 },
-                actions = listOf(
-                    QuickAction(tx("Tüm ayarlar", "All settings"), QuickIcons.settings) {
+                actions = listOfNotNull(
+                    QuickAction(if (childActive) tx("Benim ayarlarım", "My settings") else tx("Tüm ayarlar", "All settings"), QuickIcons.settings) {
                         panelOpen = false
                         settingsOpen = true
                     },
-                    QuickAction(tx("Misafir Wi-Fi", "Guest Wi-Fi"), QuickIcons.weather) {
+                    if (childActive) null else QuickAction(tx("Misafir Wi-Fi", "Guest Wi-Fi"), QuickIcons.weather) {
                         panelOpen = false
                         wifiOpen = true
                     },
-                    QuickAction(tx("Telefondan gönder", "Send from phone"), QuickIcons.sound) {
+                    if (childActive) null else QuickAction(tx("Telefondan gönder", "Send from phone"), QuickIcons.sound) {
                         panelOpen = false
                         phoneOpen = true
                     },
@@ -1016,11 +1018,32 @@ private fun HomeContent(vm: LauncherViewModel) {
                 toast(tx("Tarayıcı bu profilde kapalı", "The browser is off for this profile"))
             }
         }
-        if (settingsOpen && childActive && !settingsAuthorized) {
-            AdultGate(onOk = { settingsAuthorized = true }, onCancel = { settingsOpen = false })
+        // Çocuk profilinde PIN sorulmaz: çocuğa özel renkli ayarlar açılır
+        AnimatedVisibility(
+            visible = settingsOpen && childActive,
+            enter = fadeIn() + slideInVertically { it / 8 },
+            exit = fadeOut() + slideOutVertically { it / 8 },
+        ) {
+            KidSettingsScreen(
+                vm = vm,
+                onClose = { settingsOpen = false },
+                onSwitchProfile = {
+                    settingsOpen = false
+                    vm.openPicker(forced = false)
+                },
+                onAvatar = {
+                    settingsOpen = false
+                    lastGame = BuiltInGame.AVATAR
+                    gameOpen = BuiltInGame.AVATAR
+                },
+                onWrapped = {
+                    settingsOpen = false
+                    wrappedArchiveOpen = true
+                },
+            )
         }
         AnimatedVisibility(
-            visible = settingsOpen && (!childActive || settingsAuthorized),
+            visible = settingsOpen && !childActive,
             enter = fadeIn() + slideInVertically { it / 8 },
             exit = fadeOut() + slideOutVertically { it / 8 },
         ) {
@@ -1626,7 +1649,7 @@ private fun settingsEntries(
         tx("Sinematik: görsel tüm ekranı kaplar. Kart: solda büyük kart. Sade: büyük saat ve selamlama.", "Cinematic: art fills the screen. Card: a big card on the left. Minimal: big clock and greeting.")) {
         vm.cycleShelfStyle()
     },
-    SettingsEntry.Row("wallpaper", tx("Duvar kâğıdı", "Wallpaper"), Icons.Filled.Create, Wallpapers.all[vm.themeIndex].label,
+    SettingsEntry.Row("wallpaper", tx("Duvar kâğıdı", "Wallpaper"), Icons.Filled.Create, vm.wallpaper.label,
         tx("Arka plan renk teması. Casual'da renkler odaktaki uygulamaya göre de kayar.", "Background color theme. In Casual, colors also follow the focused app.")) { vm.cycleTheme() },
     SettingsEntry.Row("wp_motion", tx("Duvar kâğıdı hareketi", "Wallpaper motion"), Icons.Filled.Refresh, if (settings.wallpaperMotion) tx("Açık", "On") else tx("Kapalı", "Off"),
         tx("Arka plandaki renk lekelerinin ve vitrin fonunun yavaşça hareket etmesi.", "Slowly drifts the background color blobs and the showcase art.")) {
