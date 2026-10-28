@@ -220,7 +220,8 @@ object StoryWriter {
  * aynı masal yeniden dinlenince hiçbir istek atılmaz, ücret çıkmaz. En yeni 15 masal tutulur.
  */
 class StoryLibrary(context: Context) {
-    private val root = File(context.filesDir, "stories").apply { mkdirs() }
+    /** Her profilin kendi masal kitaplığı. */
+    private val root = File(context.filesDir, dev.litedroid.launcher.data.Profiles.scoped("stories")).apply { mkdirs() }
 
     fun dir(story: Story) = File(root, story.id).apply { mkdirs() }
 

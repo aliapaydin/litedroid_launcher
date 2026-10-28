@@ -58,15 +58,26 @@ class UsageRepository(context: Context) {
      * tek tek oturumlar çıkarılır; [range] o oturumların hangi dilimde özetleneceğini seçer.
      * Ana ekranın kendisi, sistem arayüzü ve diğer launcher'lar sayılmaz.
      */
-    suspend fun report(range: UsageRange): UsageReport? = withContext(Dispatchers.IO) {
+    suspend fun report(range: UsageRange, profileId: String? = null): UsageReport? = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext null
         val usm = ctx.getSystemService(UsageStatsManager::class.java) ?: return@withContext null
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val weekStart = today.minusDays(6).atStartOfDay(zone).toInstant().toEpochMilli()
         val now = System.currentTimeMillis()
-        val sessions = runCatching { sessionsOf(usm, weekStart, now) }.getOrElse { return@withContext null }
+        val all = runCatching { sessionsOf(usm, weekStart, now) }.getOrElse { return@withContext null }
             .filter { displayName(it.pkg) != null }
+        // Profil seçiliyse yalnızca o profil açıkken geçen süreler
+        val sessions = if (profileId == null) all else {
+            val ranges = ProfileTimeline.intervals(ctx, profileId, weekStart, now)
+            all.flatMap { s ->
+                ranges.mapNotNull { r ->
+                    val a = maxOf(s.start, r.first)
+                    val b = minOf(s.end, r.last + 1)
+                    if (b > a) s.copy(start = a, end = b) else null
+                }
+            }
+        }
 
         val (from, to) = when (range) {
             UsageRange.TODAY -> today.atStartOfDay(zone).toInstant().toEpochMilli() to now

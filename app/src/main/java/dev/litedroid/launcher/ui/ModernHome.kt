@@ -274,7 +274,8 @@ fun ModernHome(
 
     Box(Modifier.fillMaxSize()) {
         // Arka plan: canlı duvar kâğıdı + okunabilirlik için koyu katman
-        AnimatedWallpaper(Wallpapers.all[vm.themeIndex], accent = null, paused = paused, dim = 0.6f)
+        // Çocuk profilinde daha az karartılır: renkler canlı kalsın
+        AnimatedWallpaper(vm.wallpaper, accent = null, paused = paused, dim = if (dev.litedroid.launcher.data.Profiles.activeProfile?.isChild == true) 0.35f else 0.6f)
 
         Column(Modifier.fillMaxSize()) {
             ModernTopBar(

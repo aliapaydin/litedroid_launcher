@@ -13,8 +13,21 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "3.0.0",
+                tx("Profiller ve ebeveyn denetimi", "Profiles and parental controls"),
+                listOf(
+                    tx("👨‍👩‍👧 Profiller: en fazla 5 profil, yetişkin ya da çocuk. Her profilin kendi ayarları, favorileri, oyun rekorları, masalları, izleme geçmişi, Wrapped'i, adı ve resmi var.", "👨‍👩‍👧 Profiles: up to 5, adult or kid. Each has its own settings, favorites, game records, stories, watch history, Wrapped, name and picture."),
+                    tx("\"Kim İzliyor?\" ekranı açılışta ve TV her uyandığında gelir; sağ üstteki profil de onu açar. Bu ekranda ekran koruyucu 1 dakikada başlar.", "\"Who's watching?\" appears at start-up and whenever the TV wakes; the profile at the top right opens it too. The screensaver starts after 1 minute there."),
+                    tx("🎰 Profil PIN'i slot makinesi gibi: makaraları ▲▼ çevir, Tamam'a bas, \"Hoş geldin\" kutusu seni karşılasın.", "🎰 Profile PINs work like a slot machine: spin the reels with ▲▼, press OK and get a \"Welcome\" note."),
+                    tx("🛡️ Ebeveyn denetimi: çocuk başına günlük süre (hafta içi / hafta sonu), ekran saatleri, uygulama izinleri ve uygulama başına süre; Claude çocuk modunda, tarayıcı ve mağaza kapalı.", "🛡️ Parental controls: per-kid daily time (weekdays / weekend), screen hours, app permissions and per-app limits; Claude in kids mode, browser and store off."),
+                    tx("⏳ 5 ve 1 dakika kala uyarı, süre bitince içerik durur ve kilit ekranı gelir; çocuk süre isteyebilir. Ekran koruyucuda geçen süre sayılmaz, gün 06:00'da yenilenir.", "⏳ Warnings at 5 and 1 minute, then playback stops and a lock screen appears; kids can ask for more time. Screensaver time doesn't count, the day resets at 06:00."),
+                    tx("📱 Telefon paneli: QR ile eşleşen telefondan kalan süreyi gör, süre ekle, hemen kapat, istekleri onayla, günlük süreyi değiştir (evdeki Wi-Fi'da, yetişkin PIN'iyle).", "📱 Phone panel: from a paired phone see time left, add time, lock now, approve requests and change daily time (home Wi-Fi, adult PIN)."),
+                    tx("📊 Kullanım raporunda profil seçimi: kendi raporunun yanında çocuklarınkini de gör.", "📊 Usage report profile picker: see your kids' reports next to yours."),
+                ),
+            ),
+            Release(
                 "2.7.0",
-                tx("LiteDroid Wrapped", "LiteDroid Wrapped"),
+                tx("LiteDroid Wrapped ve Çiz-Bil", "LiteDroid Wrapped and Draw & Guess"),
                 listOf(
                     tx("🎁 Her pazartesi 09:00'da geçen haftanın Wrapped'i hazır: kendiliğinden açılmaz, çan menüsüne gelir. Yeni olduğunda çanın etrafında renkli bir halka döner.", "🎁 Every Monday at 09:00 last week's Wrapped is ready: it lands in the bell menu instead of popping up, with a spinning colorful ring around the bell."),
                     tx("Tam ekran gösteri: TV başında geçen süre, en çok izlenenler, haftanın uygulaması, saat saat ısı haritası, izleyici tipin, rekorlar, oyunlar ve masallar, Canlı Tablo resimleri, takımlarının maçları ve paylaşmalık özet kartı.", "A full-screen show: screen time, top apps, app of the week, an hour-by-hour heatmap, your viewer type, records, games and stories, Living Painting art, your teams' matches and a shareable summary card."),
@@ -22,18 +35,8 @@ object Changelog {
                     tx("🎵 Her haftanın müziğini yapay zekâ (Lyria) sana özel besteliyor; anahtar yoksa ya da üretilemezse gösteri sessiz oynar.", "🎵 Each week's music is composed for you by AI (Lyria); without a key, or if it fails, the show plays silently."),
                     tx("Ayarlar → Diğer → LiteDroid Wrapped: geçmiş haftalar ve bu haftanın önizlemesi. Özet kartı QR ile telefona alınır.", "Settings → More → LiteDroid Wrapped: past weeks and a preview of this week. Send the summary card to your phone via QR."),
                     tx("Yapay zekâ anahtarı yoksa: Canlı Tablo seçilemez (ekran koruyucu Karışık sahneye geçer), Masal Makinesi kilitli görünür (kayıtlı masallar yine dinlenir). Yapay zekâ o an çalışmazsa Canlı Tablo eski resimlerle ya da gece sahnesiyle, Çiz-Bil yapay zekâ turları atlanarak devam eder.", "Without an AI key: Living Painting can't be picked (the screensaver uses Mixed) and the Story Machine is locked (saved stories still play). If the AI fails, Living Painting keeps old paintings or the night scene and Draw & Guess skips AI rounds."),
+                    tx("🎨 Çiz-Bil (2.6): sırası gelen telefonunda çizer, çizim TV'de canlı belirir, diğerleri telefondan tahmin eder; yapay zekâ çizsin turu da var.", "🎨 Draw & Guess (2.6): draw on your phone live on the TV while others guess from theirs; with an AI draws round."),
                     tx("Düzeltme: yüzen menü açıkken ana ekrana dönülünce menü artık kapanıyor.", "Fix: the floating menu now closes when you go back to the home screen."),
-                ),
-            ),
-            Release(
-                "2.6.0",
-                tx("Çiz-Bil", "Draw & Guess"),
-                listOf(
-                    tx("🎨 Çiz-Bil: telefonlar QR'ı okutup katılır. Sırası gelen gizli kelimeyi telefonunda parmağıyla çizer, çizim TV'de canlı belirir; diğerleri tahminini telefondan yazar, en hızlı bilen en çok puanı alır.", "🎨 Draw & Guess: phones scan the QR to join. Whoever's turn it is draws the secret word with a finger, live on the TV; the others type guesses, the fastest right answer scores most."),
-                    tx("Üç kelimeden birini seç (kolay, orta, zor), renkler, kalınlık, silgi ve geri al. Süre ilerledikçe harf ipuçları açılır, \"çok yakın\" uyarısı yalnızca sana görünür.", "Pick one of three words (easy, medium, hard), colors, brush sizes, eraser and undo. Letter hints open as time runs out; \"so close\" is shown only to you."),
-                    tx("🤖 Yapay zekâ çizsin turu: her turun sonunda resmi yapay zekâ çizer, iri piksellerden başlayıp yavaş yavaş netleşir, evdeki herkes birlikte tahmin eder (Gemini anahtarı gerekir). Tek kişiyle de oynanır.", "🤖 AI draws round: after each round the AI paints a picture that sharpens from big pixels, and everyone guesses together (needs a Gemini key). Works solo too."),
-                    tx("Yüzen menü sadeleşti: Claude ve ekran görüntüsü düğmeleri kaldırıldı (ekran görüntüsü Input tuşuna atanabilir).", "A simpler floating menu: the Claude and screenshot buttons are gone (screenshots can go on the Input button)."),
-                    tx("2.5.0'daki \"İzlediğin bitince kapat\" kaldırıldı: uygulamalar oynatmanın bittiğini güvenilir şekilde bildirmiyor. Uyku zamanlayıcısı süreyle ve saatle çalışmaya devam ediyor.", "\"Turn off when the show ends\" from 2.5.0 is gone: apps don't reliably report when playback ends. The sleep timer still works by duration or time."),
                 ),
             ),
             Release(

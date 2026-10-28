@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>LiteDroid Ebeveyn</title>
+<style>
+  :root { --bg1:#10213a; --bg2:#06080f; --ink:#fff; --soft:rgba(255,255,255,.68); --muted:rgba(255,255,255,.42); --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --mint:#7cffcb; --warn:#ffb4a8; --gold:#ffd35c; --accent:#2fc6a8; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink);
+    background: radial-gradient(120% 80% at 20% 0%, #1d3f6b 0%, var(--bg1) 35%, var(--bg2) 100%) fixed; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  .brand { display:flex; align-items:center; gap:8px; color:var(--soft); font-size:13px; font-weight:800; letter-spacing:1.5px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent); }
+  h1 { font-size:26px; margin:8px 0 4px; letter-spacing:-.3px; }
+  .sub { color:var(--soft); font-size:14px; margin:0 0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:24px; padding:16px; margin-bottom:14px; }
+  .head { display:flex; align-items:center; gap:12px; }
+  .face { width:52px; height:52px; border-radius:50%; display:grid; place-items:center; font-size:28px; flex:none; }
+  .name { font-size:20px; font-weight:900; }
+  .live { display:inline-block; margin-left:6px; font-size:11px; font-weight:800; color:#10142a; background:var(--mint); border-radius:999px; padding:2px 8px; vertical-align:middle; }
+  .meta { color:var(--soft); font-size:13px; }
+  .big { margin-left:auto; text-align:right; }
+  .big b { display:block; font-size:22px; }
+  .big span { font-size:11px; color:var(--muted); }
+  .bar { height:10px; border-radius:99px; background:rgba(255,255,255,.1); overflow:hidden; margin:14px 0 4px; }
+  .bar > i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg, #7cffcb, #2fc6a8); transition:width .4s; }
+  .bar.full > i { background:linear-gradient(90deg, #ffb4a8, #ff5c6e); }
+  .locked { margin-top:10px; padding:10px 12px; border-radius:14px; background:rgba(255,92,110,.16); border:1px solid rgba(255,92,110,.4); font-size:14px; font-weight:700; }
+  .req { margin-top:10px; padding:12px; border-radius:16px; background:rgba(255,211,92,.14); border:1px solid rgba(255,211,92,.5); }
+  .req b { color:var(--gold); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  button { border:0; border-radius:16px; padding:12px 14px; font-size:15px; font-weight:800; color:#fff; background:rgba(255,255,255,.12); cursor:pointer; flex:1; min-width:70px; }
+  button:active { transform:scale(.97); }
+  button.ok { background:linear-gradient(135deg,#2fc6a8,#1f6fd0); }
+  button.stop { background:linear-gradient(135deg,#ff6b7d,#d93025); }
+  button.soft { background:rgba(255,255,255,.08); }
+  label { display:block; color:var(--soft); font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; margin:14px 0 6px; }
+  select, input { width:100%; font-size:17px; font-weight:700; color:#fff; background:rgba(0,0,0,.25); border:1.5px solid var(--line); border-radius:14px; padding:11px 12px; outline:none; }
+  .two { display:flex; gap:10px; } .two > div { flex:1; }
+  .apps { margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+  .app { display:flex; justify-content:space-between; font-size:14px; color:var(--soft); }
+  .app b { color:#fff; }
+  .center { text-align:center; padding:40px 10px; }
+  .pinbox { display:flex; gap:10px; justify-content:center; margin:16px 0; }
+  .pinbox input { width:62px; text-align:center; font-size:28px; letter-spacing:0; padding:12px 0; }
+  .err { color:var(--warn); font-weight:700; text-align:center; min-height:20px; }
+  .toast { position:fixed; left:16px; right:16px; bottom:max(16px, env(safe-area-inset-bottom)); padding:12px 14px; border-radius:14px; background:rgba(47,198,168,.95); color:#06231c; font-weight:800; text-align:center; transform:translateY(140%); transition:transform .3s; }
+  .toast.show { transform:translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+(function () {
+  "use strict";
+  var app = document.getElementById("app");
+  var store = {
+    get: function (k) { try { return localStorage.getItem("ldp_" + k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem("ldp_" + k, v); } catch (e) {} },
+    del: function (k) { try { localStorage.removeItem("ldp_" + k); } catch (e) {} }
+  };
+  var token = store.get("token");
+  var pin = "";
+  try { pin = sessionStorage.getItem("ldp_pin") || ""; } catch (e) {}
+  var state = null, busy = false, selectOpen = false;
+
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function post(path, body) {
+    return fetch(path, { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); });
+  }
+  function toast(t) { var el = document.getElementById("toast"); el.textContent = t; el.classList.add("show"); setTimeout(function () { el.classList.remove("show"); }, 2200); }
+  function mins(ms) { var m = Math.round(ms / 60000); if (m >= 60) { var h = Math.floor(m / 60), r = m % 60; return h + " sa" + (r ? " " + r + " dk" : ""); } return m + " dk"; }
+  function label(m) { if (!m) return "Sınırsız"; if (m >= 60 && m % 60 === 0) return (m / 60) + " saat"; if (m > 60) return Math.floor(m / 60) + " sa " + (m % 60) + " dk"; return m + " dk"; }
+
+  // Eşleşme: QR'daki ?pair= kodu bir kez kullanılır
+  var q = location.search.match(/[?&]pair=(\d+)/);
+  if (q) {
+    history.replaceState(null, "", "/");
+    post("/api/pair", { code: q[1] }).then(function (r) {
+      if (r.token) { token = r.token; store.set("token", token); toast("Bu telefon eşleşti ✓"); load(); }
+      else { renderMessage("Eşleşme kodu geçersiz", "QR'ın süresi dolmuş olabilir. TV'de Ebeveyn denetimi → Telefon paneli'ni yeniden aç ve QR'ı tekrar okut."); }
+    }).catch(function () { renderMessage("TV'ye ulaşılamadı", "Telefon TV ile aynı Wi-Fi ağında olmalı."); });
+  }
+
+  function renderMessage(title, text) {
+    app.innerHTML = '<div class="brand"><span class="dot"></span>LITEDROID · EBEVEYN</div><div class="center"><h1>' + esc(title) + '</h1><p class="sub">' + esc(text) + '</p></div>';
+  }
+
+  function renderPin(msg) {
+    app.innerHTML = '<div class="brand"><span class="dot"></span>LITEDROID · EBEVEYN</div><div class="center"><h1>Yetişkin PIN\'i</h1>' +
+      '<p class="sub">TV\'deki bir yetişkin profilinin 4 haneli PIN\'i</p><div class="pinbox">' +
+      [0, 1, 2, 3].map(function (i) { return '<input id="p' + i + '" inputmode="numeric" maxlength="1" autocomplete="off">'; }).join("") +
+      '</div><div class="err">' + esc(msg || "") + '</div></div>';
+    var inputs = [0, 1, 2, 3].map(function (i) { return document.getElementById("p" + i); });
+    inputs.forEach(function (el, i) {
+      el.addEventListener("input", function () {
+        el.value = el.value.replace(/\D/g, "").slice(-1);
+        if (el.value && i < 3) inputs[i + 1].focus();
+        var v = inputs.map(function (x) { return x.value; }).join("");
+        if (v.length === 4) { pin = v; try { sessionStorage.setItem("ldp_pin", pin); } catch (e) {} load(); }
+      });
+      el.addEventListener("keydown", function (e) { if (e.key === "Backspace" && !el.value && i > 0) inputs[i - 1].focus(); });
+    });
+    setTimeout(function () { inputs[0].focus(); }, 50);
+  }
+
+  function handleError(r) {
+    if (r.error === "unpaired") { store.del("token"); token = null; renderMessage("Bu telefon eşleşmemiş", "TV'de Ayarlar → Ebeveyn denetimi → Telefon paneli'ndeki QR'ı bu telefonla okut."); return true; }
+    if (r.error === "pin") { pin = ""; try { sessionStorage.removeItem("ldp_pin"); } catch (e) {} renderPin(state ? "PIN yanlış" : ""); return true; }
+    if (r.error === "wait") { renderMessage("Çok fazla yanlış PIN", r.seconds + " saniye sonra tekrar dene."); return true; }
+    return false;
+  }
+
+  function load() {
+    if (!token) { renderMessage("Bu telefon eşleşmemiş", "TV'de Ayarlar → Ebeveyn denetimi → Telefon paneli'ndeki QR'ı bu telefonla okut."); return; }
+    post("/api/state", { token: token, pin: pin }).then(function (r) {
+      if (handleError(r)) return;
+      state = r; render();
+    }).catch(function () { if (!state) renderMessage("TV'ye ulaşılamadı", "Telefon TV ile aynı Wi-Fi ağında olmalı."); });
+  }
+
+  function act(child, action, extra) {
+    if (busy) return;
+    busy = true;
+    var body = { token: token, pin: pin, child: child, action: action };
+    for (var k in extra || {}) body[k] = extra[k];
+    post("/api/action", body).then(function (r) {
+      if (handleError(r)) return;
+      state = r; render();
+      toast({ add: "Süre eklendi ✓", lock: "Ekran kapatıldı 🔒", unlock: "Kilit açıldı 🔓", approve: "İstek onaylandı ✓", decline: "İstek reddedildi", daily: "Günlük süre kaydedildi ✓" }[action] || "Tamam");
+    }).catch(function () { toast("TV'ye ulaşılamadı"); }).then(function () { busy = false; });
+  }
+
+  function render() {
+    if (selectOpen) return;
+    var kids = state.children || [];
+    var html = '<div class="brand"><span class="dot"></span>LITEDROID · EBEVEYN</div><h1>Çocuklar</h1><p class="sub">Bugünkü ekran süreleri. Gün sabah 06:00\'da yenilenir.</p>';
+    if (!kids.length) html += '<div class="card">Henüz çocuk profili yok. TV\'de Ayarlar → Profil → Profiller\'den ekleyebilirsin.</div>';
+    kids.forEach(function (c) {
+      var limit = c.limitMin + c.bonusMin;
+      var pct = limit > 0 ? Math.min(100, c.usedMs / (limit * 60000) * 100) : 0;
+      html += '<div class="card"><div class="head"><div class="face" style="background:' + esc(c.color) + '">' + esc(c.emoji) + '</div>' +
+        '<div><div class="name">' + esc(c.name) + (c.active ? '<span class="live">ŞU AN AÇIK</span>' : '') + '</div>' +
+        '<div class="meta">' + mins(c.usedMs) + ' kullandı' + (c.limitMin ? ' · sınır ' + label(c.limitMin) + (c.bonusMin ? ' + ' + c.bonusMin + ' dk' : '') : ' · sınır yok') + '</div></div>' +
+        '<div class="big"><b>' + (c.locked ? '🔒' : (c.remainingMs >= 0 ? mins(c.remainingMs) : '∞')) + '</b><span>' + (c.locked ? 'KİLİTLİ' : 'KALAN') + '</span></div></div>';
+      if (limit > 0) html += '<div class="bar' + (pct >= 100 ? ' full' : '') + '"><i style="width:' + pct + '%"></i></div>';
+      if (c.locked) html += '<div class="locked">' + esc(c.reason) + '</div>';
+      if (c.request) html += '<div class="req">🙏 <b>' + esc(c.name) + '</b> ' + c.request + ' dakika daha istiyor<div class="row"><button class="ok" data-a="approve" data-c="' + c.id + '">Onayla</button><button class="soft" data-a="decline" data-c="' + c.id + '">Reddet</button></div></div>';
+      html += '<div class="row">' + (state.addOptions || [15, 30, 60]).map(function (m) { return '<button data-a="add" data-m="' + m + '" data-c="' + c.id + '">+' + m + ' dk</button>'; }).join("") + '</div>';
+      html += '<div class="row">' + (c.locked ? '<button class="ok" data-a="unlock" data-c="' + c.id + '">🔓 Kilidi aç</button>' : '<button class="stop" data-a="lock" data-c="' + c.id + '">⏻ Hemen kapat</button>') + '</div>';
+      html += '<div class="two"><div><label>Hafta içi günlük</label>' + sel(c, "weekday", c.weekdayMin) + '</div><div><label>Hafta sonu günlük</label>' + sel(c, "weekend", c.weekendMin) + '</div></div>';
+      if (c.hours) html += '<div class="meta" style="margin-top:10px">🕗 Ekran saatleri: ' + esc(c.hours) + '</div>';
+      if (c.apps && c.apps.length) {
+        html += '<div class="apps">' + c.apps.map(function (a) { return '<div class="app"><span>' + esc(a.label) + '</span><b>' + mins(a.ms) + '</b></div>'; }).join("") + '</div>';
+      }
+      html += '</div>';
+    });
+    html += '<p class="sub" style="text-align:center">Bu sayfayı ana ekrana ekleyebilirsin. Sadece evdeki Wi-Fi\'da çalışır.</p>';
+    app.innerHTML = html;
+    Array.prototype.forEach.call(app.querySelectorAll("button[data-a]"), function (b) {
+      b.addEventListener("click", function () {
+        var a = b.getAttribute("data-a");
+        if (a === "lock" && !confirm("Ekran şimdi kapatılsın mı?")) return;
+        act(b.getAttribute("data-c"), a, { minutes: parseInt(b.getAttribute("data-m") || "0", 10) });
+      });
+    });
+    Array.prototype.forEach.call(app.querySelectorAll("select"), function (s) {
+      s.addEventListener("focus", function () { selectOpen = true; });
+      s.addEventListener("blur", function () { selectOpen = false; });
+      s.addEventListener("change", function () {
+        selectOpen = false;
+        act(s.getAttribute("data-c"), "daily", { minutes: parseInt(s.value, 10), which: s.getAttribute("data-w") });
+      });
+    });
+  }
+
+  function sel(c, which, value) {
+    return '<select data-c="' + c.id + '" data-w="' + which + '">' + (state.dailyOptions || []).map(function (m) {
+      return '<option value="' + m + '"' + (m === value ? " selected" : "") + '>' + label(m) + '</option>';
+    }).join("") + '</select>';
+  }
+
+  if (!q) load();
+  setInterval(function () { if (token && state && !busy && (pin || !state.pinRequired)) load(); }, 5000);
+})();
+</script>
+</body>
+</html>

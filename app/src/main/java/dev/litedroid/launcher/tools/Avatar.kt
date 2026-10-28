@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -303,23 +304,35 @@ object AvatarStore {
         selectedId = p.getString("selected", null)
     }
 
+    /** Profil değişince o profilin avatarları yüklenir. */
+    fun reload(ctx: Context) {
+        loaded = false
+        load(ctx)
+    }
+
     fun save(ctx: Context, spec: AvatarSpec) {
         avatars = if (avatars.any { it.id == spec.id }) avatars.map { if (it.id == spec.id) spec else it } else avatars + spec
         persist(ctx)
+        if (spec.id == selectedId) dev.litedroid.launcher.data.Profiles.setAvatar(ctx, spec)
     }
 
     fun delete(ctx: Context, id: String) {
         avatars = avatars.filter { it.id != id }
-        if (selectedId == id) selectedId = null
+        if (selectedId == id) {
+            selectedId = null
+            dev.litedroid.launcher.data.Profiles.setAvatar(ctx, null)
+        }
         persist(ctx)
     }
 
     fun select(ctx: Context, id: String?) {
         selectedId = id
         persist(ctx)
+        // Profil resmi "Kim İzliyor?" ekranında da görünsün
+        dev.litedroid.launcher.data.Profiles.setAvatar(ctx, avatars.firstOrNull { it.id == id })
     }
 
-    private fun prefs(ctx: Context) = ctx.getSharedPreferences("litedroid_avatars", Context.MODE_PRIVATE)
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences(dev.litedroid.launcher.data.Profiles.scoped("litedroid_avatars"), Context.MODE_PRIVATE)
 
     private fun persist(ctx: Context) {
         val arr = JSONArray().apply { avatars.forEach { put(it.toJson()) } }
@@ -332,6 +345,13 @@ object AvatarStore {
 fun ProfileAvatar(name: String, size: Dp, border: Dp, initialSize: Int) {
     val context = LocalContext.current
     remember { AvatarStore.load(context.applicationContext) }
+    val list by dev.litedroid.launcher.data.Profiles.list.collectAsState()
+    val activeId by dev.litedroid.launcher.data.Profiles.active.collectAsState()
+    val profile = list.firstOrNull { it.id == activeId }
+    if (profile != null) {
+        ProfileFace(profile, size, border)
+        return
+    }
     val spec = AvatarStore.selected
     Box(
         Modifier
@@ -343,6 +363,24 @@ fun ProfileAvatar(name: String, size: Dp, border: Dp, initialSize: Int) {
     ) {
         if (spec != null) AvatarImage(spec, Modifier.fillMaxSize())
         else Text(name.take(1).uppercase(I18n.locale), color = Color.White, fontSize = initialSize.sp, fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+/** Bir profilin yüzü: avatarı varsa avatar, yoksa renkli zemin üstünde emojisi. */
+@Composable
+fun ProfileFace(profile: dev.litedroid.launcher.data.Profile, size: Dp, border: Dp = 0.dp) {
+    val c = Color(profile.color)
+    Box(
+        Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(if (profile.avatar != null) AVATAR_BRUSH else Brush.linearGradient(listOf(c, c.copy(alpha = 0.55f))))
+            .border(border, Color.White.copy(alpha = 0.8f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        val spec = profile.avatar
+        if (spec != null) AvatarImage(spec, Modifier.fillMaxSize())
+        else Text(profile.emoji, fontSize = (size.value * 0.5f).sp)
     }
 }
 

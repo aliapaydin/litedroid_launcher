@@ -48,7 +48,9 @@ data class LauncherApp(
 class AppRepository(private val context: Context) {
 
     private val pm = context.packageManager
-    private val prefs = context.getSharedPreferences("litedroid", Context.MODE_PRIVATE)
+    /** Sıra, gizli uygulamalar, tema ve son açılanlar etkin profile özel. */
+    private val prefs get() = appContext.getSharedPreferences(Profiles.scoped("litedroid"), Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext.also { Profiles.load(it) }
 
     /** Yüklü TV uygulamalarını (ve TV'ye yandan yüklenmiş telefon uygulamalarını) okur. */
     suspend fun loadApps(): List<LauncherApp> = withContext(Dispatchers.IO) {

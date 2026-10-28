@@ -207,123 +207,160 @@ data class LauncherSettings(
     }
 }
 
-class SettingsRepository(context: Context) {
+/**
+ * Ayarlar iki dosyada: cihazın ortak ayarları (anahtarlar, dil, Wi-Fi, güncellemeler, kumanda…) her zaman
+ * "litedroid"da; profile özel olanlar ([PROFILE_KEYS]: arayüz, favoriler, takımlar, ses…) etkin profilin
+ * dosyasında. İlk profil ("main") için ikisi aynı dosyadır, eski kurulumlar olduğu gibi çalışır.
+ */
+class SettingsRepository(context: Context, private val forProfile: String? = null) {
 
-    private val prefs = context.getSharedPreferences("litedroid", Context.MODE_PRIVATE)
+    private val ctx = context.applicationContext
+    private val device = ctx.getSharedPreferences("litedroid", Context.MODE_PRIVATE)
+    private val pid get() = forProfile ?: Profiles.activeId
+    private val profilePrefs get() = ctx.getSharedPreferences(Profiles.scoped("litedroid", pid), Context.MODE_PRIVATE)
 
-    fun load(): LauncherSettings = LauncherSettings(
-        language = enumOr(prefs.getString(K_LANGUAGE, null), AppLanguage.TR),
-        layout = enumOr(prefs.getString(K_LAYOUT, null), UiLayout.CASUAL),
-        weatherEnabled = prefs.getBoolean(K_WEATHER, true),
-        weatherCity = prefs.getString(K_CITY, "").orEmpty(),
-        columns = prefs.getInt(K_COLUMNS, 5).coerceIn(4, 6),
-        animSpeed = enumOr(prefs.getString(K_ANIM, null), AnimSpeed.FAST),
-        wallpaperMotion = prefs.getBoolean(K_WP_MOTION, false),
-        userName = prefs.getString(K_NAME, null)?.takeIf { it.isNotBlank() } ?: "Ali",
-        showGreeting = prefs.getBoolean(K_GREETING, true),
-        soundsEnabled = prefs.getBoolean(K_SOUNDS, true),
-        soundLevel = enumOr(prefs.getString(K_SOUND_LEVEL, null), SoundLevel.MEDIUM),
-        saverMinutes = prefs.getInt(K_SAVER_MIN, 5),
-        saverScene = enumOr(prefs.getString(K_SAVER_SCENE, null), SaverScene.MIXED),
-        canvasCities = enumOr(prefs.getString(K_CANVAS_CITIES, null), CanvasCities.MIXED),
-        canvasStyle = enumOr(prefs.getString(K_CANVAS_STYLE, null), CanvasStyle.OIL),
-        canvasMinutes = prefs.getInt(K_CANVAS_MINUTES, 10),
-        favorites = prefs.getString(K_FAVORITES, "").orEmpty().split(',').filter { it.isNotBlank() },
-        favoritesInitialized = prefs.getBoolean(K_FAV_INIT, false),
-        saverNowPlaying = prefs.getBoolean(K_SAVER_NP, true),
-        saverScores = prefs.getBoolean(K_SAVER_SCORES, true),
+    private fun src(key: String) = if (key in PROFILE_KEYS) profilePrefs else device
+
+    init {
+        Profiles.load(ctx)
+    }
+
+    /**
+     * Çocuk profilinde canlı skorlar hiç yok: yüzen şerit, ekran koruyucu skor kartı ve ligler kapalı.
+     * Cihazın ortak ayarları (anahtarlar, Wi-Fi, güncellemeler, kumanda…) ebeveynin bıraktığı gibidir.
+     */
+    fun load(): LauncherSettings {
+        val s = loadRaw()
+        if (Profiles.get(pid)?.isChild != true) return s
+        return s.copy(floatingScores = false, saverScores = false, scoreLeagues = emptySet(), followedTeams = emptyMap(), claudeWebSearch = false)
+    }
+
+    private fun loadRaw(): LauncherSettings = LauncherSettings(
+        language = enumOr(src(K_LANGUAGE).getString(K_LANGUAGE, null), AppLanguage.TR),
+        layout = enumOr(src(K_LAYOUT).getString(K_LAYOUT, null), UiLayout.CASUAL),
+        weatherEnabled = src(K_WEATHER).getBoolean(K_WEATHER, true),
+        weatherCity = src(K_CITY).getString(K_CITY, "").orEmpty(),
+        columns = src(K_COLUMNS).getInt(K_COLUMNS, 5).coerceIn(4, 6),
+        animSpeed = enumOr(src(K_ANIM).getString(K_ANIM, null), AnimSpeed.FAST),
+        wallpaperMotion = src(K_WP_MOTION).getBoolean(K_WP_MOTION, false),
+        userName = Profiles.get(pid)?.name ?: src(K_NAME).getString(K_NAME, null)?.takeIf { it.isNotBlank() } ?: "Ali",
+        showGreeting = src(K_GREETING).getBoolean(K_GREETING, true),
+        soundsEnabled = src(K_SOUNDS).getBoolean(K_SOUNDS, true),
+        soundLevel = enumOr(src(K_SOUND_LEVEL).getString(K_SOUND_LEVEL, null), SoundLevel.MEDIUM),
+        saverMinutes = src(K_SAVER_MIN).getInt(K_SAVER_MIN, 5),
+        saverScene = enumOr(src(K_SAVER_SCENE).getString(K_SAVER_SCENE, null), SaverScene.MIXED),
+        canvasCities = enumOr(src(K_CANVAS_CITIES).getString(K_CANVAS_CITIES, null), CanvasCities.MIXED),
+        canvasStyle = enumOr(src(K_CANVAS_STYLE).getString(K_CANVAS_STYLE, null), CanvasStyle.OIL),
+        canvasMinutes = src(K_CANVAS_MINUTES).getInt(K_CANVAS_MINUTES, 10),
+        favorites = src(K_FAVORITES).getString(K_FAVORITES, "").orEmpty().split(',').filter { it.isNotBlank() },
+        favoritesInitialized = src(K_FAV_INIT).getBoolean(K_FAV_INIT, false),
+        saverNowPlaying = src(K_SAVER_NP).getBoolean(K_SAVER_NP, true),
+        saverScores = src(K_SAVER_SCORES).getBoolean(K_SAVER_SCORES, true),
         scoreLeagues = run {
             val all = League.entries.map { it.code }.toSet()
-            val stored = prefs.getStringSet(K_LEAGUES, null)?.toSet() ?: return@run all
+            val stored = src(K_LEAGUES).getStringSet(K_LEAGUES, null)?.toSet() ?: return@run all
             // Sonradan eklenen ligler (ör. UEFA turnuvaları) eski kurulumlarda varsayılan olarak açık gelsin
-            val known = prefs.getStringSet(K_LEAGUES_KNOWN, null)?.toSet() ?: ORIGINAL_LEAGUES
+            val known = src(K_LEAGUES_KNOWN).getStringSet(K_LEAGUES_KNOWN, null)?.toSet() ?: ORIGINAL_LEAGUES
             stored + (all - known)
         },
         followedTeams = run {
-            val customized = prefs.getStringSet(K_TEAM_LEAGUES, null).orEmpty()
-            val pairs = prefs.getStringSet(K_TEAMS, null).orEmpty().mapNotNull {
+            val customized = src(K_TEAM_LEAGUES).getStringSet(K_TEAM_LEAGUES, null).orEmpty()
+            val pairs = src(K_TEAMS).getStringSet(K_TEAMS, null).orEmpty().mapNotNull {
                 val i = it.indexOf('|')
                 if (i <= 0) null else it.substring(0, i) to it.substring(i + 1)
             }
             customized.associateWith { code -> pairs.filter { it.first == code }.map { it.second }.toSet() }
         },
-        floatingScores = prefs.getBoolean(K_FLOAT, false),
-        floatingOnlyLive = prefs.getBoolean(K_FLOAT_LIVE, true),
-        homeRedirect = prefs.getBoolean(K_HOME_REDIRECT, true),
-        claudeKey = prefs.getString(K_CLAUDE_KEY, "").orEmpty(),
-        claudeModel = enumOr(prefs.getString(K_CLAUDE_MODEL, null), ClaudeModel.SONNET),
-        claudeSpeak = prefs.getBoolean(K_CLAUDE_SPEAK, true),
-        claudeWebSearch = prefs.getBoolean(K_CLAUDE_WEB, true),
-        aiProvider = enumOr(prefs.getString(K_AI_PROVIDER, null), AiProvider.CLAUDE),
-        geminiKey = prefs.getString(K_GEMINI_KEY, "").orEmpty(),
-        geminiModel = enumOr(prefs.getString(K_GEMINI_MODEL, null), GeminiModel.FLASH),
-        voiceEngine = enumOr(prefs.getString(K_VOICE_ENGINE, null), VoiceEngine.GEMINI),
-        geminiVoice = enumOr(prefs.getString(K_GEMINI_VOICE, null), GeminiVoice.SULAFAT),
-        updateMode = enumOr(prefs.getString(K_UPDATE_MODE, null), UpdateMode.AUTO),
-        wifiSsid = prefs.getString(K_WIFI_SSID, "").orEmpty(),
-        wifiPassword = prefs.getString(K_WIFI_PASS, "").orEmpty(),
-        wifiSecurity = enumOr(prefs.getString(K_WIFI_SEC, null), WifiSecurity.WPA),
-        morningWeather = prefs.getBoolean(K_MORNING_WEATHER, true),
-        breakMinutes = prefs.getInt(K_BREAK_MINUTES, 0),
-        lockedApps = prefs.getStringSet(K_LOCKED_APPS, emptySet()).orEmpty().toSet(),
-        lockPin = prefs.getString(K_LOCK_PIN, "").orEmpty(),
-        inputKey = enumOr(prefs.getString(K_INPUT_KEY, null), InputKeyAction.PANEL),
+        floatingScores = src(K_FLOAT).getBoolean(K_FLOAT, false),
+        floatingOnlyLive = src(K_FLOAT_LIVE).getBoolean(K_FLOAT_LIVE, true),
+        homeRedirect = src(K_HOME_REDIRECT).getBoolean(K_HOME_REDIRECT, true),
+        claudeKey = src(K_CLAUDE_KEY).getString(K_CLAUDE_KEY, "").orEmpty(),
+        claudeModel = enumOr(src(K_CLAUDE_MODEL).getString(K_CLAUDE_MODEL, null), ClaudeModel.SONNET),
+        claudeSpeak = src(K_CLAUDE_SPEAK).getBoolean(K_CLAUDE_SPEAK, true),
+        claudeWebSearch = src(K_CLAUDE_WEB).getBoolean(K_CLAUDE_WEB, true),
+        aiProvider = enumOr(src(K_AI_PROVIDER).getString(K_AI_PROVIDER, null), AiProvider.CLAUDE),
+        geminiKey = src(K_GEMINI_KEY).getString(K_GEMINI_KEY, "").orEmpty(),
+        geminiModel = enumOr(src(K_GEMINI_MODEL).getString(K_GEMINI_MODEL, null), GeminiModel.FLASH),
+        voiceEngine = enumOr(src(K_VOICE_ENGINE).getString(K_VOICE_ENGINE, null), VoiceEngine.GEMINI),
+        geminiVoice = enumOr(src(K_GEMINI_VOICE).getString(K_GEMINI_VOICE, null), GeminiVoice.SULAFAT),
+        updateMode = enumOr(src(K_UPDATE_MODE).getString(K_UPDATE_MODE, null), UpdateMode.AUTO),
+        wifiSsid = src(K_WIFI_SSID).getString(K_WIFI_SSID, "").orEmpty(),
+        wifiPassword = src(K_WIFI_PASS).getString(K_WIFI_PASS, "").orEmpty(),
+        wifiSecurity = enumOr(src(K_WIFI_SEC).getString(K_WIFI_SEC, null), WifiSecurity.WPA),
+        morningWeather = src(K_MORNING_WEATHER).getBoolean(K_MORNING_WEATHER, true),
+        breakMinutes = src(K_BREAK_MINUTES).getInt(K_BREAK_MINUTES, 0),
+        lockedApps = src(K_LOCKED_APPS).getStringSet(K_LOCKED_APPS, emptySet()).orEmpty().toSet(),
+        lockPin = src(K_LOCK_PIN).getString(K_LOCK_PIN, "").orEmpty(),
+        inputKey = enumOr(src(K_INPUT_KEY).getString(K_INPUT_KEY, null), InputKeyAction.PANEL),
     )
 
     fun save(s: LauncherSettings) {
-        prefs.edit()
-            .putString(K_LANGUAGE, s.language.name)
-            .putString(K_LAYOUT, s.layout.name)
-            .putBoolean(K_WEATHER, s.weatherEnabled)
-            .putString(K_CITY, s.weatherCity)
-            .putInt(K_COLUMNS, s.columns)
-            .putString(K_ANIM, s.animSpeed.name)
-            .putBoolean(K_WP_MOTION, s.wallpaperMotion)
-            .putString(K_NAME, s.userName)
-            .putBoolean(K_GREETING, s.showGreeting)
-            .putBoolean(K_SOUNDS, s.soundsEnabled)
-            .putString(K_SOUND_LEVEL, s.soundLevel.name)
-            .putInt(K_SAVER_MIN, s.saverMinutes)
-            .putString(K_SAVER_SCENE, s.saverScene.name)
-            .putString(K_CANVAS_CITIES, s.canvasCities.name)
-            .putString(K_CANVAS_STYLE, s.canvasStyle.name)
-            .putInt(K_CANVAS_MINUTES, s.canvasMinutes)
-            .putString(K_FAVORITES, s.favorites.joinToString(","))
-            .putBoolean(K_FAV_INIT, s.favoritesInitialized)
-            .putBoolean(K_SAVER_NP, s.saverNowPlaying)
-            .putBoolean(K_SAVER_SCORES, s.saverScores)
-            .putStringSet(K_LEAGUES, s.scoreLeagues)
-            .putStringSet(K_LEAGUES_KNOWN, League.entries.map { it.code }.toSet())
-            .putStringSet(K_TEAM_LEAGUES, s.followedTeams.keys)
-            .putStringSet(K_TEAMS, s.followedTeams.flatMap { (code, ids) -> ids.map { "$code|$it" } }.toSet())
-            .putBoolean(K_FLOAT, s.floatingScores)
-            .putBoolean(K_FLOAT_LIVE, s.floatingOnlyLive)
-            .putBoolean(K_HOME_REDIRECT, s.homeRedirect)
-            .putString(K_CLAUDE_KEY, s.claudeKey)
-            .putString(K_CLAUDE_MODEL, s.claudeModel.name)
-            .putBoolean(K_CLAUDE_SPEAK, s.claudeSpeak)
-            .putBoolean(K_CLAUDE_WEB, s.claudeWebSearch)
-            .putString(K_AI_PROVIDER, s.aiProvider.name)
-            .putString(K_GEMINI_KEY, s.geminiKey)
-            .putString(K_GEMINI_MODEL, s.geminiModel.name)
-            .putString(K_VOICE_ENGINE, s.voiceEngine.name)
-            .putString(K_GEMINI_VOICE, s.geminiVoice.name)
-            .putString(K_UPDATE_MODE, s.updateMode.name)
-            .putString(K_WIFI_SSID, s.wifiSsid)
-            .putString(K_WIFI_PASS, s.wifiPassword)
-            .putString(K_WIFI_SEC, s.wifiSecurity.name)
-            .putBoolean(K_MORNING_WEATHER, s.morningWeather)
-            .putInt(K_BREAK_MINUTES, s.breakMinutes)
-            .putStringSet(K_LOCKED_APPS, s.lockedApps)
-            .putString(K_LOCK_PIN, s.lockPin)
-            .putString(K_INPUT_KEY, s.inputKey.name)
-            .apply()
+        val d = device.edit()
+        val p = if (pid == Profiles.MAIN) d else profilePrefs.edit()
+        fun e(key: String) = if (key in PROFILE_KEYS) p else d
+        e(K_LANGUAGE).putString(K_LANGUAGE, s.language.name)
+        e(K_LAYOUT).putString(K_LAYOUT, s.layout.name)
+        e(K_WEATHER).putBoolean(K_WEATHER, s.weatherEnabled)
+        e(K_CITY).putString(K_CITY, s.weatherCity)
+        e(K_COLUMNS).putInt(K_COLUMNS, s.columns)
+        e(K_ANIM).putString(K_ANIM, s.animSpeed.name)
+        e(K_WP_MOTION).putBoolean(K_WP_MOTION, s.wallpaperMotion)
+        e(K_NAME).putString(K_NAME, s.userName)
+        e(K_GREETING).putBoolean(K_GREETING, s.showGreeting)
+        e(K_SOUNDS).putBoolean(K_SOUNDS, s.soundsEnabled)
+        e(K_SOUND_LEVEL).putString(K_SOUND_LEVEL, s.soundLevel.name)
+        e(K_SAVER_MIN).putInt(K_SAVER_MIN, s.saverMinutes)
+        e(K_SAVER_SCENE).putString(K_SAVER_SCENE, s.saverScene.name)
+        e(K_CANVAS_CITIES).putString(K_CANVAS_CITIES, s.canvasCities.name)
+        e(K_CANVAS_STYLE).putString(K_CANVAS_STYLE, s.canvasStyle.name)
+        e(K_CANVAS_MINUTES).putInt(K_CANVAS_MINUTES, s.canvasMinutes)
+        e(K_FAVORITES).putString(K_FAVORITES, s.favorites.joinToString(","))
+        e(K_FAV_INIT).putBoolean(K_FAV_INIT, s.favoritesInitialized)
+        e(K_SAVER_NP).putBoolean(K_SAVER_NP, s.saverNowPlaying)
+        e(K_SAVER_SCORES).putBoolean(K_SAVER_SCORES, s.saverScores)
+        e(K_LEAGUES).putStringSet(K_LEAGUES, s.scoreLeagues)
+        e(K_LEAGUES_KNOWN).putStringSet(K_LEAGUES_KNOWN, League.entries.map { it.code }.toSet())
+        e(K_TEAM_LEAGUES).putStringSet(K_TEAM_LEAGUES, s.followedTeams.keys)
+        e(K_TEAMS).putStringSet(K_TEAMS, s.followedTeams.flatMap { (code, ids) -> ids.map { "$code|$it" } }.toSet())
+        e(K_FLOAT).putBoolean(K_FLOAT, s.floatingScores)
+        e(K_FLOAT_LIVE).putBoolean(K_FLOAT_LIVE, s.floatingOnlyLive)
+        e(K_HOME_REDIRECT).putBoolean(K_HOME_REDIRECT, s.homeRedirect)
+        e(K_CLAUDE_KEY).putString(K_CLAUDE_KEY, s.claudeKey)
+        e(K_CLAUDE_MODEL).putString(K_CLAUDE_MODEL, s.claudeModel.name)
+        e(K_CLAUDE_SPEAK).putBoolean(K_CLAUDE_SPEAK, s.claudeSpeak)
+        e(K_CLAUDE_WEB).putBoolean(K_CLAUDE_WEB, s.claudeWebSearch)
+        e(K_AI_PROVIDER).putString(K_AI_PROVIDER, s.aiProvider.name)
+        e(K_GEMINI_KEY).putString(K_GEMINI_KEY, s.geminiKey)
+        e(K_GEMINI_MODEL).putString(K_GEMINI_MODEL, s.geminiModel.name)
+        e(K_VOICE_ENGINE).putString(K_VOICE_ENGINE, s.voiceEngine.name)
+        e(K_GEMINI_VOICE).putString(K_GEMINI_VOICE, s.geminiVoice.name)
+        e(K_UPDATE_MODE).putString(K_UPDATE_MODE, s.updateMode.name)
+        e(K_WIFI_SSID).putString(K_WIFI_SSID, s.wifiSsid)
+        e(K_WIFI_PASS).putString(K_WIFI_PASS, s.wifiPassword)
+        e(K_WIFI_SEC).putString(K_WIFI_SEC, s.wifiSecurity.name)
+        e(K_MORNING_WEATHER).putBoolean(K_MORNING_WEATHER, s.morningWeather)
+        e(K_BREAK_MINUTES).putInt(K_BREAK_MINUTES, s.breakMinutes)
+        e(K_LOCKED_APPS).putStringSet(K_LOCKED_APPS, s.lockedApps)
+        e(K_LOCK_PIN).putString(K_LOCK_PIN, s.lockPin)
+        e(K_INPUT_KEY).putString(K_INPUT_KEY, s.inputKey.name)
+        d.apply()
+        if (p !== d) p.apply()
+        // Profil adı profil listesinde de güncellenir
+        if (Profiles.get(pid)?.name != s.userName && s.userName.isNotBlank()) Profiles.update(ctx, pid) { it.copy(name = s.userName.take(16)) }
     }
 
     private inline fun <reified T : Enum<T>> enumOr(name: String?, default: T): T =
         name?.let { n -> enumValues<T>().firstOrNull { it.name == n } } ?: default
 
     private companion object {
+        /** Profile özel ayarlar; geri kalanı cihazın ortak ayarıdır. */
+        val PROFILE_KEYS = setOf(
+            "ui_layout", "columns", "anim_speed", "wallpaper_motion_v2", "user_name", "show_greeting", "sounds", "sound_level",
+            "saver_minutes", "saver_scene", "favorites", "favorites_initialized", "saver_now_playing", "saver_scores",
+            "score_leagues", "leagues_known", "team_leagues", "followed_teams", "floating_scores", "floating_only_live",
+            "claude_model", "claude_speak", "claude_web_search", "ai_provider", "gemini_model", "voice_engine", "gemini_voice",
+            "break_minutes",
+        )
         const val K_LANGUAGE = "language"
         const val K_LAYOUT = "ui_layout"
         const val K_WEATHER = "weather_enabled"
