@@ -23,6 +23,7 @@ object Changelog {
                     tx("⏳ 5 ve 1 dakika kala uyarı, süre bitince içerik durur ve kilit ekranı gelir; çocuk süre isteyebilir. Ekran koruyucuda geçen süre sayılmaz, gün 06:00'da yenilenir.", "⏳ Warnings at 5 and 1 minute, then playback stops and a lock screen appears; kids can ask for more time. Screensaver time doesn't count, the day resets at 06:00."),
                     tx("📱 Telefon paneli: QR ile eşleşen telefondan kalan süreyi gör, süre ekle, hemen kapat, istekleri onayla, günlük süreyi değiştir (evdeki Wi-Fi'da, yetişkin PIN'iyle).", "📱 Phone panel: from a paired phone see time left, add time, lock now, approve requests and change daily time (home Wi-Fi, adult PIN)."),
                     tx("📊 Kullanım raporunda profil seçimi: kendi raporunun yanında çocuklarınkini de gör.", "📊 Usage report profile picker: see your kids' reports next to yours."),
+                    tx("3.0.1: telefon panelinde açık/koyu tema, kalan süre halkası, hangi TV'ye bağlı olduğun ve LiteDroid sürümü.", "3.0.1: the phone panel gets light/dark themes, a time-left ring, and shows which TV and LiteDroid version it's connected to."),
                 ),
             ),
             Release(

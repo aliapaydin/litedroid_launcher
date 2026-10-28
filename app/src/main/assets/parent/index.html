@@ -3,57 +3,107 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1020">
+<meta name="theme-color" content="#0b1020" id="themeColor">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LiteDroid">
 <title>LiteDroid Ebeveyn</title>
 <style>
-  :root { --bg1:#10213a; --bg2:#06080f; --ink:#fff; --soft:rgba(255,255,255,.68); --muted:rgba(255,255,255,.42); --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --mint:#7cffcb; --warn:#ffb4a8; --gold:#ffd35c; --accent:#2fc6a8; }
+  :root {
+    --bg: #070b16; --bg2: #10213a; --surface: rgba(255,255,255,.06); --surface2: rgba(255,255,255,.1); --line: rgba(255,255,255,.1);
+    --ink: #f4f7ff; --soft: rgba(244,247,255,.68); --muted: rgba(244,247,255,.42);
+    --accent: #2fc6a8; --accent2: #1f6fd0; --ok: #34d399; --warn: #fb7185; --gold: #fbbf24; --ring: rgba(255,255,255,.1);
+    --shadow: 0 10px 30px rgba(0,0,0,.35); --topbar: rgba(7,11,22,.72);
+  }
+  :root.light {
+    --bg: #f3f6fb; --bg2: #e3ecfa; --surface: #ffffff; --surface2: #eef2f8; --line: rgba(15,23,42,.08);
+    --ink: #0f172a; --soft: rgba(15,23,42,.66); --muted: rgba(15,23,42,.45);
+    --accent: #0ea58a; --accent2: #2563eb; --ok: #059669; --warn: #e11d48; --gold: #d97706; --ring: rgba(15,23,42,.08);
+    --shadow: 0 6px 22px rgba(15,23,42,.08); --topbar: rgba(243,246,251,.82);
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; min-height: 100%; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink);
-    background: radial-gradient(120% 80% at 20% 0%, #1d3f6b 0%, var(--bg1) 35%, var(--bg2) 100%) fixed; }
-  .wrap { max-width: 560px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
-  .brand { display:flex; align-items:center; gap:8px; color:var(--soft); font-size:13px; font-weight:800; letter-spacing:1.5px; }
-  .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent); }
-  h1 { font-size:26px; margin:8px 0 4px; letter-spacing:-.3px; }
-  .sub { color:var(--soft); font-size:14px; margin:0 0 16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:24px; padding:16px; margin-bottom:14px; }
-  .head { display:flex; align-items:center; gap:12px; }
-  .face { width:52px; height:52px; border-radius:50%; display:grid; place-items:center; font-size:28px; flex:none; }
-  .name { font-size:20px; font-weight:900; }
-  .live { display:inline-block; margin-left:6px; font-size:11px; font-weight:800; color:#10142a; background:var(--mint); border-radius:999px; padding:2px 8px; vertical-align:middle; }
-  .meta { color:var(--soft); font-size:13px; }
-  .big { margin-left:auto; text-align:right; }
-  .big b { display:block; font-size:22px; }
-  .big span { font-size:11px; color:var(--muted); }
-  .bar { height:10px; border-radius:99px; background:rgba(255,255,255,.1); overflow:hidden; margin:14px 0 4px; }
-  .bar > i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg, #7cffcb, #2fc6a8); transition:width .4s; }
-  .bar.full > i { background:linear-gradient(90deg, #ffb4a8, #ff5c6e); }
-  .locked { margin-top:10px; padding:10px 12px; border-radius:14px; background:rgba(255,92,110,.16); border:1px solid rgba(255,92,110,.4); font-size:14px; font-weight:700; }
-  .req { margin-top:10px; padding:12px; border-radius:16px; background:rgba(255,211,92,.14); border:1px solid rgba(255,211,92,.5); }
-  .req b { color:var(--gold); }
-  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
-  button { border:0; border-radius:16px; padding:12px 14px; font-size:15px; font-weight:800; color:#fff; background:rgba(255,255,255,.12); cursor:pointer; flex:1; min-width:70px; }
-  button:active { transform:scale(.97); }
-  button.ok { background:linear-gradient(135deg,#2fc6a8,#1f6fd0); }
-  button.stop { background:linear-gradient(135deg,#ff6b7d,#d93025); }
-  button.soft { background:rgba(255,255,255,.08); }
-  label { display:block; color:var(--soft); font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; margin:14px 0 6px; }
-  select, input { width:100%; font-size:17px; font-weight:700; color:#fff; background:rgba(0,0,0,.25); border:1.5px solid var(--line); border-radius:14px; padding:11px 12px; outline:none; }
-  .two { display:flex; gap:10px; } .two > div { flex:1; }
-  .apps { margin-top:12px; display:flex; flex-direction:column; gap:6px; }
-  .app { display:flex; justify-content:space-between; font-size:14px; color:var(--soft); }
-  .app b { color:#fff; }
-  .center { text-align:center; padding:40px 10px; }
-  .pinbox { display:flex; gap:10px; justify-content:center; margin:16px 0; }
-  .pinbox input { width:62px; text-align:center; font-size:28px; letter-spacing:0; padding:12px 0; }
-  .err { color:var(--warn); font-weight:700; text-align:center; min-height:20px; }
-  .toast { position:fixed; left:16px; right:16px; bottom:max(16px, env(safe-area-inset-bottom)); padding:12px 14px; border-radius:14px; background:rgba(47,198,168,.95); color:#06231c; font-weight:800; text-align:center; transform:translateY(140%); transition:transform .3s; }
-  .toast.show { transform:translateY(0); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink);
+    background: radial-gradient(120% 70% at 15% 0%, var(--bg2) 0%, var(--bg) 60%) fixed; -webkit-font-smoothing: antialiased; }
+  .top { position: sticky; top: 0; z-index: 5; padding: max(10px, env(safe-area-inset-top)) 16px 10px; background: var(--topbar);
+    backdrop-filter: saturate(160%) blur(16px); -webkit-backdrop-filter: saturate(160%) blur(16px); border-bottom: 1px solid var(--line); }
+  .topin { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 900; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .tt { flex: 1; min-width: 0; }
+  .tt b { display: block; font-size: 16px; }
+  .tt span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .live { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); flex: none; }
+  .live.off { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  .iconbtn { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 17px; display: grid; place-items: center; cursor: pointer; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 14px 16px max(28px, env(safe-area-inset-bottom)); }
+  .now { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); margin-bottom: 14px; font-size: 14px; color: var(--soft); box-shadow: var(--shadow); }
+  .now b { color: var(--ink); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 26px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .head { display: flex; align-items: center; gap: 12px; }
+  .face { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; flex: none; }
+  .name { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tag { font-size: 10px; font-weight: 800; letter-spacing: .5px; padding: 3px 8px; border-radius: 999px; color: #06231c; background: var(--ok); }
+  .tag.lock { color: #fff; background: var(--warn); }
+  .meta { color: var(--soft); font-size: 13px; margin-top: 2px; }
+  .ringbox { margin-left: auto; position: relative; width: 74px; height: 74px; flex: none; }
+  .ringbox svg { transform: rotate(-90deg); }
+  .ringbox .val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .ringbox .val b { font-size: 15px; line-height: 1.1; }
+  .ringbox .val span { font-size: 9px; color: var(--muted); font-weight: 700; letter-spacing: .4px; }
+  .reason { margin-top: 12px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); font-size: 14px; font-weight: 700; }
+  .req { margin-top: 12px; padding: 12px; border-radius: 18px; background: color-mix(in srgb, var(--gold) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent); }
+  .req p { margin: 0 0 10px; font-weight: 700; }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  .seg { display: flex; background: var(--surface2); border-radius: 16px; padding: 4px; gap: 4px; margin-top: 12px; }
+  .seg button { flex: 1; border: 0; background: transparent; color: var(--ink); font-size: 15px; font-weight: 800; padding: 11px 6px; border-radius: 12px; cursor: pointer; }
+  .seg button:active { background: var(--surface); }
+  .btn { flex: 1; border: 0; border-radius: 16px; padding: 14px; font-size: 16px; font-weight: 800; color: #fff; cursor: pointer; background: var(--surface2); color: var(--ink); }
+  .btn:active { transform: scale(.98); }
+  .btn.ok { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .btn.stop { color: #fff; background: linear-gradient(135deg, #fb7185, #e11d48); }
+  .lbl { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .8px; margin: 14px 0 6px; }
+  .two { display: flex; gap: 10px; } .two > div { flex: 1; }
+  select { width: 100%; appearance: none; -webkit-appearance: none; font-size: 16px; font-weight: 700; color: var(--ink); background: var(--surface2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23889' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 12px center;
+    border: 1px solid var(--line); border-radius: 14px; padding: 12px 30px 12px 12px; outline: none; }
+  details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+  summary { cursor: pointer; color: var(--soft); font-size: 14px; font-weight: 700; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: " ▾"; }
+  .app { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; padding: 6px 0; }
+  .app .bar { flex: 1; height: 6px; border-radius: 99px; background: var(--ring); overflow: hidden; }
+  .app .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .app .n { width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--soft); }
+  .app b { width: 56px; text-align: right; }
+  .hours { margin-top: 10px; color: var(--soft); font-size: 13px; }
+  .device { margin-top: 18px; padding: 14px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); display: flex; gap: 12px; align-items: center; }
+  .device .tv { width: 44px; height: 44px; border-radius: 12px; background: var(--surface2); display: grid; place-items: center; font-size: 22px; flex: none; }
+  .device b { display: block; font-size: 15px; }
+  .device span { display: block; color: var(--soft); font-size: 12px; line-height: 1.5; }
+  .hint { text-align: center; color: var(--muted); font-size: 12px; margin-top: 14px; }
+  .center { text-align: center; padding: 50px 10px; }
+  .center h1 { font-size: 24px; margin: 10px 0 6px; }
+  .center p { color: var(--soft); margin: 0; }
+  .pinbox { display: flex; gap: 10px; justify-content: center; margin: 22px 0 10px; }
+  .pinbox input { width: 58px; height: 66px; text-align: center; font-size: 28px; font-weight: 800; color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; outline: none; -webkit-text-security: disc; }
+  .pinbox input:focus { border-color: var(--accent); }
+  .err { color: var(--warn); font-weight: 700; min-height: 20px; }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-end; z-index: 9; }
+  .sheet.show { display: flex; }
+  .sheet .box { width: 100%; max-width: 560px; margin: 0 auto; background: var(--bg); border-radius: 26px 26px 0 0; padding: 20px 16px max(20px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
+  .sheet h3 { margin: 0 0 6px; font-size: 19px; }
+  .sheet p { margin: 0 0 14px; color: var(--soft); }
+  .toast { position: fixed; left: 16px; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); max-width: 528px; margin: 0 auto; padding: 13px 14px; border-radius: 16px; background: var(--ink); color: var(--bg); font-weight: 800; text-align: center; transform: translateY(150%); transition: transform .3s; z-index: 10; }
+  .toast.show { transform: translateY(0); }
 </style>
 </head>
 <body>
+<div class="top"><div class="topin">
+  <div class="logo">L</div>
+  <div class="tt"><b>Ebeveyn paneli</b><span id="sub"><i class="live" id="live"></i><span id="devname">Bağlanıyor…</span></span></div>
+  <button class="iconbtn" id="theme" aria-label="Tema">◐</button>
+</div></div>
 <div class="wrap" id="app"></div>
+<div class="sheet" id="sheet"><div class="box"><h3 id="shT"></h3><p id="shP"></p><div class="row"><button class="btn" id="shNo">Vazgeç</button><button class="btn stop" id="shYes">Evet</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 (function () {
@@ -64,37 +114,71 @@
     set: function (k, v) { try { localStorage.setItem("ldp_" + k, v); } catch (e) {} },
     del: function (k) { try { localStorage.removeItem("ldp_" + k); } catch (e) {} }
   };
+
+  // ---- Tema: otomatik (telefonun ayarı) → açık → koyu ----
+  var themeMode = store.get("theme") || "auto";
+  var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
+  function applyTheme() {
+    var light = themeMode === "light" || (themeMode === "auto" && mq && mq.matches);
+    document.documentElement.classList.toggle("light", light);
+    document.getElementById("themeColor").setAttribute("content", light ? "#f3f6fb" : "#0b1020");
+    document.getElementById("theme").textContent = themeMode === "auto" ? "◐" : (light ? "☀️" : "🌙");
+  }
+  if (mq && mq.addEventListener) mq.addEventListener("change", applyTheme);
+  document.getElementById("theme").addEventListener("click", function () {
+    themeMode = themeMode === "auto" ? "light" : themeMode === "light" ? "dark" : "auto";
+    store.set("theme", themeMode); applyTheme();
+    toast({ auto: "Tema: telefonla aynı", light: "Tema: açık", dark: "Tema: koyu" }[themeMode]);
+  });
+  applyTheme();
+
   var token = store.get("token");
   var pin = "";
   try { pin = sessionStorage.getItem("ldp_pin") || ""; } catch (e) {}
-  var state = null, busy = false, selectOpen = false;
+  var state = null, busy = false, selectOpen = false, openApps = {};
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function post(path, body) {
     return fetch(path, { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); });
   }
-  function toast(t) { var el = document.getElementById("toast"); el.textContent = t; el.classList.add("show"); setTimeout(function () { el.classList.remove("show"); }, 2200); }
+  function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  function toast(t) { var el = document.getElementById("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.h); toast.h = setTimeout(function () { el.classList.remove("show"); }, 2200); }
   function mins(ms) { var m = Math.round(ms / 60000); if (m >= 60) { var h = Math.floor(m / 60), r = m % 60; return h + " sa" + (r ? " " + r + " dk" : ""); } return m + " dk"; }
   function label(m) { if (!m) return "Sınırsız"; if (m >= 60 && m % 60 === 0) return (m / 60) + " saat"; if (m > 60) return Math.floor(m / 60) + " sa " + (m % 60) + " dk"; return m + " dk"; }
+  function setLive(ok, text) {
+    document.getElementById("live").className = "live" + (ok ? "" : " off");
+    if (text) document.getElementById("devname").textContent = text;
+  }
 
-  // Eşleşme: QR'daki ?pair= kodu bir kez kullanılır
+  function confirmSheet(title, text, yes, cb) {
+    var sh = document.getElementById("sheet");
+    document.getElementById("shT").textContent = title;
+    document.getElementById("shP").textContent = text;
+    document.getElementById("shYes").textContent = yes;
+    sh.classList.add("show");
+    function close() { sh.classList.remove("show"); document.getElementById("shYes").onclick = null; }
+    document.getElementById("shNo").onclick = close;
+    sh.onclick = function (e) { if (e.target === sh) close(); };
+    document.getElementById("shYes").onclick = function () { close(); cb(); };
+  }
+
+  // ---- Eşleşme: QR'daki ?pair= kodu bir kez kullanılır ----
   var q = location.search.match(/[?&]pair=(\d+)/);
   if (q) {
     history.replaceState(null, "", "/");
     post("/api/pair", { code: q[1] }).then(function (r) {
-      if (r.token) { token = r.token; store.set("token", token); toast("Bu telefon eşleşti ✓"); load(); }
-      else { renderMessage("Eşleşme kodu geçersiz", "QR'ın süresi dolmuş olabilir. TV'de Ebeveyn denetimi → Telefon paneli'ni yeniden aç ve QR'ı tekrar okut."); }
-    }).catch(function () { renderMessage("TV'ye ulaşılamadı", "Telefon TV ile aynı Wi-Fi ağında olmalı."); });
+      if (r.token) { token = r.token; store.set("token", token); toast("Bu telefon eşleşti ✓"); vib(30); load(); }
+      else renderMessage("🔗", "Eşleşme kodu geçersiz", "QR'ın süresi dolmuş olabilir. TV'de Ebeveyn denetimi → Telefon paneli'ni yeniden aç ve QR'ı tekrar okut.");
+    }).catch(function () { renderMessage("📶", "TV'ye ulaşılamadı", "Telefon TV ile aynı Wi-Fi ağında olmalı."); });
   }
 
-  function renderMessage(title, text) {
-    app.innerHTML = '<div class="brand"><span class="dot"></span>LITEDROID · EBEVEYN</div><div class="center"><h1>' + esc(title) + '</h1><p class="sub">' + esc(text) + '</p></div>';
+  function renderMessage(icon, title, text) {
+    app.innerHTML = '<div class="center"><div style="font-size:52px">' + icon + '</div><h1>' + esc(title) + '</h1><p>' + esc(text) + '</p></div>';
   }
 
   function renderPin(msg) {
-    app.innerHTML = '<div class="brand"><span class="dot"></span>LITEDROID · EBEVEYN</div><div class="center"><h1>Yetişkin PIN\'i</h1>' +
-      '<p class="sub">TV\'deki bir yetişkin profilinin 4 haneli PIN\'i</p><div class="pinbox">' +
-      [0, 1, 2, 3].map(function (i) { return '<input id="p' + i + '" inputmode="numeric" maxlength="1" autocomplete="off">'; }).join("") +
+    app.innerHTML = '<div class="center"><div style="font-size:52px">🔐</div><h1>Yetişkin PIN\'i</h1><p>TV\'deki bir yetişkin profilinin 4 haneli PIN\'i</p><div class="pinbox">' +
+      [0, 1, 2, 3].map(function (i) { return '<input id="p' + i + '" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off">'; }).join("") +
       '</div><div class="err">' + esc(msg || "") + '</div></div>';
     var inputs = [0, 1, 2, 3].map(function (i) { return document.getElementById("p" + i); });
     inputs.forEach(function (el, i) {
@@ -106,27 +190,30 @@
       });
       el.addEventListener("keydown", function (e) { if (e.key === "Backspace" && !el.value && i > 0) inputs[i - 1].focus(); });
     });
-    setTimeout(function () { inputs[0].focus(); }, 50);
+    setTimeout(function () { inputs[0].focus(); }, 60);
   }
 
   function handleError(r) {
-    if (r.error === "unpaired") { store.del("token"); token = null; renderMessage("Bu telefon eşleşmemiş", "TV'de Ayarlar → Ebeveyn denetimi → Telefon paneli'ndeki QR'ı bu telefonla okut."); return true; }
-    if (r.error === "pin") { pin = ""; try { sessionStorage.removeItem("ldp_pin"); } catch (e) {} renderPin(state ? "PIN yanlış" : ""); return true; }
-    if (r.error === "wait") { renderMessage("Çok fazla yanlış PIN", r.seconds + " saniye sonra tekrar dene."); return true; }
+    if (r.error === "unpaired") { store.del("token"); token = null; renderMessage("📱", "Bu telefon eşleşmemiş", "TV'de Ayarlar → Ebeveyn denetimi → Telefon paneli'ndeki QR'ı bu telefonla okut."); return true; }
+    if (r.error === "pin") { pin = ""; try { sessionStorage.removeItem("ldp_pin"); } catch (e) {} vib([60, 40, 60]); renderPin(state ? "PIN yanlış" : ""); return true; }
+    if (r.error === "wait") { renderMessage("⏳", "Çok fazla yanlış PIN", r.seconds + " saniye sonra tekrar dene."); return true; }
     return false;
   }
 
   function load() {
-    if (!token) { renderMessage("Bu telefon eşleşmemiş", "TV'de Ayarlar → Ebeveyn denetimi → Telefon paneli'ndeki QR'ı bu telefonla okut."); return; }
+    if (!token) { renderMessage("📱", "Bu telefon eşleşmemiş", "TV'de Ayarlar → Ebeveyn denetimi → Telefon paneli'ndeki QR'ı bu telefonla okut."); setLive(false, "Eşleşmemiş"); return; }
     post("/api/state", { token: token, pin: pin }).then(function (r) {
       if (handleError(r)) return;
       state = r; render();
-    }).catch(function () { if (!state) renderMessage("TV'ye ulaşılamadı", "Telefon TV ile aynı Wi-Fi ağında olmalı."); });
+    }).catch(function () {
+      setLive(false, "TV'ye ulaşılamıyor");
+      if (!state) renderMessage("📶", "TV'ye ulaşılamadı", "Telefon TV ile aynı Wi-Fi ağında olmalı.");
+    });
   }
 
   function act(child, action, extra) {
     if (busy) return;
-    busy = true;
+    busy = true; vib(15);
     var body = { token: token, pin: pin, child: child, action: action };
     for (var k in extra || {}) body[k] = extra[k];
     post("/api/action", body).then(function (r) {
@@ -136,38 +223,62 @@
     }).catch(function () { toast("TV'ye ulaşılamadı"); }).then(function () { busy = false; });
   }
 
+  function ring(c) {
+    var limit = c.limitMin + c.bonusMin;
+    var r = 31, len = 2 * Math.PI * r;
+    var frac = c.locked ? 1 : (limit > 0 ? Math.min(1, c.usedMs / (limit * 60000)) : 0);
+    var color = c.locked || frac >= 1 ? "var(--warn)" : frac > .8 ? "var(--gold)" : "var(--accent)";
+    var big = c.locked ? "🔒" : (c.remainingMs >= 0 ? mins(c.remainingMs) : "∞");
+    var small = c.locked ? "KİLİTLİ" : (c.remainingMs >= 0 ? "KALAN" : "SINIRSIZ");
+    return '<div class="ringbox"><svg width="74" height="74"><circle cx="37" cy="37" r="' + r + '" fill="none" stroke="var(--ring)" stroke-width="7"/>' +
+      '<circle cx="37" cy="37" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + len + '" stroke-dashoffset="' + (len * (1 - frac)) + '"/></svg>' +
+      '<div class="val"><b>' + big + '</b><span>' + small + '</span></div></div>';
+  }
+
   function render() {
     if (selectOpen) return;
+    var d = state.device || {};
+    setLive(true, (d.name || "TV") + (d.version ? " · v" + d.version : ""));
     var kids = state.children || [];
-    var html = '<div class="brand"><span class="dot"></span>LITEDROID · EBEVEYN</div><h1>Çocuklar</h1><p class="sub">Bugünkü ekran süreleri. Gün sabah 06:00\'da yenilenir.</p>';
+    var html = "";
+    if (d.activeName) {
+      html += '<div class="now"><span style="font-size:20px">' + esc(d.activeEmoji || "📺") + '</span><span>TV\'de şu an <b>' + esc(d.activeName) + '</b> profili açık' + (d.activeKid ? " (çocuk)" : "") + '</span></div>';
+    }
     if (!kids.length) html += '<div class="card">Henüz çocuk profili yok. TV\'de Ayarlar → Profil → Profiller\'den ekleyebilirsin.</div>';
     kids.forEach(function (c) {
-      var limit = c.limitMin + c.bonusMin;
-      var pct = limit > 0 ? Math.min(100, c.usedMs / (limit * 60000) * 100) : 0;
+      var maxApp = (c.apps && c.apps.length) ? c.apps[0].ms : 1;
       html += '<div class="card"><div class="head"><div class="face" style="background:' + esc(c.color) + '">' + esc(c.emoji) + '</div>' +
-        '<div><div class="name">' + esc(c.name) + (c.active ? '<span class="live">ŞU AN AÇIK</span>' : '') + '</div>' +
-        '<div class="meta">' + mins(c.usedMs) + ' kullandı' + (c.limitMin ? ' · sınır ' + label(c.limitMin) + (c.bonusMin ? ' + ' + c.bonusMin + ' dk' : '') : ' · sınır yok') + '</div></div>' +
-        '<div class="big"><b>' + (c.locked ? '🔒' : (c.remainingMs >= 0 ? mins(c.remainingMs) : '∞')) + '</b><span>' + (c.locked ? 'KİLİTLİ' : 'KALAN') + '</span></div></div>';
-      if (limit > 0) html += '<div class="bar' + (pct >= 100 ? ' full' : '') + '"><i style="width:' + pct + '%"></i></div>';
-      if (c.locked) html += '<div class="locked">' + esc(c.reason) + '</div>';
-      if (c.request) html += '<div class="req">🙏 <b>' + esc(c.name) + '</b> ' + c.request + ' dakika daha istiyor<div class="row"><button class="ok" data-a="approve" data-c="' + c.id + '">Onayla</button><button class="soft" data-a="decline" data-c="' + c.id + '">Reddet</button></div></div>';
-      html += '<div class="row">' + (state.addOptions || [15, 30, 60]).map(function (m) { return '<button data-a="add" data-m="' + m + '" data-c="' + c.id + '">+' + m + ' dk</button>'; }).join("") + '</div>';
-      html += '<div class="row">' + (c.locked ? '<button class="ok" data-a="unlock" data-c="' + c.id + '">🔓 Kilidi aç</button>' : '<button class="stop" data-a="lock" data-c="' + c.id + '">⏻ Hemen kapat</button>') + '</div>';
-      html += '<div class="two"><div><label>Hafta içi günlük</label>' + sel(c, "weekday", c.weekdayMin) + '</div><div><label>Hafta sonu günlük</label>' + sel(c, "weekend", c.weekendMin) + '</div></div>';
-      if (c.hours) html += '<div class="meta" style="margin-top:10px">🕗 Ekran saatleri: ' + esc(c.hours) + '</div>';
+        '<div style="min-width:0"><div class="name">' + esc(c.name) + (c.active ? '<span class="tag">ŞU AN AÇIK</span>' : '') + (c.locked ? '<span class="tag lock">KİLİTLİ</span>' : '') + '</div>' +
+        '<div class="meta">' + mins(c.usedMs) + ' kullandı · ' + (c.limitMin ? 'sınır ' + label(c.limitMin) + (c.bonusMin ? ' + ' + c.bonusMin + ' dk' : '') : 'sınır yok') + '</div></div>' +
+        ring(c) + '</div>';
+      if (c.locked && c.reason) html += '<div class="reason">' + esc(c.reason) + '</div>';
+      if (c.request) html += '<div class="req"><p>🙏 ' + esc(c.name) + ' ' + c.request + ' dakika daha istiyor</p><div class="row" style="margin:0"><button class="btn ok" data-a="approve" data-c="' + c.id + '">✓ Onayla</button><button class="btn" data-a="decline" data-c="' + c.id + '">Reddet</button></div></div>';
+      html += '<div class="lbl">SÜRE EKLE</div><div class="seg" style="margin-top:0">' + (state.addOptions || [15, 30, 60]).map(function (m) { return '<button data-a="add" data-m="' + m + '" data-c="' + c.id + '">+' + m + ' dk</button>'; }).join("") + '</div>';
+      html += '<div class="row">' + (c.locked ? '<button class="btn ok" data-a="unlock" data-c="' + c.id + '" data-n="' + esc(c.name) + '">🔓 Kilidi aç</button>' : '<button class="btn stop" data-a="lock" data-c="' + c.id + '" data-n="' + esc(c.name) + '">⏻ Hemen kapat</button>') + '</div>';
+      html += '<div class="two"><div><div class="lbl">HAFTA İÇİ</div>' + sel(c, "weekday", c.weekdayMin) + '</div><div><div class="lbl">HAFTA SONU</div>' + sel(c, "weekend", c.weekendMin) + '</div></div>';
+      if (c.hours) html += '<div class="hours">🕗 Ekran saatleri: ' + esc(c.hours) + '</div>';
       if (c.apps && c.apps.length) {
-        html += '<div class="apps">' + c.apps.map(function (a) { return '<div class="app"><span>' + esc(a.label) + '</span><b>' + mins(a.ms) + '</b></div>'; }).join("") + '</div>';
+        html += '<details data-k="' + c.id + '"' + (openApps[c.id] ? " open" : "") + '><summary>Bugün en çok kullanılanlar</summary>' + c.apps.map(function (a) {
+          return '<div class="app"><span class="n">' + esc(a.label) + '</span><span class="bar"><i style="width:' + Math.max(4, a.ms / maxApp * 100) + '%"></i></span><b>' + mins(a.ms) + '</b></div>';
+        }).join("") + '</details>';
       }
       html += '</div>';
     });
-    html += '<p class="sub" style="text-align:center">Bu sayfayı ana ekrana ekleyebilirsin. Sadece evdeki Wi-Fi\'da çalışır.</p>';
+    // Hangi TV'nin paneli
+    html += '<div class="device"><div class="tv">📺</div><div><b>' + esc(d.name || "TV") + '</b><span>' + esc(d.model || "") + (d.android ? ' · Android ' + esc(d.android) : '') + '</span>' +
+      '<span>LiteDroid ' + esc(d.version || "") + (d.ip ? ' · ' + esc(d.ip) : '') + (d.profiles ? ' · ' + d.profiles + ' profil' : '') + '</span></div></div>';
+    html += '<div class="hint">Paylaş → Ana Ekrana Ekle ile uygulama gibi açabilirsin. Sadece evdeki Wi-Fi\'da çalışır.</div>';
     app.innerHTML = html;
+
     Array.prototype.forEach.call(app.querySelectorAll("button[data-a]"), function (b) {
       b.addEventListener("click", function () {
-        var a = b.getAttribute("data-a");
-        if (a === "lock" && !confirm("Ekran şimdi kapatılsın mı?")) return;
-        act(b.getAttribute("data-c"), a, { minutes: parseInt(b.getAttribute("data-m") || "0", 10) });
+        var a = b.getAttribute("data-a"), c = b.getAttribute("data-c");
+        if (a === "lock") { confirmSheet("Ekran kapatılsın mı?", (b.getAttribute("data-n") || "") + " profili hemen kilitlenir, açık olan içerik durur.", "Hemen kapat", function () { act(c, "lock"); }); return; }
+        act(c, a, { minutes: parseInt(b.getAttribute("data-m") || "0", 10) });
       });
+    });
+    Array.prototype.forEach.call(app.querySelectorAll("details"), function (dt) {
+      dt.addEventListener("toggle", function () { openApps[dt.getAttribute("data-k")] = dt.open; });
     });
     Array.prototype.forEach.call(app.querySelectorAll("select"), function (s) {
       s.addEventListener("focus", function () { selectOpen = true; });
@@ -186,7 +297,9 @@
   }
 
   if (!q) load();
-  setInterval(function () { if (token && state && !busy && (pin || !state.pinRequired)) load(); }, 5000);
+  // Sayfa tekrar öne gelince hemen yenile
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && token && state) load(); });
+  setInterval(function () { if (!document.hidden && token && state && !busy && (pin || !state.pinRequired)) load(); }, 5000);
 })();
 </script>
 </body>

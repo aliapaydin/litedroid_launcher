@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.1
+- Phone panel: light/dark theme (follows the phone, or set manually; remembered), sticky top bar with the TV's name, LiteDroid version and a connection dot, "now on the TV" profile line, remaining-time ring per kid, segmented quick-add, bottom-sheet confirmation for "lock now", collapsible app list with bars, refresh on return to the page.
+- `/api/state` returns `device`: TV name (`Settings.Global.DEVICE_NAME`, falls back to model), manufacturer/model, Android version, LiteDroid version, IP, profile count and the active profile.
+
 ## 3.0.0
 - **Profiles** (`data/Profiles.kt`): up to 5, adult/kid, name, emoji/color or avatar, optional PIN (salted SHA-256, never stored in clear). Per-profile storage via `Profiles.scoped(base)`: the first profile (`main`) keeps the legacy file names, so upgrading migrates nothing; others use `<base>__p_<id>`. Settings are split: device keys (API keys, language, weather, Wi-Fi, updates, remote/Input, home redirect, canvas, app lock) in `litedroid`, profile keys (`SettingsRepository.PROFILE_KEYS`: layout, favorites, teams, sounds, AI choices…) in the profile file. App order/hidden/theme/recents, now-playing history, story prefs and library, avatars, game records, browser history, bell state and Wrapped counters are per profile.
 - `ProfileTimeline` logs profile switches (30 days); Wrapped day snapshots and the usage report clip device sessions to the intervals each profile was active.
