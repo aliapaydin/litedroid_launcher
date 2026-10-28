@@ -110,7 +110,10 @@ fun WhoIsWatchingScreen(
     val profiles by Profiles.list.collectAsState()
     val activeId by Profiles.active.collectAsState()
     var pinFor by remember { mutableStateOf<Profile?>(null) }
+    var lockedFor by remember { mutableStateOf<Profile?>(null) }
+    var gateThen by remember { mutableStateOf<Profile?>(null) }
     var adultGate by remember { mutableStateOf(false) }
+    val parentalVersion by dev.litedroid.launcher.data.Parental.version.collectAsState()
     val requesters = remember(profiles.size) { List(profiles.size + 2) { FocusRequester() } }
     val manageFocus = remember { FocusRequester() }
     var restore by remember { mutableIntStateOf(0) }
@@ -119,7 +122,7 @@ fun WhoIsWatchingScreen(
         val i = profiles.indexOfFirst { it.id == activeId }.coerceAtLeast(0)
         runCatching { requesters[i].requestFocus() }
     }
-    BackHandler(enabled = pinFor == null && !adultGate && !forced) { onClose() }
+    BackHandler(enabled = pinFor == null && lockedFor == null && gateThen == null && !adultGate && !forced) { onClose() }
 
     Box(modifier.fillMaxSize().background(PickerBg)) {
         PickerGlow()
@@ -129,8 +132,16 @@ fun WhoIsWatchingScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(30.dp), verticalAlignment = Alignment.Top) {
                 profiles.forEachIndexed { i, p ->
                     key(p.id) {
-                        ProfileTile(p, Modifier.focusRequester(requesters[i])) {
-                            if (p.hasPin) pinFor = p else onPick(p)
+                        // Kilitli çocuk profili (süre doldu, saat dışı, ebeveyn kapattı) seçilemez
+                        val locked = parentalVersion >= 0 && dev.litedroid.launcher.data.Parental.lockReason(ctx, p.id) != null
+                        ProfileTile(p, Modifier.focusRequester(requesters[i]), locked) {
+                            when {
+                                locked -> lockedFor = p
+                                p.hasPin -> pinFor = p
+                                // Çocuk sınırları varken PIN'siz yetişkin profiline başka bir yetişkinin PIN'iyle girilir
+                                !p.isChild && dev.litedroid.launcher.data.Parental.anyLimits(ctx) -> gateThen = p
+                                else -> onPick(p)
+                            }
                         }
                     }
                 }
@@ -158,6 +169,24 @@ fun WhoIsWatchingScreen(
                     restore++
                 },
             )
+        }
+        gateThen?.let { p ->
+            AdultGate(
+                onOk = {
+                    gateThen = null
+                    onPick(p)
+                },
+                onCancel = {
+                    gateThen = null
+                    restore++
+                },
+            )
+        }
+        lockedFor?.let { p ->
+            LockedChildDialog(p) {
+                lockedFor = null
+                restore++
+            }
         }
         if (adultGate) {
             AdultGate(
@@ -188,7 +217,7 @@ private fun PickerGlow() {
 }
 
 @Composable
-private fun ProfileTile(p: Profile, modifier: Modifier, onSelect: () -> Unit) {
+private fun ProfileTile(p: Profile, modifier: Modifier, locked: Boolean = false, onSelect: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.14f else 1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow), label = "s")
     val spin by rememberInfiniteTransition(label = "ring").animateFloat(0f, 360f, infiniteRepeatable(tween(4_000, easing = LinearEasing)), label = "r")
@@ -207,7 +236,10 @@ private fun ProfileTile(p: Profile, modifier: Modifier, onSelect: () -> Unit) {
                     drawCircle(Brush.sweepGradient(listOf(Gold, Color(0xFFFF6FB5), Color(0xFF8E7BFF), Gold)), radius = size.minDimension / 2 - 3.dp.toPx(), style = Stroke(5.dp.toPx()))
                 }
             }
-            ProfileFace(p, 128.dp)
+            Box(Modifier.graphicsLayer { alpha = if (locked) 0.45f else 1f }) { ProfileFace(p, 128.dp) }
+            if (locked) {
+                Text("⏳", fontSize = 40.sp)
+            }
             if (p.hasPin) {
                 Text("🔒", fontSize = 18.sp, modifier = Modifier.align(Alignment.BottomEnd).offset(x = (-8).dp, y = (-8).dp)
                     .clip(CircleShape).background(Color(0xFF14121F)).padding(5.dp))
@@ -215,6 +247,9 @@ private fun ProfileTile(p: Profile, modifier: Modifier, onSelect: () -> Unit) {
         }
         Spacer(Modifier.height(12.dp))
         Text(p.name, color = if (focused) Color.White else Color.White.copy(alpha = 0.7f), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (locked) {
+            Text(tx("Şimdilik kilitli", "Locked for now"), color = Color(0xFFFFB4A8), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
         if (p.isChild) {
             Text(tx("ÇOCUK", "KID"), color = Color(0xFF14121F), fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp,
                 modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(50)).background(Color(0xFF7CFFCB)).padding(horizontal = 8.dp, vertical = 2.dp))
@@ -582,6 +617,8 @@ fun ProfileManagerScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                     ManagerRow(null, tx("Tür", "Type"), if (current.isChild) tx("Çocuk", "Kid") else tx("Yetişkin", "Adult")) {
                         if (!current.isChild && adults <= 1) {
                             message = tx("En az bir yetişkin profili olmalı", "There must be at least one adult profile")
+                        } else if (current.isChild && !current.hasPin && dev.litedroid.launcher.data.Parental.anyLimits(ctx)) {
+                            message = tx("Çocuk sınırları varken yetişkin profillerinin PIN'i olmalı: önce bu profile PIN belirle", "Adult profiles need a PIN while kid limits exist: set a PIN for this profile first")
                         } else Profiles.update(ctx, current.id) { it.copy(kind = if (it.isChild) ProfileKind.ADULT else ProfileKind.CHILD) }
                     }
                 }
@@ -592,8 +629,12 @@ fun ProfileManagerScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                 if (current.hasPin) {
                     item(key = "pin_off") {
                         ManagerRow(null, tx("PIN'i kaldır", "Remove PIN"), null) {
-                            Profiles.setPin(ctx, current.id, null)
-                            message = tx("PIN kaldırıldı", "PIN removed")
+                            if (!current.isChild && dev.litedroid.launcher.data.Parental.anyLimits(ctx)) {
+                                message = tx("Bir çocuk profilinde sınır varken yetişkin PIN'i kaldırılamaz", "An adult PIN can't be removed while a kid profile has limits")
+                            } else {
+                                Profiles.setPin(ctx, current.id, null)
+                                message = tx("PIN kaldırıldı", "PIN removed")
+                            }
                         }
                     }
                 }
@@ -628,6 +669,11 @@ fun ProfileManagerScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                         onSave = { v ->
                             Profiles.update(ctx, id) { it.copy(name = v.trim().take(16).ifBlank { it.name }) }
                             naming = null
+                            // Yeni yetişkin: çocuk sınırları varsa PIN hemen istenir
+                            if (!p.isChild && !p.hasPin && dev.litedroid.launcher.data.Parental.anyLimits(ctx)) {
+                                pinStep = id to null
+                                message = tx("Çocuk sınırları olduğu için bu yetişkin profiline PIN gerekli", "Kid limits are on, so this adult profile needs a PIN")
+                            }
                         },
                         onCancel = { naming = null },
                     )

@@ -147,6 +147,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 else dev.litedroid.launcher.wrapped.WrappedStats.end(app, "saver")
             }
             saverOn = v
+            // Ekran koruyucuda geçen süre çocuk profilinin süresinden düşmez
+            dev.litedroid.launcher.data.Parental.saverOn = v
         }
 
     /** Yüklü oyunlar (Play kategorisi "Oyun" olanlar). */
@@ -376,11 +378,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     /** Seçili yapay zekânın adı (ekran başlığı ve mesajlar için). */
     val assistantName: String get() = settings.aiProvider.label
 
-    private fun claudeSystemPrompt(): String {
+    private fun claudeSystemPrompt(kidMode: Boolean = false): String {
         val now = java.time.ZonedDateTime.now()
         val date = now.format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy EEEE, HH:mm", I18n.locale))
         val place = weather?.city?.takeIf { it.isNotBlank() } ?: settings.weatherCity
-        return tx(
+        // Çocuk modu: yaşa uygun, kısa, nazik; korkutucu, şiddet ya da yetişkin içerik yok
+        val kids = if (!kidMode) "" else tx(
+            " ÖNEMLİ: Şu an bir ÇOCUK profili açık (${Profiles.activeProfile?.name ?: ""}). İlkokul çağındaki bir çocukla konuşuyormuş gibi " +
+                "sade, sıcak ve kısa cevap ver (2-4 cümle). Şiddet, korku, cinsellik, uyuşturucu, kumar ya da yetişkinlere yönelik hiçbir " +
+                "konuya girme; böyle bir soru gelirse nazikçe bunu ebeveynine sorması gerektiğini söyle. Kişisel bilgi (adres, okul, " +
+                "telefon) isteme ve paylaşma. Merak ettiği konularda öğretici ve cesaretlendirici ol.",
+            " IMPORTANT: a CHILD profile is active (${Profiles.activeProfile?.name ?: ""}). Answer simply, warmly and briefly as if talking " +
+                "to a primary-school child (2-4 sentences). Never go into violence, horror, sexual content, drugs, gambling or any adult topic; " +
+                "if asked, gently say they should ask a parent. Never ask for or share personal info (address, school, phone). " +
+                "Be educational and encouraging.",
+        )
+        return kids + tx(
             "Sen LiteDroid Launcher'ın içindeki asistansın. Kullanıcı televizyonun karşısında, sorusunu sesle ya da " +
                 "kumandayla soruyor. Cevabın TV ekranında büyük yazıyla gösterilecek ve sesli okunacak. Bu yüzden kısa, " +
                 "net ve sohbet havasında cevap ver: genellikle 2-5 cümle, gerekirse en fazla birkaç kısa paragraf. " +
@@ -404,6 +417,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         speaker.stop()
         val provider = settings.aiProvider
         val key = (if (provider == AiProvider.GEMINI) settings.geminiKey else settings.claudeKey).trim()
+        // Çocuk profili: ebeveyn kapattıysa soru sorulamaz, açıksa çocuk modunda (web araması yok)
+        val child = Profiles.activeProfile?.takeIf { it.isChild }
+        val kidMode = child != null && dev.litedroid.launcher.data.Parental.rules(app, child.id).ai == dev.litedroid.launcher.data.KidAi.KIDS
+        if (child != null && !kidMode) {
+            claudeTurns += ClaudeTurn(q, error = tx("Bu profilde Claude'a sor kapalı. Ebeveynine sorabilirsin.", "Ask Claude is off for this profile. You can ask your parent."))
+            return
+        }
         if (key.isEmpty()) {
             claudeTurns += ClaudeTurn(
                 q,
@@ -428,19 +448,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     GeminiClient.ask(
                         apiKey = key,
                         model = settings.geminiModel.id,
-                        system = claudeSystemPrompt(),
+                        system = claudeSystemPrompt(kidMode),
                         history = history,
                         question = q,
-                        webSearch = settings.claudeWebSearch,
+                        webSearch = settings.claudeWebSearch && !kidMode,
                     )
                 } else {
                     ClaudeClient.ask(
                         apiKey = key,
                         model = settings.claudeModel.id,
-                        system = claudeSystemPrompt(),
+                        system = claudeSystemPrompt(kidMode),
                         history = history,
                         question = q,
-                        webSearch = settings.claudeWebSearch,
+                        webSearch = settings.claudeWebSearch && !kidMode,
                         timezone = java.time.ZoneId.systemDefault().id,
                         city = weather?.city ?: settings.weatherCity,
                     )
@@ -928,8 +948,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // ---------------- Profiller ----------------
 
     /** "Kim İzliyor?" ekranı açık mı. */
-    var pickerOpen by mutableStateOf(false)
-        private set
+    private var pickerShown by mutableStateOf(false)
+    var pickerOpen: Boolean
+        get() = pickerShown
+        private set(v) {
+            pickerShown = v
+            // Profil ekranındayken çocuğun süresi sayılmaz
+            dev.litedroid.launcher.data.Parental.pickerOn = v
+        }
 
     /** Profile girişte altta çıkan "Hoş geldin" kutusu. */
     var welcome by mutableStateOf<Profile?>(null)

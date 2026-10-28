@@ -184,6 +184,7 @@ object ProfileData {
         }
         runCatching { java.io.File(ctx.filesDir, "wrapped/$id").deleteRecursively() }
         runCatching { java.io.File(ctx.filesDir, Profiles.scoped("stories", id)).deleteRecursively() }
+        runCatching { Parental.erase(ctx, id) }
     }
 }
 
