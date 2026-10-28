@@ -204,6 +204,27 @@ object ParentServer {
             .put("children", kids)
             .put("dailyOptions", JSONArray(Parental.DAILY_OPTIONS))
             .put("addOptions", JSONArray(Parental.ADD_OPTIONS))
+            .put("device", deviceInfo())
+    }
+
+    /** Panelin altında: hangi TV, hangi Android, hangi LiteDroid sürümü, açık profil. */
+    private fun deviceInfo(): JSONObject {
+        val name = runCatching { android.provider.Settings.Global.getString(app.contentResolver, android.provider.Settings.Global.DEVICE_NAME) }.getOrNull()
+            ?.takeIf { it.isNotBlank() }
+        val maker = android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
+        val model = android.os.Build.MODEL
+        val version = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull() ?: ""
+        val active = Profiles.activeProfile
+        return JSONObject()
+            .put("name", name ?: model)
+            .put("model", if (model.startsWith(maker, true)) model else "$maker $model")
+            .put("android", android.os.Build.VERSION.RELEASE)
+            .put("version", version)
+            .put("ip", QuizServer.localIp() ?: "")
+            .put("profiles", Profiles.list.value.size)
+            .put("activeName", active?.name ?: "")
+            .put("activeEmoji", active?.emoji ?: "")
+            .put("activeKid", active?.isChild == true)
     }
 
     private fun action(o: JSONObject): JSONObject {
