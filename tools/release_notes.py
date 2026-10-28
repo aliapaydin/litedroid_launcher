@@ -16,6 +16,11 @@ start = text.find(f'Release(\n                "{version}",')
 if start < 0:
     m = re.search(r'Release\(\s*"' + re.escape(version) + r'"', text)
     if not m:
+        # Ara sürüm (ör. 3.0.1) uygulamada bir üstündeki büyük sürümün altında toplanır:
+        # aynı ana.ara sürümle başlayan en yeni kayıt kullanılır
+        major_minor = ".".join(version.split(".")[:2]) + "."
+        m = re.search(r'Release\(\s*"' + re.escape(major_minor) + r'\d+"', text)
+    if not m:
         sys.exit(f"Changelog.kt içinde {version} bulunamadı")
     start = m.start()
 end = text.find("\n            Release(", start + 10)
