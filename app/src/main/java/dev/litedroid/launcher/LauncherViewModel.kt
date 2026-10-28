@@ -130,7 +130,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     var mediaAccess by mutableStateOf(false)
         private set
     /** Ayarlar → İçerik ve gizlilik → Kullanım raporu. İzin yoksa null. */
-    suspend fun usageReport(range: UsageRange): UsageReport? = usageRepo.report(range)
+    suspend fun usageReport(range: UsageRange, profileId: String? = null): UsageReport? = usageRepo.report(range, profileId)
 
     var usageAccess by mutableStateOf(false)
         private set
@@ -1025,6 +1025,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     init {
         Profiles.load(app)
         if (hasManyProfiles) pickerOpen = true
+        // Ebeveyn telefon paneli: çocuk profili varsa evdeki ağda dinler
+        if (Profiles.children.isNotEmpty()) runCatching { dev.litedroid.launcher.tools.ParentServer.start(app) }
         runCatching {
             androidx.core.content.ContextCompat.registerReceiver(
                 app, screenOnReceiver, android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_ON),

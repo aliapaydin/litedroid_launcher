@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-2.7.0-ff5c8a?style=for-the-badge">
+  <img alt="Sürüm" src="https://img.shields.io/badge/s%C3%BCr%C3%BCm-3.0.0-ff5c8a?style=for-the-badge">
   <img alt="Platform" src="https://img.shields.io/badge/Android%20TV%20%7C%20Google%20TV-3ddc84?style=for-the-badge&logo=androidtv&logoColor=white">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7f52ff?style=for-the-badge&logo=kotlin&logoColor=white">
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285f4?style=for-the-badge&logo=jetpackcompose&logoColor=white">
@@ -226,6 +226,20 @@ Google Play'den yüklediğin oyunlar altta ayrı bir rafta durur.
 Ayarlar solda sekmelere ayrılmıştır: **Görünüm, Profil, Hava durumu, Ses, Ekran koruyucu, Canlı skorlar, Claude'a sor, İçerik ve gizlilik** ve **Diğer**. Odaktaki satırın açıklaması altta görünür, kumandayla aradığını bulmak kolaydır. **Diğer → Sürüm notları**'nda ilk sürümden bugüne tüm yenilikler sürüm sürüm listelenir.
 
 <p align="center"><img src="docs/screenshots/release-notes.png" alt="Sürüm notları" width="100%"></p>
+
+### 👨‍👩‍👧 Profiller ve ebeveyn denetimi
+
+- **Kim İzliyor?** En fazla 5 profil (yetişkin ya da çocuk). Ekran açılışta ve TV her uyandığında gelir, sağ üstteki profil de onu açar. Her profilin kendi ayarları, favorileri, oyun rekorları, masalları, izleme geçmişi ve Wrapped'i vardır.
+- **Slot makinesi PIN:** dört makara ▲▼ ile çevrilir, Tamam'la giriş yapılır, altta "Hoş geldin" kutusu çıkar.
+- **Ebeveyn denetimi** (Ayarlar → Profil, yetişkin PIN'iyle), her çocuk için:
+  - Günlük süre: hafta içi ve hafta sonu ayrı ayrı (5-180 dk).
+  - Ekran saatleri (yatma saati).
+  - Uygulama izinleri ve uygulama başına günlük süre.
+  - Claude çocuk modu; tarayıcı ve mağaza açma/kapama.
+  - Android ayarları ve Play Store varsayılan olarak kapalı.
+- **Süre:** 5 ve 1 dakika kala uyarı çıkar. Süre bitince çalan durur, kilit ekranı gelir, çocuk "biraz daha süre" isteyebilir. Ekran koruyucuda geçen süre sayılmaz, gün sabah 06:00'da yenilenir. Kumanda kısayolu servisinin açık olması gerekir.
+- **📱 Telefon paneli:** Ebeveyn denetimindeki QR'ı bir kez okut. Telefondan kalan süreyi gör, süre ekle, hemen kapat, istekleri onayla, günlük süreyi değiştir. Evdeki Wi-Fi'da ve yetişkin PIN'iyle çalışır.
+- **Kullanım raporu:** profil seçimiyle çocukların raporu da görülebilir.
 
 ### 🎁 LiteDroid Wrapped (haftalık)
 

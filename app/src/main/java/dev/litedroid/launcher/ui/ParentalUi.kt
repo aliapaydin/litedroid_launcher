@@ -83,6 +83,7 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
     var selected by remember { mutableStateOf(children.firstOrNull()?.id) }
     if (selected == null || children.none { it.id == selected }) selected = children.firstOrNull()?.id
     var appsPage by remember { mutableStateOf(false) }
+    var phoneOpen by remember { mutableStateOf(false) }
     var pendingRules by remember { mutableStateOf<Pair<String, ChildRules>?>(null) }
     var pinFor by remember { mutableStateOf<Pair<Profile, String?>?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -99,7 +100,7 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
         delay(150)
         runCatching { firstFocus.requestFocus() }
     }
-    BackHandler(enabled = pinFor == null) {
+    BackHandler(enabled = pinFor == null && !phoneOpen) {
         if (appsPage) appsPage = false else onClose()
     }
 
@@ -321,6 +322,11 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
                 PRow(tx("Uygulamalar", "Apps"), tx("$off kapalı · ${rules.appLimits.size} süreli", "$off blocked · ${rules.appLimits.size} timed"),
                     tx("Hangi uygulamalar açılabilir, hangisi günde ne kadar", "Which apps can open and for how long a day")) { appsPage = true }
             }
+            item(key = "phone") {
+                val n = dev.litedroid.launcher.tools.ParentServer.phones(ctx).size
+                PRow(tx("📱 Telefon paneli", "📱 Phone panel"), if (n > 0) tx("$n telefon", "$n phones") else tx("Eşleştir", "Pair"),
+                    tx("Telefondan süreyi gör, süre ekle, hemen kapat, istekleri onayla (evdeki Wi-Fi'da)", "See time, add time, lock now and approve requests from your phone (home Wi-Fi)")) { phoneOpen = true }
+            }
             item(key = "ai_${child.id}") {
                 PRow(tx("Claude'a sor", "Ask Claude"), rules.ai.label,
                     tx("Çocuk modu: yaşa uygun, kısa cevaplar, web araması yok", "Kids mode: age-appropriate short answers, no web search")) {
@@ -338,6 +344,8 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
                 }
             }
         }
+
+        if (phoneOpen) PhonePanelDialog { phoneOpen = false }
 
         // Yetişkin PIN'i zorunlu: sırayla belirlenir, bitince bekleyen kural kaydedilir
         pinFor?.let { (adult, first) ->
@@ -486,6 +494,71 @@ fun LockedChildDialog(profile: Profile, onClose: () -> Unit) {
                     ActionChip(tx("Tamam", "OK"), Color.White) { onClose() }
                 } else {
                     ActionChip(tx("✓ İstek gönderildi · Tamam", "✓ Request sent · OK"), Mint, Modifier.focusRequester(fr)) { onClose() }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Telefon paneli eşleştirme: QR (tek kullanımlık kod, 10 dk) ve eşleşmiş telefonlar.
+ * Telefon QR'ı okutunca gizli bir anahtar alır; sonra her işlemde yetişkin PIN'i de sorulur.
+ */
+@Composable
+private fun PhonePanelDialog(onClose: () -> Unit) {
+    val ctx = LocalContext.current
+    val url = remember { dev.litedroid.launcher.tools.ParentServer.newPairUrl(ctx) }
+    val version by Parental.version.collectAsState()
+    val phones = remember(version) { dev.litedroid.launcher.tools.ParentServer.phones(ctx) }
+    val fr = remember { FocusRequester() }
+    var confirmAll by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(120)
+        runCatching { fr.requestFocus() }
+    }
+    BackHandler(onBack = onClose)
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier.clip(RoundedCornerShape(30.dp)).background(Brush.verticalGradient(listOf(Color(0xFF14263F), Color(0xFF0A1220))))
+                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(30.dp)).padding(28.dp),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(220.dp).clip(RoundedCornerShape(18.dp)).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
+                    if (url != null) dev.litedroid.launcher.quiz.QrCode(url, 200.dp)
+                    else Text(tx("Ağ bağlantısı yok", "No network"), color = Color(0xFF111114), fontSize = 13.sp)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(tx("QR 10 dakika ve bir kez geçerli", "The QR works once, for 10 minutes"), color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+            }
+            Spacer(Modifier.width(26.dp))
+            Column(Modifier.width(340.dp)) {
+                Text(tx("Telefon paneli", "Phone panel"), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                Text(
+                    tx("Telefonun kamerasıyla QR'ı okut. Açılan sayfayı ana ekrana ekleyebilirsin. Her işlemde bir yetişkin PIN'i sorulur; telefon TV ile aynı Wi-Fi'da olmalı.",
+                        "Scan the QR with your phone camera and add the page to your home screen. An adult PIN is asked for actions; the phone must be on the TV's Wi-Fi."),
+                    color = Color.White.copy(alpha = 0.65f), fontSize = 13.sp,
+                )
+                Spacer(Modifier.height(14.dp))
+                Text(tx("EŞLEŞMİŞ TELEFONLAR", "PAIRED PHONES"), color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+                Spacer(Modifier.height(6.dp))
+                if (phones.isEmpty()) Text(tx("Henüz yok", "None yet"), color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+                phones.forEach { ph ->
+                    PRow("📱 " + ph.name, tx("Kaldır", "Remove"), null, valueColor = Warn) {
+                        dev.litedroid.launcher.tools.ParentServer.forget(ctx, ph.token)
+                        Parental.bumpExternal()
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ActionChip(tx("Tamam", "Done"), Mint, Modifier.focusRequester(fr)) { onClose() }
+                    if (phones.isNotEmpty()) ActionChip(if (confirmAll) tx("Emin misin?", "Sure?") else tx("Tümünü kaldır", "Remove all"), Warn) {
+                        if (!confirmAll) confirmAll = true else {
+                            dev.litedroid.launcher.tools.ParentServer.forgetAll(ctx)
+                            Parental.bumpExternal()
+                            confirmAll = false
+                        }
+                    }
                 }
             }
         }

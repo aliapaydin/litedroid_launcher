@@ -149,6 +149,8 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         onSleepChanged(fromUser = false)
         handler.removeCallbacks(parentalTick)
         handler.postDelayed(parentalTick, 5_000)
+        dev.litedroid.launcher.data.Profiles.load(this)
+        if (dev.litedroid.launcher.data.Profiles.children.isNotEmpty()) runCatching { dev.litedroid.launcher.tools.ParentServer.start(this) }
         runCatching {
             androidx.core.content.ContextCompat.registerReceiver(
                 this, screenOnReceiver, android.content.IntentFilter(Intent.ACTION_SCREEN_ON),

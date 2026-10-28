@@ -95,6 +95,8 @@ object Parental {
     /** Kural, kullanım, kilit ya da istek değişince artar (ekranlar yenilensin). */
     val version: StateFlow<Int> = _version
     private fun bump() { _version.value++ }
+    /** Telefon eşleşmesi gibi dış değişikliklerde ekranları yenile. */
+    fun bumpExternal() = bump()
 
     private fun rulesPrefs(ctx: Context) = ctx.applicationContext.getSharedPreferences(RULES, Context.MODE_PRIVATE)
     private fun usagePrefs(ctx: Context) = ctx.applicationContext.getSharedPreferences(USAGE, Context.MODE_PRIVATE)

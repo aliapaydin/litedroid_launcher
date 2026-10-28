@@ -135,13 +135,21 @@ fun UsageReportScreen(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     var range by remember { mutableStateOf(UsageRange.TODAY) }
     var report by remember { mutableStateOf<UsageReport?>(null) }
     var loading by remember { mutableStateOf(true) }
-    LaunchedEffect(range) {
+    // Profil seçimi: yetişkin kendi raporunun yanında çocuklarınkini de görür
+    val me = dev.litedroid.launcher.data.Profiles.activeProfile
+    val choices = remember(me?.id) {
+        if (me == null) emptyList() else listOf(me) + if (me.isChild) emptyList() else dev.litedroid.launcher.data.Profiles.children
+    }
+    var profileId by remember { mutableStateOf(me?.id) }
+    LaunchedEffect(range, profileId) {
         loading = true
-        report = vm.usageReport(range)
+        // Tek profil varken tüm cihaz süresi (profil geçmişi yoksa da aynısı)
+        report = vm.usageReport(range, if (dev.litedroid.launcher.data.Profiles.list.value.size > 1) profileId else null)
         loading = false
     }
     val pillRequesters = remember { UsageRange.entries.associateWith { FocusRequester() } }
     val summaryRequester = remember { FocusRequester() }
+    val profileRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
     LaunchedEffect(Unit) { runCatching { pillRequesters.getValue(UsageRange.TODAY).requestFocus() } }
 
@@ -158,27 +166,52 @@ fun UsageReportScreen(vm: LauncherViewModel, modifier: Modifier = Modifier) {
             contentPadding = PaddingValues(start = 56.dp, end = 56.dp, top = 30.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // ---- Başlık ve dilim seçimi ----
+            // ---- Başlık, dilim ve profil seçimi ----
             item(key = "header") {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(tx("Kullanım raporu", "Usage report"), color = InkPrimary, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
-                        Text(rangeSubtitle(range), color = InkMuted, fontSize = 12.sp)
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(tx("Kullanım raporu", "Usage report"), color = InkPrimary, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                            Text(rangeSubtitle(range), color = InkMuted, fontSize = 12.sp)
+                        }
+                        UsageRange.entries.forEach { option ->
+                            RangePill(
+                                label = when (option) {
+                                    UsageRange.TODAY -> tx("Bugün", "Today")
+                                    UsageRange.YESTERDAY -> tx("Dün", "Yesterday")
+                                    UsageRange.WEEK -> tx("Son 7 gün", "Last 7 days")
+                                },
+                                selected = option == range,
+                                modifier = Modifier
+                                    .focusRequester(pillRequesters.getValue(option))
+                                    .focusProperties {
+                                        if (choices.size > 1) down = profileRequester
+                                        else if (r != null) down = summaryRequester
+                                    },
+                                onFocused = { range = option },
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
                     }
-                    UsageRange.entries.forEach { option ->
-                        RangePill(
-                            label = when (option) {
-                                UsageRange.TODAY -> tx("Bugün", "Today")
-                                UsageRange.YESTERDAY -> tx("Dün", "Yesterday")
-                                UsageRange.WEEK -> tx("Son 7 gün", "Last 7 days")
-                            },
-                            selected = option == range,
-                            modifier = Modifier
-                                .focusRequester(pillRequesters.getValue(option))
-                                .focusProperties { if (r != null) down = summaryRequester },
-                            onFocused = { range = option },
-                        )
-                        Spacer(Modifier.width(8.dp))
+                    if (choices.size > 1) {
+                        Spacer(Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(tx("Profil:", "Profile:"), color = InkMuted, fontSize = 12.sp)
+                            Spacer(Modifier.width(10.dp))
+                            choices.forEachIndexed { i, p ->
+                                RangePill(
+                                    label = p.emoji + " " + p.name,
+                                    selected = p.id == profileId,
+                                    modifier = (if (i == 0) Modifier.focusRequester(profileRequester) else Modifier)
+                                        .focusProperties {
+                                            up = pillRequesters.getValue(range)
+                                            if (r != null) down = summaryRequester
+                                        },
+                                    onFocused = { profileId = p.id },
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            }
+                        }
                     }
                 }
             }
