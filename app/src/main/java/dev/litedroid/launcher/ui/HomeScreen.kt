@@ -211,6 +211,11 @@ private fun HomeContent(vm: LauncherViewModel) {
     val childActive = activeProfile?.isChild == true
     // Çocuk profilinde ayarlar yetişkin PIN'i ister
     var settingsAuthorized by remember { mutableStateOf(false) }
+    // Ayarlarda seçili kategori: alt sayfadan (Profiller, Hakkında…) Geri ile dönünce aynı yer
+    val settingsTab = remember { mutableIntStateOf(0) }
+    var profilesFromSettings by remember { mutableStateOf(false) }
+    var aboutFromSettings by remember { mutableStateOf(false) }
+    var storeFromSettings by remember { mutableStateOf(false) }
     // Wrapped: arşiv sayfası ve açık gösteri
     var wrappedArchiveOpen by remember { mutableStateOf(false) }
     var wrappedShow by remember { mutableStateOf<dev.litedroid.launcher.wrapped.WeekData?>(null) }
@@ -375,6 +380,10 @@ private fun HomeContent(vm: LauncherViewModel) {
         if (vm.homeSignal == 0) return@LaunchedEffect
         wrappedShow = null
         wrappedArchiveOpen = false
+        profilesFromSettings = false
+        aboutFromSettings = false
+        storeFromSettings = false
+        settingsTab.intValue = 0
         profilesOpen = false
         profileGate = false
         parentalOpen = false
@@ -494,7 +503,11 @@ private fun HomeContent(vm: LauncherViewModel) {
             }
             gamePickerOpen -> gamePickerOpen = false
             movingPkg != null -> movingPkg = null
-            aboutOpen -> aboutOpen = false
+            aboutOpen -> {
+                aboutOpen = false
+                if (aboutFromSettings) settingsOpen = true
+                aboutFromSettings = false
+            }
             vm.updatedTo != null -> vm.updatedShown()
             vm.updatePrompt != null -> vm.dismissUpdatePrompt()
             vm.updateFullScreen && (updateState.inProgress || updateState is UpdateState.Failed) -> vm.updateFullScreen = false
@@ -517,7 +530,11 @@ private fun HomeContent(vm: LauncherViewModel) {
             }
             settingsOpen -> settingsOpen = false
             searchOpen -> searchOpen = false
-            storeOpen -> storeOpen = false
+            storeOpen -> {
+                storeOpen = false
+                if (storeFromSettings) settingsOpen = true
+                storeFromSettings = false
+            }
             menuFor != null -> menuFor = null
             notifOpen -> notifOpen = false
             panelOpen -> panelOpen = false
@@ -1064,10 +1081,12 @@ private fun HomeContent(vm: LauncherViewModel) {
                     },
                     onOpenStore = {
                         settingsOpen = false
+                        storeFromSettings = true
                         storeOpen = true
                     },
                     onOpenAbout = {
                         settingsOpen = false
+                        aboutFromSettings = true
                         aboutOpen = true
                     },
                     onChangelog = { changelogOpen = true },
@@ -1125,6 +1144,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                 enabled = textTarget == null && !changelogOpen && !sleepDialogOpen && !updateOpen && !wifiOpen && !phoneOpen &&
                     vm.updatePrompt == null && vm.updatedTo == null && !(vm.updateFullScreen && (updateState.inProgress || updateState is UpdateState.Failed)),
                 refocusSignal = settingsRefocus,
+                tabState = settingsTab,
             )
         }
 
@@ -1422,7 +1442,11 @@ private fun HomeContent(vm: LauncherViewModel) {
         if (aboutOpen) {
             val content = vm.content
             AboutDialog(
-                onClose = { aboutOpen = false },
+                onClose = {
+                    aboutOpen = false
+                    if (aboutFromSettings) settingsOpen = true
+                    aboutFromSettings = false
+                },
                 contentInfo = when {
                     vm.mediaAccess && vm.usageAccess -> tx("Medya + kullanım açık", "Media + usage on")
                     vm.mediaAccess -> tx("Medya geçmişi açık", "Media history on")
@@ -1473,6 +1497,9 @@ private fun HomeContent(vm: LauncherViewModel) {
             ProfileManagerScreen(onClose = {
                 profilesOpen = false
                 vm.reloadSettings()
+                // Ayarlardan girildiyse ayarlara (aynı kategoriye) dönülür
+                if (profilesFromSettings) settingsOpen = true
+                profilesFromSettings = false
             })
         }
         AnimatedVisibility(
@@ -1519,6 +1546,7 @@ private fun HomeContent(vm: LauncherViewModel) {
             AdultGate(
                 onOk = {
                     profileGate = false
+                    profilesFromSettings = settingsOpen
                     settingsOpen = false
                     profilesOpen = true
                 },

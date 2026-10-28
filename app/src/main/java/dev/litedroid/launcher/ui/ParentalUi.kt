@@ -40,6 +40,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -84,6 +87,7 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
     if (selected == null || children.none { it.id == selected }) selected = children.firstOrNull()?.id
     var appsPage by remember { mutableStateOf(false) }
     var phoneOpen by remember { mutableStateOf(false) }
+    var dropdown by remember { mutableStateOf<Dropdown?>(null) }
     var pendingRules by remember { mutableStateOf<Pair<String, ChildRules>?>(null) }
     var pinFor by remember { mutableStateOf<Pair<Profile, String?>?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -100,7 +104,7 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
         delay(150)
         runCatching { firstFocus.requestFocus() }
     }
-    BackHandler(enabled = pinFor == null && !phoneOpen) {
+    BackHandler(enabled = pinFor == null && !phoneOpen && dropdown == null) {
         if (appsPage) appsPage = false else onClose()
     }
 
@@ -289,13 +293,15 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
 
             // ---- Kurallar ----
             item(key = "wd_${child.id}") {
-                PRow(tx("Günlük süre · hafta içi", "Daily time · weekdays"), minutesLabel(rules.weekdayMin), tx("Pazartesi-Cuma", "Monday-Friday")) {
-                    save(child.id, rules.copy(weekdayMin = Parental.DAILY_OPTIONS.next(rules.weekdayMin)))
+                PRow(tx("Günlük süre · hafta içi", "Daily time · weekdays"), minutesLabel(rules.weekdayMin) + "  ▾", tx("Pazartesi-Cuma", "Monday-Friday")) {
+                    dropdown = Dropdown(tx("Hafta içi günlük süre", "Weekday daily time"), Parental.DAILY_OPTIONS.map { minutesLabel(it) },
+                        Parental.DAILY_OPTIONS.indexOf(rules.weekdayMin)) { i -> save(child.id, Parental.rules(ctx, child.id).copy(weekdayMin = Parental.DAILY_OPTIONS[i])) }
                 }
             }
             item(key = "we_${child.id}") {
-                PRow(tx("Günlük süre · hafta sonu", "Daily time · weekend"), minutesLabel(rules.weekendMin), tx("Cumartesi-Pazar", "Saturday-Sunday")) {
-                    save(child.id, rules.copy(weekendMin = Parental.DAILY_OPTIONS.next(rules.weekendMin)))
+                PRow(tx("Günlük süre · hafta sonu", "Daily time · weekend"), minutesLabel(rules.weekendMin) + "  ▾", tx("Cumartesi-Pazar", "Saturday-Sunday")) {
+                    dropdown = Dropdown(tx("Hafta sonu günlük süre", "Weekend daily time"), Parental.DAILY_OPTIONS.map { minutesLabel(it) },
+                        Parental.DAILY_OPTIONS.indexOf(rules.weekendMin)) { i -> save(child.id, Parental.rules(ctx, child.id).copy(weekendMin = Parental.DAILY_OPTIONS[i])) }
                 }
             }
             item(key = "hours_${child.id}") {
@@ -307,13 +313,15 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
             }
             if (rules.hoursOn) {
                 item(key = "from_${child.id}") {
-                    PRow(tx("   Başlangıç", "   From"), Parental.hhmm(rules.fromMin), null) {
-                        save(child.id, rules.copy(fromMin = FROM_OPTIONS.next(rules.fromMin)))
+                    PRow(tx("   Başlangıç", "   From"), Parental.hhmm(rules.fromMin) + "  ▾", null) {
+                        dropdown = Dropdown(tx("Ekran saati başlangıcı", "Screen time starts"), FROM_OPTIONS.map { Parental.hhmm(it) },
+                            FROM_OPTIONS.indexOf(rules.fromMin)) { i -> save(child.id, Parental.rules(ctx, child.id).copy(fromMin = FROM_OPTIONS[i])) }
                     }
                 }
                 item(key = "to_${child.id}") {
-                    PRow(tx("   Bitiş (yatma saati)", "   Until (bedtime)"), Parental.hhmm(rules.toMin), null) {
-                        save(child.id, rules.copy(toMin = TO_OPTIONS.next(rules.toMin)))
+                    PRow(tx("   Bitiş (yatma saati)", "   Until (bedtime)"), Parental.hhmm(rules.toMin) + "  ▾", null) {
+                        dropdown = Dropdown(tx("Yatma saati", "Bedtime"), TO_OPTIONS.map { Parental.hhmm(it) },
+                            TO_OPTIONS.indexOf(rules.toMin)) { i -> save(child.id, Parental.rules(ctx, child.id).copy(toMin = TO_OPTIONS[i])) }
                     }
                 }
             }
@@ -346,6 +354,12 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
         }
 
         if (phoneOpen) PhonePanelDialog { phoneOpen = false }
+        dropdown?.let { d ->
+            DropdownPicker(d, onDismiss = { dropdown = null }) { i ->
+                dropdown = null
+                d.onPick(i)
+            }
+        }
 
         // Yetişkin PIN'i zorunlu: sırayla belirlenir, bitince bekleyen kural kaydedilir
         pinFor?.let { (adult, first) ->
@@ -561,6 +575,83 @@ private fun PhonePanelDialog(onClose: () -> Unit) {
                     }
                 }
             }
+        }
+    }
+}
+
+/** Açılır seçim listesi (günlük süre, saatler). */
+private class Dropdown(val title: String, val options: List<String>, val current: Int, val onPick: (Int) -> Unit)
+
+/**
+ * Açılır liste: sağda bir panel; ▲▼ ile gezilir, Tamam seçer, Geri kapatır. Mevcut değer ✓ ile işaretli.
+ */
+@Composable
+private fun DropdownPicker(d: Dropdown, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+    var sel by remember { mutableStateOf(d.current.coerceIn(0, d.options.lastIndex)) }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex = (sel - 3).coerceAtLeast(0))
+    val fr = remember { FocusRequester() }
+    var armed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(80)
+        runCatching { fr.requestFocus() }
+    }
+    LaunchedEffect(sel) {
+        val first = listState.firstVisibleItemIndex
+        val visible = listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+        if (sel < first + 1 || sel > first + visible - 2) runCatching { listState.animateScrollToItem((sel - 3).coerceAtLeast(0)) }
+    }
+    BackHandler(onBack = onDismiss)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.55f))
+            .focusRequester(fr)
+            .onPreviewKeyEvent { e ->
+                if (e.key == androidx.compose.ui.input.key.Key.Back) return@onPreviewKeyEvent false
+                val down = e.type == androidx.compose.ui.input.key.KeyEventType.KeyDown
+                when {
+                    e.key.isSelectKey -> {
+                        if (down && e.nativeKeyEvent.repeatCount == 0) armed = true
+                        if (!down && armed) {
+                            armed = false
+                            onPick(sel)
+                        }
+                    }
+                    down && e.key == androidx.compose.ui.input.key.Key.DirectionUp -> sel = (sel - 1).coerceAtLeast(0)
+                    down && e.key == androidx.compose.ui.input.key.Key.DirectionDown -> sel = (sel + 1).coerceAtMost(d.options.lastIndex)
+                }
+                true
+            }
+            .focusable(),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        Column(
+            Modifier
+                .padding(end = 80.dp)
+                .width(320.dp)
+                .clip(RoundedCornerShape(26.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFF1B2A44), Color(0xFF0E1626))))
+                .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(26.dp))
+                .padding(16.dp),
+        ) {
+            Text(d.title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 6.dp, bottom = 8.dp))
+            LazyColumn(state = listState, modifier = Modifier.height(360.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(d.options.size) { i ->
+                    val on = i == sel
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (on) Color.White else Color.Transparent)
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(d.options[i], color = if (on) Color(0xFF14121F) else Color.White, fontSize = 17.sp, fontWeight = if (on) FontWeight.ExtraBold else FontWeight.Medium, modifier = Modifier.weight(1f))
+                        if (i == d.current) Text("✓", color = if (on) Color(0xFF1F8F6A) else Mint, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+            Text(tx("▲▼ seç · Tamam · Geri: vazgeç", "▲▼ choose · OK · Back: cancel"), color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp, modifier = Modifier.padding(start = 6.dp, top = 8.dp))
         }
     }
 }

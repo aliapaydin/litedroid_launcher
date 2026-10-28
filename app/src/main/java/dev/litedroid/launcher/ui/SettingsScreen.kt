@@ -118,9 +118,12 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     /** Üstte açılan bir pencere (ör. sürüm notları) kapanınca artırılır: odak seçili sekmeye döner. */
     refocusSignal: Int = 0,
+    /** Seçili kategori dışarıda tutulursa alt sayfadan dönünce aynı kategori açılır. */
+    tabState: androidx.compose.runtime.MutableIntState? = null,
 ) {
     val sections = remember(entries) { sectionsOf(entries) }
-    var selected by rememberSaveable { mutableIntStateOf(0) }
+    val localTab = rememberSaveable { mutableIntStateOf(0) }
+    var selected by (tabState ?: localTab)
     val current = sections.getOrNull(selected.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
     val tabRequesters = remember(sections.size) { List(sections.size) { FocusRequester() } }
     val firstRow = remember { FocusRequester() }

@@ -343,6 +343,8 @@ fun SlotPinDialog(
 ) {
     val reels = remember { mutableStateListOf(0, 0, 0, 0) }
     var index by remember { mutableIntStateOf(0) }
+    // Dokunulan haneler: başka haneye geçilince rakam gizlenir (● görünür)
+    val touched = remember { mutableStateListOf(false, false, false, false) }
     var error by remember { mutableStateOf<String?>(null) }
     val shake = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
@@ -362,7 +364,10 @@ fun SlotPinDialog(
             scope.launch {
                 for (x in listOf(18f, -16f, 12f, -8f, 4f, 0f)) shake.animateTo(x, tween(45))
             }
-            for (i in 0..3) reels[i] = 0
+            for (i in 0..3) {
+                reels[i] = 0
+                touched[i] = false
+            }
             index = 0
         }
     }
@@ -394,13 +399,14 @@ fun SlotPinDialog(
                         // Rakam tuşu: makara o rakama döner, sonraki haneye geçilir
                         val cur = reels[index]
                         reels[index] = cur - cur.mod(10) + digit
+                        touched[index] = true
                         error = null
                         if (index < 3) index++ else submit()
                     }
-                    e.key == Key.DirectionUp -> { reels[index] = reels[index] + 1; error = null }
-                    e.key == Key.DirectionDown -> { reels[index] = reels[index] - 1; error = null }
+                    e.key == Key.DirectionUp -> { reels[index] = reels[index] + 1; touched[index] = true; error = null }
+                    e.key == Key.DirectionDown -> { reels[index] = reels[index] - 1; touched[index] = true; error = null }
                     e.key == Key.DirectionLeft -> index = (index - 1).coerceAtLeast(0)
-                    e.key == Key.DirectionRight -> index = (index + 1).coerceAtMost(3)
+                    e.key == Key.DirectionRight -> { touched[index] = true; index = (index + 1).coerceAtMost(3) }
                 }
                 true
             }
@@ -423,7 +429,8 @@ fun SlotPinDialog(
             Text(subtitle, color = Color.White.copy(alpha = 0.55f), fontSize = 12.sp)
             Spacer(Modifier.height(18.dp))
             Row(Modifier.offset(x = shake.value.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                for (i in 0..3) Reel(reels[i], focused = i == index)
+                // Yalnızca üzerinde durulan makara rakamı gösterir; diğerleri gizli
+                for (i in 0..3) Reel(reels[i], focused = i == index, masked = i != index, filled = touched[i])
             }
             Spacer(Modifier.height(14.dp))
             Text(
@@ -436,7 +443,7 @@ fun SlotPinDialog(
 
 /** Tek makara: sayılar aşağı yukarı kayarak döner, ortadaki seçili rakamdır. */
 @Composable
-private fun Reel(pos: Int, focused: Boolean) {
+private fun Reel(pos: Int, focused: Boolean, masked: Boolean = false, filled: Boolean = false) {
     val a by animateFloatAsState(pos.toFloat(), spring(dampingRatio = 0.62f, stiffness = 420f), label = "reel")
     val glow by rememberInfiniteTransition(label = "g").animateFloat(0.6f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "g")
     val shape = RoundedCornerShape(20.dp)
@@ -450,7 +457,10 @@ private fun Reel(pos: Int, focused: Boolean) {
     ) {
         val itemH = 54.dp
         val base = floor(a).toInt()
-        for (k in -2..3) {
+        if (masked) {
+            // Gizli hane: girildiyse nokta, girilmediyse çizgi
+            Text(if (filled) "●" else "–", color = Color.White.copy(alpha = if (filled) 0.95f else 0.35f), fontSize = if (filled) 30.sp else 40.sp, fontWeight = FontWeight.Black)
+        } else for (k in -2..3) {
             val n = base + k
             val off = n - a
             if (abs(off) > 2.2f) continue
