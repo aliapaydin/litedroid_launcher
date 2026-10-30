@@ -105,8 +105,16 @@ object Parental {
 
     // ---- Kurallar ----
 
-    fun rules(ctx: Context, pid: String): ChildRules =
-        ChildRules.from(rulesPrefs(ctx).getString("rules_$pid", null)?.let { runCatching { JSONObject(it) }.getOrNull() })
+    /** Kurallar her 15 sn'de ve her pencere değişiminde okunur: aynı metin tekrar ayrıştırılmaz. */
+    private val rulesCache = java.util.concurrent.ConcurrentHashMap<String, Pair<String?, ChildRules>>()
+
+    fun rules(ctx: Context, pid: String): ChildRules {
+        val raw = rulesPrefs(ctx).getString("rules_$pid", null)
+        rulesCache[pid]?.let { (r, parsed) -> if (r == raw) return parsed }
+        val parsed = ChildRules.from(raw?.let { runCatching { JSONObject(it) }.getOrNull() })
+        rulesCache[pid] = raw to parsed
+        return parsed
+    }
 
     fun setRules(ctx: Context, pid: String, r: ChildRules) {
         rulesPrefs(ctx).edit().putString("rules_$pid", r.toJson().toString()).apply()
