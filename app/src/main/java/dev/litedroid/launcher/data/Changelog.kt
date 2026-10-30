@@ -24,6 +24,7 @@ object Changelog {
                     tx("📱 Telefon paneli: QR ile eşleşen telefondan kalan süreyi gör, süre ekle, hemen kapat, istekleri onayla, günlük süreyi değiştir (evdeki Wi-Fi'da, yetişkin PIN'iyle).", "📱 Phone panel: from a paired phone see time left, add time, lock now, approve requests and change daily time (home Wi-Fi, adult PIN)."),
                     tx("📊 Kullanım raporunda profil seçimi: kendi raporunun yanında çocuklarınkini de gör.", "📊 Usage report profile picker: see your kids' reports next to yours."),
                     tx("3.0.1: telefon panelinde açık/koyu tema, kalan süre halkası, hangi TV'ye bağlı olduğun ve LiteDroid sürümü.", "3.0.1: the phone panel gets light/dark themes, a time-left ring, and shows which TV and LiteDroid version it's connected to."),
+                    tx("3.0.2: süre dolarken donma ve takılma giderildi; kilit ekranında kumanda her zaman çalışır, ebeveyn süre ekleyince kilit hemen kalkar, son 10 saniye gerçekten geri sayar. Genel hız iyileştirmeleri.", "3.0.2: no more freezing when time runs out; the remote always works on the lock screen, extra time from a parent unlocks right away and the last 10 seconds really count down. General speed-ups."),
                 ),
             ),
             Release(

@@ -1,12 +1,6 @@
 package dev.litedroid.launcher.overlay
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,24 +13,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,51 +25,22 @@ import androidx.compose.ui.unit.sp
 import dev.litedroid.launcher.data.Profile
 import dev.litedroid.launcher.tools.ProfileFace
 import dev.litedroid.launcher.tx
-import dev.litedroid.launcher.ui.isSelectKey
-import kotlinx.coroutines.delay
 
 /**
  * Çocuğun süresi dolunca (ya da ebeveyn kapatınca) her şeyin üstüne gelen kilit ekranı.
- * Tamam: ebeveynden süre ister. Diğer tuşlar: "Kim İzliyor?" ekranına döner.
+ * Yalnızca gösterir: tuşları kumanda servisi karşılar (Tamam: süre iste, diğer tuşlar: profil seçimi),
+ * pencere odak almaz. Sürekli dönen animasyon yok, zayıf kutularda video çözücüyle yarışmasın.
  */
 @Composable
-fun TimeUpScreen(profile: Profile, reason: String, alreadyRequested: Boolean, onRequest: () -> Unit, onLeave: () -> Unit) {
-    val fr = remember { FocusRequester() }
-    var requested by remember { mutableStateOf(alreadyRequested) }
-    var armed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(150)
-        runCatching { fr.requestFocus() }
-    }
-    // Kilit ekranında kimse yoksa bir süre sonra profil ekranına döner
-    LaunchedEffect(requested) {
-        delay(if (requested) 8_000 else 60_000)
-        onLeave()
-    }
-    val moon by rememberInfiniteTransition(label = "moon").animateFloat(-6f, 6f, infiniteRepeatable(tween(2_400), RepeatMode.Reverse), label = "m")
+fun TimeUpScreen(profile: Profile, reason: String, requested: Boolean) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF1B1446), Color(0xFF0B0A1C), Color(0xFF05050B))))
-            .focusRequester(fr)
-            .onPreviewKeyEvent { e ->
-                if (e.key.isSelectKey && !requested) {
-                    if (e.type == KeyEventType.KeyDown && e.nativeKeyEvent.repeatCount == 0) armed = true
-                    if (e.type == KeyEventType.KeyUp && armed) {
-                        armed = false
-                        requested = true
-                        onRequest()
-                    }
-                    return@onPreviewKeyEvent true
-                }
-                if (e.type == KeyEventType.KeyUp && e.key != Key.Home) onLeave()
-                true
-            }
-            .focusable(),
+            .background(Brush.verticalGradient(listOf(Color(0xFF1B1446), Color(0xFF0B0A1C), Color(0xFF05050B)))),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.widthIn(max = 640.dp)) {
-            Text("🌙", fontSize = 64.sp, modifier = Modifier.graphicsLayer { translationY = moon })
+            Text("🌙", fontSize = 64.sp)
             Spacer(Modifier.height(10.dp))
             ProfileFace(profile, 84.dp)
             Spacer(Modifier.height(14.dp))

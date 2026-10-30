@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.2
+- **Time-up freeze fixed.** The full-screen `TimeUpScreen` was a focusable accessibility overlay that relied on getting window focus; when it didn't, remote keys went to the (still playing) app underneath and the box looked frozen until the 60 s auto-leave. The overlay is now `FLAG_NOT_FOCUSABLE` and display-only; `RemoteKeyService.onTimeUpKey` handles the keys itself (OK = request time, any other key incl. Home = Who's watching?, volume passes through).
+- On lock, Who's watching? opens underneath the overlay, so the video app goes to the background and releases the decoder and memory instead of running under an opaque window.
+- Parent actions apply instantly: the service collects `Parental.version`; added time or unlock removes the lock screen at once ("You got more time" notice), "lock now" locks without waiting for the 15 s tick, and extra time during the final countdown cancels it.
+- The last-seconds notice now really counts down 10 → 1 (it used to show a fixed number and vanish after 5 s).
+- Leaving the lock screen is debounced (key + timer could open the picker twice); blocked/timed-out apps go straight to LiteDroid home instead of via the box's own launcher and a redirect.
+- Less main-thread work: settings read on window changes are cached for 5 s, parsed parental rules are cached per raw value, the phone panel caches app labels; the lock screen has no endless animation.
+
 ## 3.0.1
 - Phone panel: light/dark theme (follows the phone, or set manually; remembered), sticky top bar with the TV's name, LiteDroid version and a connection dot, "now on the TV" profile line, remaining-time ring per kid, segmented quick-add, bottom-sheet confirmation for "lock now", collapsible app list with bars, refresh on return to the page.
 - `/api/state` returns `device`: TV name (`Settings.Global.DEVICE_NAME`, falls back to model), manufacturer/model, Android version, LiteDroid version, IP, profile count and the active profile.

@@ -92,6 +92,17 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         }
     }
     private val parentalLockNow = Runnable { runCatching { tickParental() } }
+    /** Son saniyeler: kilit anı (elapsedRealtime) ve her saniye ilerleyen geri sayım. */
+    private var parentalLockAt = 0L
+    private val parentalCountdown = object : Runnable {
+        override fun run() = tickParentalCountdown()
+    }
+    /** Kilit ekranında "süre iste"ye basıldı mı (ekran bunu gösterir). */
+    private val timeUpRequested = androidx.compose.runtime.mutableStateOf(false)
+    private var timeUpChild: String? = null
+    /** Kilit ekranında kimse yoksa profil ekranına dönülür. */
+    private val timeUpAutoLeave = Runnable { leaveToPicker() }
+    private var lastLeaveAt = 0L
 
     // Çift tıklama durumu
     private var backDownSeen = false
@@ -149,6 +160,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         onSleepChanged(fromUser = false)
         handler.removeCallbacks(parentalTick)
         handler.postDelayed(parentalTick, 5_000)
+        watchParental()
         dev.litedroid.launcher.data.Profiles.load(this)
         if (dev.litedroid.launcher.data.Profiles.children.isNotEmpty()) runCatching { dev.litedroid.launcher.tools.ParentServer.start(this) }
         runCatching {
@@ -430,10 +442,21 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         }.getOrNull().orEmpty()
     }
 
+    // Pencere değişimi sık gelir (bazı uygulamalar saniyede birkaç kez): ayarlar her seferinde diskten okunmaz
+    private var settingsCache: dev.litedroid.launcher.data.LauncherSettings? = null
+    private var settingsCacheAt = 0L
+
+    private fun cachedSettings(): dev.litedroid.launcher.data.LauncherSettings {
+        val now = SystemClock.uptimeMillis()
+        val c = settingsCache
+        if (c != null && now - settingsCacheAt < 5_000) return c
+        return SettingsRepository(this).load().also { settingsCache = it; settingsCacheAt = now }
+    }
+
     private fun watchForeground(pkg: String, className: String?) {
         // Klavye ve sistem arayüzü "uygulama değişti" sayılmaz
         if (pkg == "com.android.systemui" || pkg in imePackages) return
-        val settings = SettingsRepository(this).load()
+        val settings = cachedSettings()
         if (pkg == packageName) {
             if (className?.contains("MainActivity") == true) {
                 fgPkg = null
@@ -477,7 +500,17 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         val dt = if (parentalLast == 0L) 0L else (now - parentalLast).coerceIn(0L, 30_000L)
         parentalLast = now
         dev.litedroid.launcher.data.Profiles.load(this)
-        val child = dev.litedroid.launcher.data.Profiles.activeProfile?.takeIf { it.isChild } ?: return
+        val child = dev.litedroid.launcher.data.Profiles.activeProfile?.takeIf { it.isChild }
+        if (child == null) {
+            hideTimeUp()
+            stopParentalCountdown()
+            return
+        }
+        // Kilit açıldı (ebeveyn süre ekledi ya da kilidi kaldırdı): kilit ekranı kendiliğinden kalkar
+        if (timeUpView != null && P.lockReason(this, child.id) == null) {
+            hideTimeUp()
+            showNotice(SleepNotice(tx("Süren uzatıldı 🎉", "You got more time 🎉"), tx("İyi seyirler, ${child.name}!", "Enjoy, ${child.name}!"), icon = "⏳"))
+        }
         if (P.pickerOn) return
         val interactive = getSystemService(android.os.PowerManager::class.java)?.isInteractive ?: true
         // Ekran kapalıyken, ekran koruyucuda ve kilit ekranında süre sayılmaz
@@ -499,54 +532,167 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         if (rem in 15_001L..60_000L && parentalWarned.add("$dayKey|1")) {
             showNotice(SleepNotice(tx("${child.name}, 1 dakikan kaldı", "${child.name}, 1 minute left"), tx("Ekran birazdan kapanacak", "The screen will lock soon"), icon = "⏳"))
         }
-        if (rem <= 15_000L && counting && parentalWarned.add("$dayKey|0")) {
-            // Son saniyeler: geri sayım ve tam zamanında kilit
-            showNotice(SleepNotice(tx("Süre doluyor", "Time's almost up"), child.name, countdown = (rem / 1000).toInt().coerceAtLeast(1), icon = "⏳"))
+        if (rem in 1L..15_000L && counting && parentalWarned.add("$dayKey|0")) {
+            // Son saniyeler: son 10 sn'de her saniye ilerleyen geri sayım, tam zamanında kilit
+            parentalLockAt = now + rem
+            handler.removeCallbacks(parentalCountdown)
+            handler.postDelayed(parentalCountdown, (rem - 10_000L).coerceAtLeast(0L))
             handler.removeCallbacks(parentalLockNow)
-            handler.postDelayed(parentalLockNow, rem + 500)
+            handler.postDelayed(parentalLockNow, rem + 300)
         }
     }
 
-    /** Çalan durdurulur, her şeyin üstüne kilit ekranı gelir. */
+    private fun tickParentalCountdown() {
+        val left = parentalLockAt - SystemClock.elapsedRealtime()
+        if (parentalLockAt == 0L || left <= 0L || timeUpView != null) {
+            if (notice.value?.countdown != null) notice.value = null
+            return
+        }
+        val sec = ((left + 999) / 1000).toInt().coerceIn(1, 10)
+        ensureNoticeWindow()
+        handler.removeCallbacks(hideNotice)
+        val cur = notice.value
+        if (cur?.countdown != sec) {
+            notice.value = SleepNotice(
+                tx("Süre doluyor", "Time's almost up"),
+                dev.litedroid.launcher.data.Profiles.activeProfile?.name.orEmpty(),
+                countdown = sec, icon = "⏳",
+                id = cur?.takeIf { it.countdown != null }?.id ?: System.nanoTime(),
+            )
+        }
+        handler.postDelayed(parentalCountdown, ((left - 1) % 1000) + 1)
+    }
+
+    private fun stopParentalCountdown() {
+        if (parentalLockAt == 0L) return
+        parentalLockAt = 0L
+        handler.removeCallbacks(parentalCountdown)
+        handler.removeCallbacks(parentalLockNow)
+        if (notice.value?.countdown != null && !countingDown) notice.value = null
+    }
+
+    /**
+     * Ebeveyn telefondan ya da TV'den süre ekleyince, kilitleyince ya da açınca beklemeden uygulanır
+     * (15 sn'lik sayacı beklemeden).
+     */
+    private fun watchParental() {
+        lifecycleScope.launch {
+            var last = -1
+            dev.litedroid.launcher.data.Parental.version.collect { v ->
+                if (last >= 0 && v != last) handler.post { onParentalChanged() }
+                last = v
+            }
+        }
+    }
+
+    private fun onParentalChanged() {
+        val P = dev.litedroid.launcher.data.Parental
+        val child = dev.litedroid.launcher.data.Profiles.activeProfile?.takeIf { it.isChild } ?: return
+        val reason = P.lockReason(this, child.id)
+        if (reason == null) {
+            if (timeUpView != null) {
+                hideTimeUp()
+                showNotice(SleepNotice(tx("Süren uzatıldı 🎉", "You got more time 🎉"), tx("İyi seyirler, ${child.name}!", "Enjoy, ${child.name}!"), icon = "⏳"))
+            }
+            // Geri sayım sürerken ek süre geldiyse geri sayım durur
+            if (parentalLockAt != 0L) {
+                val rem = P.remainingMs(this, child.id)
+                val sinceTick = SystemClock.elapsedRealtime() - parentalLast
+                if (rem == null || rem - sinceTick > 15_000L) {
+                    stopParentalCountdown()
+                    parentalWarned.removeAll { it.startsWith("${child.id}|") }
+                }
+            }
+        } else if (timeUpView == null && reason == dev.litedroid.launcher.data.LockReason.MANUAL && !P.pickerOn) {
+            // Ebeveyn "hemen kapat" dedi
+            lockChild(child, P.describe(reason, P.rules(this, child.id)))
+        }
+    }
+
+    /**
+     * Çalan durdurulur, her şeyin üstüne kilit ekranı gelir. Altta "Kim İzliyor?" açılır: çalan uygulama
+     * arka plana geçip görüntü çözücüyü ve belleği bırakır (eskiden video kilidin altında açık kalıyordu).
+     * Kilit penceresi odak almaz; tuşları servis kendisi karşılar, böylece odak hangi pencerede olursa
+     * olsun kumanda çalışır.
+     */
     private fun lockChild(child: dev.litedroid.launcher.data.Profile, reason: String) {
         if (timeUpView != null) return
+        stopParentalCountdown()
         closeMenu(animated = false)
+        hideLock()
         pauseMedia()
         val wm = getSystemService(WindowManager::class.java) ?: return
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.OPAQUE,
         )
         val P = dev.litedroid.launcher.data.Parental
+        timeUpRequested.value = P.pendingRequest(this, child.id) != null
+        timeUpChild = child.id
         val view = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@RemoteKeyService)
             setViewTreeSavedStateRegistryOwner(this@RemoteKeyService)
-            setContent {
-                LiteDroidTheme {
-                    TimeUpScreen(
-                        child, reason, alreadyRequested = P.pendingRequest(this@RemoteKeyService, child.id) != null,
-                        onRequest = { P.request(this@RemoteKeyService, child.id) },
-                        onLeave = { handler.post { leaveToPicker() } },
-                    )
-                }
-            }
+            setContent { LiteDroidTheme { TimeUpScreen(child, reason, timeUpRequested.value) } }
         }
-        runCatching { wm.addView(view, params) }.onSuccess { timeUpView = view }
+        runCatching { wm.addView(view, params) }
+            .onSuccess {
+                timeUpView = view
+                notice.value = null
+                handler.removeCallbacks(timeUpAutoLeave)
+                handler.postDelayed(timeUpAutoLeave, if (timeUpRequested.value) 20_000 else 60_000)
+                openPicker()
+            }
+            .onFailure {
+                // Kilit penceresi açılamadıysa en azından uygulamadan çıkılır
+                Log.w(TAG, "time-up addView failed: ${it.message}")
+                openPicker()
+            }
         Log.i(TAG, "child ${child.id} locked: $reason")
     }
 
+    /** Kilit ekranında kumanda: Tamam süre ister, Geri / Home / diğer tuşlar profil ekranına döner, ses tuşları çalışır. */
+    private fun onTimeUpKey(event: KeyEvent): Boolean {
+        when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_MUTE, KeyEvent.KEYCODE_POWER -> return false
+        }
+        if (event.action != KeyEvent.ACTION_UP || event.isCanceled) return true
+        val select = event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER || event.keyCode == KeyEvent.KEYCODE_ENTER ||
+            event.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER || event.keyCode == KeyEvent.KEYCODE_BUTTON_A
+        val pid = timeUpChild
+        if (select && pid != null && !timeUpRequested.value) {
+            timeUpRequested.value = true
+            dev.litedroid.launcher.data.Parental.request(this, pid)
+            handler.removeCallbacks(timeUpAutoLeave)
+            handler.postDelayed(timeUpAutoLeave, 20_000)
+        } else if (!select) {
+            handler.post { leaveToPicker() }
+        }
+        return true
+    }
+
     private fun hideTimeUp() {
+        handler.removeCallbacks(timeUpAutoLeave)
         val v = timeUpView ?: return
         timeUpView = null
+        timeUpChild = null
         runCatching { getSystemService(WindowManager::class.java)?.removeView(v) }
     }
 
     /** Kilitten sonra: "Kim İzliyor?" ekranı (çocuk tekrar giremez, başka profil girebilir). */
     private fun leaveToPicker() {
         hideTimeUp()
+        // Kilit ekranından iki kez çıkılmasın (tuş + zamanlayıcı aynı anda)
+        val now = SystemClock.uptimeMillis()
+        if (now - lastLeaveAt < 1_500) return
+        lastLeaveAt = now
+        openPicker()
+    }
+
+    private fun openPicker() {
         runCatching {
             startActivity(
                 Intent(this, dev.litedroid.launcher.MainActivity::class.java)
@@ -560,7 +706,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
     private fun blockApp(child: dev.litedroid.launcher.data.Profile, pkg: String) {
         val timeUp = dev.litedroid.launcher.data.Parental.appTimeUp(this, child.id, pkg)
         pauseMedia()
-        performGlobalAction(GLOBAL_ACTION_HOME)
+        openLiteDroidHome()
         showNotice(SleepNotice(
             if (timeUp) tx("${appLabel(pkg)} için bugünkü süre doldu", "Today's time for ${appLabel(pkg)} is up")
             else tx("${appLabel(pkg)} ${child.name} için kapalı", "${appLabel(pkg)} is off for ${child.name}"),
@@ -660,13 +806,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         // Çocuğun kilit ekranı: tuşlar ekrana gider; Home profil seçimine döner
-        if (timeUpView != null) {
-            if (event.keyCode == KeyEvent.KEYCODE_HOME) {
-                if (event.action == KeyEvent.ACTION_UP) handler.post { leaveToPicker() }
-                return false
-            }
-            return false
-        }
+        if (timeUpView != null) return onTimeUpKey(event)
         // Kilit ekranı açıkken: Geri ana ekrana döner, diğer tuşlar PIN ekranına gider
         if (lockView != null) {
             if (event.keyCode == KeyEvent.KEYCODE_BACK) {
@@ -910,6 +1050,7 @@ class RemoteKeyService : AccessibilityService(), LifecycleOwner, SavedStateRegis
         runCatching { unregisterReceiver(screenOnReceiver) }
         handler.removeCallbacks(parentalTick)
         handler.removeCallbacks(parentalLockNow)
+        handler.removeCallbacks(parentalCountdown)
         hideTimeUp()
         handler.removeCallbacks(breakTick)
         hideLock()

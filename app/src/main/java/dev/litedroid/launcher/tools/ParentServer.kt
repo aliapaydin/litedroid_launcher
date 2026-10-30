@@ -173,6 +173,9 @@ object ParentServer {
         return block().put("pinRequired", adults.isNotEmpty())
     }
 
+    /** Panel 5 sn'de bir yenilenir: uygulama adları her seferinde paket yöneticisine sorulmaz. */
+    private val labelCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
     private fun state(): JSONObject {
         val kids = JSONArray()
         Profiles.children.forEach { c ->
@@ -195,7 +198,9 @@ object ParentServer {
                     .put("weekendMin", rules.weekendMin)
                     .put("hours", if (rules.hoursOn) "${Parental.hhmm(rules.fromMin)} - ${Parental.hhmm(rules.toMin)}" else "")
                     .put("apps", JSONArray(Parental.appUsage(app, c.id).take(6).map { (pkg, ms) ->
-                        val label = if (pkg == app.packageName) "LiteDroid" else runCatching { labels.getApplicationLabel(labels.getApplicationInfo(pkg, 0)).toString() }.getOrDefault(pkg)
+                        val label = if (pkg == app.packageName) "LiteDroid" else labelCache.getOrPut(pkg) {
+                            runCatching { labels.getApplicationLabel(labels.getApplicationInfo(pkg, 0)).toString() }.getOrDefault(pkg)
+                        }
                         JSONObject().put("label", label).put("ms", ms)
                     }))
             )
