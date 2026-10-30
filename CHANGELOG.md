@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.0.3
+- PIN entry: `SlotPinDialog` (4 animated reels) is replaced by `PinDialog`, a 3×4 keypad (1-9, ⌫ 0 ✕) with a single-focus cursor that wraps at the edges and only gets a slightly lighter fill and a thin border. OK types the highlighted digit as a hidden dot; on the 4th digit the PIN is checked without pressing OK (right → in, wrong → shake and clear). Digits are never drawn; number keys and Backspace on the remote still work. No endless animations.
+
 ## 3.0.2
 - **Time-up freeze fixed.** The full-screen `TimeUpScreen` was a focusable accessibility overlay that relied on getting window focus; when it didn't, remote keys went to the (still playing) app underneath and the box looked frozen until the 60 s auto-leave. The overlay is now `FLAG_NOT_FOCUSABLE` and display-only; `RemoteKeyService.onTimeUpKey` handles the keys itself (OK = request time, any other key incl. Home = Who's watching?, volume passes through).
 - On lock, Who's watching? opens underneath the overlay, so the video app goes to the background and releases the decoder and memory instead of running under an opaque window.

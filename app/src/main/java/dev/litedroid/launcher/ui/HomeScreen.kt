@@ -1551,7 +1551,7 @@ private fun HomeContent(vm: LauncherViewModel) {
                     parentalOpen = true
                 }
             } else {
-                SlotPinDialog(
+                PinDialog(
                     title = tx("${me.name}, PIN'ini gir", "${me.name}, enter your PIN"),
                     subtitle = tx("Ebeveyn denetimi için", "For parental controls"),
                     face = me,

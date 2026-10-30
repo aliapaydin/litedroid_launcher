@@ -364,7 +364,7 @@ fun ParentalScreen(apps: List<LauncherApp>, onClose: () -> Unit, onAddChild: () 
         // Yetişkin PIN'i zorunlu: sırayla belirlenir, bitince bekleyen kural kaydedilir
         pinFor?.let { (adult, first) ->
             key(adult.id, first) {
-                SlotPinDialog(
+                PinDialog(
                     title = if (first == null) tx("${adult.name} için yeni PIN", "New PIN for ${adult.name}") else tx("PIN'i tekrar gir", "Enter the PIN again"),
                     subtitle = tx("Çocuk sınırları için yetişkin PIN'i zorunlu", "Adult PINs are required for kid limits"),
                     face = adult,
