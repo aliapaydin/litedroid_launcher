@@ -26,6 +26,7 @@ object Changelog {
                     tx("3.0.1: telefon panelinde açık/koyu tema, kalan süre halkası, hangi TV'ye bağlı olduğun ve LiteDroid sürümü.", "3.0.1: the phone panel gets light/dark themes, a time-left ring, and shows which TV and LiteDroid version it's connected to."),
                     tx("3.0.2: süre dolarken donma ve takılma giderildi; kilit ekranında kumanda her zaman çalışır, ebeveyn süre ekleyince kilit hemen kalkar, son 10 saniye gerçekten geri sayar. Genel hız iyileştirmeleri.", "3.0.2: no more freezing when time runs out; the remote always works on the lock screen, extra time from a parent unlocks right away and the last 10 seconds really count down. General speed-ups."),
                     tx("3.0.3: slot makinesi yerine hızlı ve sade bir PIN tuş takımı; rakamlar hiç görünmez, 4. hanede kendiliğinden girer.", "3.0.3: a quick, plain PIN keypad replaces the slot machine; digits are never shown and it signs in on the 4th digit."),
+                    tx("3.0.4: Bilgi Yarışması'nda soru sayısı 388'den 1.288'e çıktı; her kategoride üç zorlukta da yeni sorular.", "3.0.4: the Quiz now has 1,288 questions instead of 388, with new ones in every category and level."),
                 ),
             ),
             Release(
