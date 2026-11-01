@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.4
+- Quiz: `assets/quiz/questions.json` grows from 388 to 1,288 questions (+75 per category, 25 per level, in all 12 categories). Time-sensitive facts (current holders, latest champions) were left out. Exact duplicates are rejected; options are unique per question.
+- The "recently asked" memory that avoids repeats is raised from 150 to 500 questions to match the bigger bank.
+
 ## 3.0.3
 - PIN entry: `SlotPinDialog` (4 animated reels) is replaced by `PinDialog`, a 3×4 keypad (1-9, ⌫ 0 ✕) with a single-focus cursor that wraps at the edges and only gets a slightly lighter fill and a thin border. OK types the highlighted digit as a hidden dot; on the 4th digit the PIN is checked without pressing OK (right → in, wrong → shake and clear). Digits are never drawn; number keys and Backspace on the remote still work. No endless animations.
 

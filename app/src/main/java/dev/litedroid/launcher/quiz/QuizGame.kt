@@ -317,7 +317,7 @@ class QuizGame(context: Context) {
         val fresh = pool.filter { it.optString("q") !in recentlyAsked }
         val chosen = (fresh.shuffled() + pool.filter { it.optString("q") in recentlyAsked }.shuffled()).take(count)
         recentlyAsked.addAll(chosen.map { it.optString("q") })
-        while (recentlyAsked.size > 150) recentlyAsked.removeAt(0)
+        while (recentlyAsked.size > 500) recentlyAsked.removeAt(0)
         // Karışık zorlukta kolaydan zora sırala
         val ordered = if (level == QuizLevel.MIXED) chosen.sortedBy { it.optInt("l") } else chosen
         return ordered.map { o ->
