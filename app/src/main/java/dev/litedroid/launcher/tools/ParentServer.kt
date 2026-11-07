@@ -167,7 +167,9 @@ object ParentServer {
         if (adults.isNotEmpty() && adults.none { Profiles.checkPin(it, pin) }) {
             val n = fails + 1
             wrongPins[token] = if (n >= 5) 0 to System.currentTimeMillis() + 5 * 60_000L else n to 0L
+            // Telefon paneli hangi giriş ekranını göstereceğini bilsin (rakam / yön kodu)
             return JSONObject().put("error", "pin").put("pinRequired", true)
+                .put("pinKinds", JSONArray(adults.map { it.pinKind.name }.distinct()))
         }
         wrongPins.remove(token)
         return block().put("pinRequired", adults.isNotEmpty())

@@ -1552,9 +1552,12 @@ private fun HomeContent(vm: LauncherViewModel) {
                 }
             } else {
                 PinDialog(
-                    title = tx("${me.name}, PIN'ini gir", "${me.name}, enter your PIN"),
-                    subtitle = tx("Ebeveyn denetimi için", "For parental controls"),
+                    title = if (me.pinKind == dev.litedroid.launcher.data.PinKind.ARROWS) tx("${me.name}, yön kodunu tuşla", "${me.name}, press your arrow code")
+                        else tx("${me.name}, PIN'ini gir", "${me.name}, enter your PIN"),
+                    subtitle = tx("Ebeveyn denetimi için · ", "For parental controls · ") + pinHint(me.pinKind),
                     face = me,
+                    kind = me.pinKind,
+                    guardKey = me.id,
                     check = { Profiles.checkPin(me, it) },
                     onSuccess = {
                         parentalGate = false

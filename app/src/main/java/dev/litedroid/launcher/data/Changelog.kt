@@ -13,6 +13,16 @@ object Changelog {
     val releases: List<Release>
         get() = listOf(
             Release(
+                "3.1.0",
+                tx("Yön kodu: dışarıdan anlaşılmayan şifre", "Arrow codes: a password nobody can read off the screen"),
+                listOf(
+                    tx("🕹️ Yön kodu: rakam PIN yerine kumandanın yön tuşlarıyla 4 adımlık bir kod (ör. ↑↑←→). Her basışta bir hane dolar; hangi yöne basıldığı ekranda hiç görünmez.", "🕹️ Arrow codes: instead of a digit PIN, a 4-step code on the remote's arrows (e.g. ↑↑←→). Each press fills a slot; the direction is never shown."),
+                    tx("Profilleri yönet → profil → Giriş yöntemi ile rakam PIN ve yön kodu arasında geçilir; mevcut PIN'ler olduğu gibi kalır.", "Switch between digit PIN and arrow code in Manage profiles → profile → Entry method; existing PINs stay as they are."),
+                    tx("🔒 Art arda 10 yanlış denemeden sonra o giriş 30 dakika kapanır (rakam PIN için de).", "🔒 After 10 wrong tries in a row that entry locks for 30 minutes (digit PINs too)."),
+                    tx("📱 Telefon panelinde de yön kodu: oklarla tuşlanır.", "📱 The phone panel takes arrow codes too, on on-screen arrows."),
+                ),
+            ),
+            Release(
                 "3.0.0",
                 tx("Profiller ve ebeveyn denetimi", "Profiles and parental controls"),
                 listOf(

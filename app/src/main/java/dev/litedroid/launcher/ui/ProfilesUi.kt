@@ -45,6 +45,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,6 +73,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.litedroid.launcher.data.Profile
 import dev.litedroid.launcher.data.ProfileKind
+import dev.litedroid.launcher.data.PinGuard
+import dev.litedroid.launcher.data.PinKind
 import dev.litedroid.launcher.data.Profiles
 import dev.litedroid.launcher.tools.ProfileFace
 import dev.litedroid.launcher.tx
@@ -151,9 +154,11 @@ fun WhoIsWatchingScreen(
         if (pinFor != null) {
             val p = pinFor!!
             PinDialog(
-                title = tx("${p.name} için PIN", "PIN for ${p.name}"),
-                subtitle = tx("Yön tuşlarıyla rakamı seç, Tamam ile yaz", "Pick a digit with the arrows, OK to type it"),
+                title = if (p.pinKind == PinKind.ARROWS) tx("${p.name} için yön kodu", "Arrow code for ${p.name}") else tx("${p.name} için PIN", "PIN for ${p.name}"),
+                subtitle = null,
                 face = p,
+                kind = p.pinKind,
+                guardKey = p.id,
                 check = { Profiles.checkPin(p, it) },
                 onSuccess = {
                     pinFor = null
@@ -320,33 +325,47 @@ fun BoxScope.WelcomeToast(profile: Profile?) {
 }
 
 // ---------------------------------------------------------------------------
-// PIN tuş takımı
+// PIN: rakam tuş takımı ya da yön kodu
 // ---------------------------------------------------------------------------
 
 /** Tuş takımı: 1-9, altta sil · 0 · vazgeç. */
 private val PadKeys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "✕")
 
+/** Türe göre ekranda yazan kısa yardım. */
+fun pinHint(kind: PinKind): String = when (kind) {
+    PinKind.DIGITS -> tx("Yön tuşlarıyla rakamı seç, Tamam ile yaz", "Pick a digit with the arrows, OK to type it")
+    PinKind.ARROWS -> tx("Kodunu yön tuşlarıyla tuşla · Tamam: son adımı sil", "Press your code on the arrows · OK: undo last step")
+}
+
 /**
- * Klasik tuş takımıyla PIN: yön tuşları imleci gezdirir (kenarlardan karşıya geçer), Tamam seçili rakamı
- * gizli olarak yazar. Dördüncü hane girilince Tamam'a gerek kalmadan denetlenir: doğruysa [onSuccess],
- * yanlışsa sallanır ve sıfırlanır. Kumandada rakam tuşu varsa o da yazar. Rakamlar hiçbir yerde görünmez;
- * imleç sade, uzaktan bakana az şey söylesin.
+ * Şifre girişi. İki tür:
+ * - [PinKind.DIGITS]: klasik tuş takımı; yön tuşları imleci gezdirir, Tamam seçili rakamı gizli yazar.
+ * - [PinKind.ARROWS]: yön kodu; her yön tuşu bir haneyi doldurur. Hangi yöne basıldığı hiçbir yerde görünmez,
+ *   yalnızca hanenin dolduğu belli olur. Tamam son adımı siler.
+ * Dördüncü hanede Tamam beklenmeden denetlenir: doğruysa [onSuccess], yanlışsa sallanır ve sıfırlanır.
+ * [guardKey] verilirse (giriş kapıları) art arda 10 yanlıştan sonra 30 dk giriş kapanır; yeni şifre
+ * belirlerken verilmez.
  */
 @Composable
 fun PinDialog(
     title: String,
-    subtitle: String,
+    subtitle: String?,
     face: Profile?,
     check: (String) -> Boolean,
     onSuccess: (String) -> Unit,
     onCancel: () -> Unit,
+    kind: PinKind = PinKind.DIGITS,
+    guardKey: String? = null,
 ) {
-    val digits = remember { mutableStateListOf<Int>() }
+    val ctx = LocalContext.current
+    val entered = remember { mutableStateListOf<Char>() }
     // Başlangıçta ortadaki 5
     var cursor by remember { mutableIntStateOf(4) }
     var error by remember { mutableStateOf<String?>(null) }
     var done by remember { mutableStateOf(false) }
+    var blockedMs by remember { mutableLongStateOf(guardKey?.let { PinGuard.blockedFor(ctx, it) } ?: 0L) }
     val shake = remember { Animatable(0f) }
+    val bump = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
     val fr = remember { FocusRequester() }
     var armed by remember { mutableStateOf(false) }
@@ -354,35 +373,57 @@ fun PinDialog(
         delay(60)
         runCatching { fr.requestFocus() }
     }
+    // Engel sürerken kalan süre saniye saniye
+    LaunchedEffect(blockedMs > 0) {
+        while (blockedMs > 0 && guardKey != null) {
+            delay(1_000)
+            blockedMs = PinGuard.blockedFor(ctx, guardKey)
+        }
+    }
     BackHandler(onBack = onCancel)
 
-    fun type(d: Int) {
-        if (done || digits.size >= 4) return
+    fun type(c: Char) {
+        if (done || blockedMs > 0 || entered.size >= 4) return
         error = null
-        digits.add(d)
-        if (digits.size == 4) {
-            val value = digits.joinToString("")
+        entered.add(c)
+        scope.launch {
+            bump.snapTo(1.25f)
+            bump.animateTo(1f, tween(140))
+        }
+        if (entered.size == 4) {
+            val value = entered.joinToString("")
             if (check(value)) {
                 done = true
+                guardKey?.let { PinGuard.success(ctx, it) }
                 onSuccess(value)
             } else {
-                error = tx("PIN yanlış, tekrar dene", "Wrong PIN, try again")
+                val locked = guardKey != null && PinGuard.fail(ctx, guardKey)
+                if (locked) {
+                    blockedMs = PinGuard.BLOCK_MS
+                    error = null
+                } else {
+                    val left = guardKey?.let { PinGuard.MAX_FAILS - PinGuard.fails(ctx, it) }
+                    val base = if (kind == PinKind.ARROWS) tx("Kod yanlış, tekrar dene", "Wrong code, try again") else tx("PIN yanlış, tekrar dene", "Wrong PIN, try again")
+                    error = if (left != null && left <= 5) base + tx(" · $left deneme kaldı", " · $left tries left") else base
+                }
                 scope.launch {
                     for (x in listOf(16f, -14f, 10f, -6f, 3f, 0f)) shake.animateTo(x, tween(40))
-                    digits.clear()
+                    entered.clear()
                 }
             }
         }
     }
 
+    fun undo() {
+        if (entered.isNotEmpty() && entered.size < 4) entered.removeAt(entered.lastIndex)
+        error = null
+    }
+
     fun press(i: Int) {
         when (val k = PadKeys[i]) {
-            "⌫" -> {
-                if (digits.isNotEmpty() && digits.size < 4) digits.removeAt(digits.lastIndex)
-                error = null
-            }
+            "⌫" -> undo()
             "✕" -> onCancel()
-            else -> type(k.toInt())
+            else -> type(k[0])
         }
     }
 
@@ -394,6 +435,27 @@ fun PinDialog(
             .onPreviewKeyEvent { e ->
                 if (e.key == Key.Back) return@onPreviewKeyEvent false
                 val down = e.type == KeyEventType.KeyDown
+                if (blockedMs > 0) return@onPreviewKeyEvent true
+                if (kind == PinKind.ARROWS) {
+                    // Yön kodu: basılı tutmak tekrar saymaz, her basış bir hane
+                    val first = down && e.nativeKeyEvent.repeatCount == 0
+                    when {
+                        e.key.isSelectKey -> {
+                            if (first) armed = true
+                            if (!down && armed) {
+                                armed = false
+                                undo()
+                            }
+                        }
+                        !first -> Unit
+                        e.key == Key.DirectionUp -> type('U')
+                        e.key == Key.DirectionDown -> type('D')
+                        e.key == Key.DirectionLeft -> type('L')
+                        e.key == Key.DirectionRight -> type('R')
+                        e.key == Key.Backspace || e.key == Key.Delete -> undo()
+                    }
+                    return@onPreviewKeyEvent true
+                }
                 val digit = when (e.key) {
                     Key.Zero, Key.NumPad0 -> 0; Key.One, Key.NumPad1 -> 1; Key.Two, Key.NumPad2 -> 2; Key.Three, Key.NumPad3 -> 3
                     Key.Four, Key.NumPad4 -> 4; Key.Five, Key.NumPad5 -> 5; Key.Six, Key.NumPad6 -> 6; Key.Seven, Key.NumPad7 -> 7
@@ -410,8 +472,8 @@ fun PinDialog(
                         }
                     }
                     !down -> Unit
-                    digit != null -> type(digit)
-                    e.key == Key.Backspace || e.key == Key.Delete -> press(9)
+                    digit != null -> type('0' + digit)
+                    e.key == Key.Backspace || e.key == Key.Delete -> undo()
                     e.key == Key.DirectionUp -> cursor = (cursor + 9) % 12
                     e.key == Key.DirectionDown -> cursor = (cursor + 3) % 12
                     e.key == Key.DirectionLeft -> cursor = cursor - cursor % 3 + (cursor % 3 + 2) % 3
@@ -435,13 +497,26 @@ fun PinDialog(
                 Spacer(Modifier.height(10.dp))
             }
             Text(title, color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.ExtraBold)
-            Text(subtitle, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text(subtitle ?: pinHint(kind), color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
             Spacer(Modifier.height(16.dp))
+            if (blockedMs > 0) {
+                // Çok fazla yanlış: süre dolana kadar giriş kapalı
+                val sec = (blockedMs + 999) / 1000
+                Text("🔒", fontSize = 44.sp)
+                Spacer(Modifier.height(8.dp))
+                Text(tx("Çok fazla yanlış deneme", "Too many wrong tries"), color = Color(0xFFFF8A9A), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    tx("%d:%02d sonra tekrar dene".format(sec / 60, sec % 60), "Try again in %d:%02d".format(sec / 60, sec % 60)),
+                    color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp,
+                )
+                Spacer(Modifier.height(14.dp))
+                return@Column
+            }
             // Dört gizli hane
             Row(Modifier.offset(x = shake.value.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 for (i in 0..3) {
-                    val filled = i < digits.size
-                    val next = i == digits.size
+                    val filled = i < entered.size
+                    val next = i == entered.size
                     Box(
                         Modifier
                             .size(width = 46.dp, height = 54.dp)
@@ -450,16 +525,32 @@ fun PinDialog(
                             .border(1.dp, Color.White.copy(alpha = if (next) 0.35f else 0.10f), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (filled) Box(Modifier.size(12.dp).clip(CircleShape).background(Color.White))
+                        if (filled) {
+                            val sc = if (i == entered.lastIndex) bump.value else 1f
+                            Box(Modifier.size(12.dp).graphicsLayer { scaleX = sc; scaleY = sc }.clip(CircleShape).background(Color.White))
+                        }
                     }
                 }
             }
             Spacer(Modifier.height(10.dp))
-            Text(
-                error ?: " ",
-                color = Color(0xFFFF8A9A), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            )
+            Text(error ?: " ", color = Color(0xFFFF8A9A), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
+            if (kind == PinKind.ARROWS) {
+                // Sabit bir kumanda simgesi: hiçbir yön yanmaz, yalnızca ne yapılacağını anlatır
+                Box(
+                    Modifier.size(150.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.05f))
+                        .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val c = Color.White.copy(alpha = 0.22f)
+                    Text("▲", color = c, fontSize = 18.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp))
+                    Text("▼", color = c, fontSize = 18.sp, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp))
+                    Text("◀", color = c, fontSize = 18.sp, modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp))
+                    Text("▶", color = c, fontSize = 18.sp, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp))
+                    Box(Modifier.size(46.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.06f)))
+                }
+                return@Column
+            }
             // Tuş takımı: tek odak, imleç yalnızca biraz daha açık zemin ve ince çerçeve
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (r in 0..3) {
@@ -478,7 +569,7 @@ fun PinDialog(
                             ) {
                                 Text(
                                     label,
-                                    color = Color.White.copy(alpha = if (label.length == 1 && label[0].isDigit()) 0.85f else 0.5f),
+                                    color = Color.White.copy(alpha = if (label[0].isDigit()) 0.85f else 0.5f),
                                     fontSize = if (label[0].isDigit()) 24.sp else 20.sp,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -491,9 +582,52 @@ fun PinDialog(
     }
 }
 
+/** Yetişkinler farklı şifre türü kullanıyorsa önce tür seçilir (hangisi seçilirse onun şifresi sorulur). */
+@Composable
+private fun PinKindChooser(onPick: (PinKind) -> Unit, onCancel: () -> Unit) {
+    val fr = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(60)
+        runCatching { fr.requestFocus() }
+    }
+    BackHandler(onBack = onCancel)
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.clip(RoundedCornerShape(30.dp)).background(Color(0xFF16141F))
+                .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(30.dp)).padding(horizontal = 36.dp, vertical = 26.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(tx("Yetişkin doğrulaması", "Adult check"), color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.ExtraBold)
+            Text(tx("Hangi yöntemle gireceksin?", "How do you want to enter?"), color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Spacer(Modifier.height(18.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                listOf(PinKind.DIGITS to ("🔢" to tx("Rakam PIN", "Digit PIN")), PinKind.ARROWS to ("🕹️" to tx("Yön kodu", "Arrow code"))).forEachIndexed { i, (k, v) ->
+                    var focused by remember { mutableStateOf(false) }
+                    Column(
+                        (if (i == 0) Modifier.focusRequester(fr) else Modifier)
+                            .size(width = 150.dp, height = 110.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White.copy(alpha = if (focused) 0.16f else 0.05f))
+                            .border(1.dp, Color.White.copy(alpha = if (focused) 0.38f else 0.08f), RoundedCornerShape(20.dp))
+                            .onFocusChanged { focused = it.isFocused }
+                            .onRemoteSelect({ onPick(k) })
+                            .focusable(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(v.first, fontSize = 30.sp)
+                        Text(v.second, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
 /**
- * Yetişkin doğrulaması: PIN'i olan bir yetişkin varsa onun PIN'i sorulur (herhangi bir yetişkinin PIN'i kabul).
- * Hiçbir yetişkinin PIN'i yoksa hemen geçer.
+ * Yetişkin doğrulaması: PIN'i olan bir yetişkin varsa onun şifresi sorulur (herhangi bir yetişkininki kabul).
+ * Yetişkinlerin şifre türleri farklıysa önce tür seçilir. Hiçbir yetişkinin şifresi yoksa hemen geçer.
+ * 10 yanlışta 30 dk kapanır (tüm yetişkinler için tek sayaç).
  */
 @Composable
 fun AdultGate(onOk: () -> Unit, onCancel: () -> Unit) {
@@ -502,13 +636,22 @@ fun AdultGate(onOk: () -> Unit, onCancel: () -> Unit) {
         LaunchedEffect(Unit) { onOk() }
         return
     }
+    val kinds = adults.map { it.pinKind }.distinct()
+    var kind by remember { mutableStateOf(kinds.singleOrNull()) }
+    val k = kind
+    if (k == null) {
+        PinKindChooser(onPick = { kind = it }, onCancel = onCancel)
+        return
+    }
     PinDialog(
-        title = tx("Yetişkin PIN'i", "Adult PIN"),
-        subtitle = tx("Devam etmek için bir yetişkin profilinin PIN'i", "Enter an adult profile's PIN to continue"),
+        title = if (k == PinKind.ARROWS) tx("Yetişkin yön kodu", "Adult arrow code") else tx("Yetişkin PIN'i", "Adult PIN"),
+        subtitle = null,
         face = null,
-        check = { pin -> adults.any { Profiles.checkPin(it, pin) } },
+        check = { pin -> adults.any { it.pinKind == k && Profiles.checkPin(it, pin) } },
         onSuccess = { onOk() },
-        onCancel = onCancel,
+        onCancel = { if (kinds.size > 1) kind = null else onCancel() },
+        kind = k,
+        guardKey = PinGuard.ADULTS,
     )
 }
 
@@ -528,6 +671,8 @@ fun ProfileManagerScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
     var editing by remember { mutableStateOf<String?>(null) }
     var naming by remember { mutableStateOf<String?>(null) }
     var pinStep by remember { mutableStateOf<Pair<String, String?>?>(null) }
+    /** Belirlenen yeni şifrenin türü (PIN'i değiştir: mevcut tür; Giriş yöntemi: diğer tür). */
+    var pinStepKind by remember { mutableStateOf(PinKind.DIGITS) }
     var confirmDelete by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     val listFocus = remember { FocusRequester() }
@@ -571,7 +716,11 @@ fun ProfileManagerScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                         face = p, title = p.name + if (p.id == activeId) tx("  · şu an açık", "  · current") else "",
                         subtitle = listOfNotNull(
                             if (p.isChild) tx("Çocuk", "Kid") else tx("Yetişkin", "Adult"),
-                            if (p.hasPin) tx("PIN var", "PIN set") else tx("PIN yok", "No PIN"),
+                            when {
+                                !p.hasPin -> tx("PIN yok", "No PIN")
+                                p.pinKind == PinKind.ARROWS -> tx("Yön kodu var", "Arrow code set")
+                                else -> tx("PIN var", "PIN set")
+                            },
                         ).joinToString(" · "),
                         modifier = if (first) Modifier.focusRequester(listFocus) else Modifier,
                     ) { editing = p.id }
@@ -636,8 +785,27 @@ fun ProfileManagerScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                     }
                 }
                 item(key = "pin") {
-                    ManagerRow(null, if (current.hasPin) tx("PIN'i değiştir", "Change PIN") else tx("PIN belirle", "Set a PIN"),
-                        tx("Profile girerken slot makinesiyle sorulur", "Asked with the slot picker when entering")) { pinStep = current.id to null }
+                    val arrows = current.pinKind == PinKind.ARROWS
+                    ManagerRow(null,
+                        when {
+                            !current.hasPin -> tx("PIN belirle", "Set a PIN")
+                            arrows -> tx("Yön kodunu değiştir", "Change arrow code")
+                            else -> tx("PIN'i değiştir", "Change PIN")
+                        },
+                        if (arrows) tx("Profile girerken kumandanın yön tuşlarıyla sorulur", "Asked on the remote's arrows when entering")
+                        else tx("Profile girerken tuş takımıyla sorulur", "Asked on the keypad when entering")) {
+                        pinStepKind = if (current.hasPin) current.pinKind else PinKind.DIGITS
+                        pinStep = current.id to null
+                    }
+                }
+                item(key = "pin_kind") {
+                    val arrows = current.hasPin && current.pinKind == PinKind.ARROWS
+                    ManagerRow(null, tx("Giriş yöntemi", "Entry method"),
+                        if (arrows) tx("Yön kodu · rakam PIN'e geçmek için Tamam", "Arrow code · OK to switch to a digit PIN")
+                        else tx("Rakam PIN · yön koduna geçmek için Tamam (ör. ↑↑←→, dışarıdan anlaşılmaz)", "Digit PIN · OK to switch to an arrow code (e.g. ↑↑←→, hard to spot)")) {
+                        pinStepKind = if (arrows) PinKind.DIGITS else PinKind.ARROWS
+                        pinStep = current.id to null
+                    }
                 }
                 if (current.hasPin) {
                     item(key = "pin_off") {
@@ -684,6 +852,7 @@ fun ProfileManagerScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                             naming = null
                             // Yeni yetişkin: çocuk sınırları varsa PIN hemen istenir
                             if (!p.isChild && !p.hasPin && dev.litedroid.launcher.data.Parental.anyLimits(ctx)) {
+                                pinStepKind = PinKind.DIGITS
                                 pinStep = id to null
                                 message = tx("Çocuk sınırları olduğu için bu yetişkin profiline PIN gerekli", "Kid limits are on, so this adult profile needs a PIN")
                             }
@@ -696,16 +865,23 @@ fun ProfileManagerScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
         pinStep?.let { (id, first) ->
             val p = profiles.firstOrNull { it.id == id }
             key(first) {
+                val arrows = pinStepKind == PinKind.ARROWS
                 PinDialog(
-                    title = if (first == null) tx("Yeni PIN", "New PIN") else tx("PIN'i tekrar gir", "Enter the PIN again"),
-                    subtitle = tx("Yön tuşlarıyla rakamı seç, Tamam ile yaz", "Pick a digit with the arrows, OK to type it"),
+                    title = when {
+                        first != null && arrows -> tx("Kodu tekrar tuşla", "Press the code again")
+                        first != null -> tx("PIN'i tekrar gir", "Enter the PIN again")
+                        arrows -> tx("Yeni yön kodu", "New arrow code")
+                        else -> tx("Yeni PIN", "New PIN")
+                    },
+                    subtitle = if (arrows && first == null) tx("4 yön seç (ör. ↑ ↑ ← →) · Tamam: son adımı sil", "Choose 4 arrows (e.g. ↑ ↑ ← →) · OK: undo last step") else null,
                     face = p,
+                    kind = pinStepKind,
                     check = { pin -> first == null || pin == first },
                     onSuccess = { pin ->
                         if (first == null) pinStep = id to pin else {
-                            Profiles.setPin(ctx, id, pin)
+                            Profiles.setPin(ctx, id, pin, pinStepKind)
                             pinStep = null
-                            message = tx("PIN kaydedildi", "PIN saved")
+                            message = if (arrows) tx("Yön kodu kaydedildi", "Arrow code saved") else tx("PIN kaydedildi", "PIN saved")
                         }
                     },
                     onCancel = { pinStep = null },

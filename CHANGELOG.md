@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.0
+- **Arrow codes.** `Profile.pinKind` (`DIGITS` / `ARROWS`, stored as `pk`). An arrow code is 4 D-pad presses stored as `U/D/L/R` and hashed like a PIN, so it never collides with a digit PIN. `PinDialog(kind = ARROWS)`: each first key-down of a direction fills a slot (holding doesn't repeat), OK undoes the last step, nothing shows which direction was pressed; the 4th press checks immediately. Manage profiles → profile → *Entry method* switches kinds by setting a new code; existing PINs are untouched.
+- **Lockout.** `PinGuard`: 10 wrong entries in a row on the same gate (a profile, or `adults` for the adult check) lock it for 30 minutes, persisted across restarts; a correct entry resets the count. The last 5 tries are announced. Setting a new PIN is not guarded.
+- **Adult check with mixed kinds.** If adults use different kinds, a small chooser (Digit PIN / Arrow code) comes first; Back from the code returns to it.
+- **Phone panel.** Wrong/missing PIN responses carry `pinKinds`; the panel shows on-screen arrows (and a Digit/Arrow switch when both exist). The panel's own 5-tries/5-min limit is unchanged.
+
 ## 3.0.4
 - Quiz: `assets/quiz/questions.json` grows from 388 to 1,288 questions (+75 per category, 25 per level, in all 12 categories). Time-sensitive facts (current holders, latest champions) were left out. Exact duplicates are rejected; options are unique per question.
 - The "recently asked" memory that avoids repeats is raised from 150 to 500 questions to match the bigger bank.
