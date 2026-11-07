@@ -11,6 +11,12 @@ import java.security.MessageDigest
 enum class ProfileKind { ADULT, CHILD }
 
 /**
+ * Profil şifresinin türü. DIGITS: 4 haneli rakam PIN. ARROWS: kumandanın yön tuşlarıyla 4 adımlık kod
+ * (ör. ↑↑←→); "U", "D", "L", "R" harfleriyle saklanır, yani rakam PIN'le hiçbir zaman karışmaz.
+ */
+enum class PinKind { DIGITS, ARROWS }
+
+/**
  * Bir LiteDroid profili. Her profilin kendi ayarları, favorileri, oyun rekorları, masalları,
  * izleme geçmişi ve Wrapped'i vardır ([Profiles.scoped] ile ayrı dosyalarda tutulur).
  */
@@ -20,6 +26,7 @@ data class Profile(
     val kind: ProfileKind = ProfileKind.ADULT,
     /** PIN'in özeti (boşsa PIN yok). PIN'in kendisi saklanmaz. */
     val pinHash: String = "",
+    val pinKind: PinKind = PinKind.DIGITS,
     /** Avatar Düzenleyici'den seçilen avatar; yoksa [emoji] ve [color]. */
     val avatar: AvatarSpec? = null,
     val emoji: String = "🙂",
@@ -30,7 +37,7 @@ data class Profile(
     val hasPin get() = pinHash.isNotEmpty()
 
     fun toJson(): JSONObject = JSONObject()
-        .put("id", id).put("name", name).put("kind", kind.name).put("pin", pinHash)
+        .put("id", id).put("name", name).put("kind", kind.name).put("pin", pinHash).put("pk", pinKind.name)
         .put("avatar", avatar?.toJson()).put("emoji", emoji).put("color", color).put("at", createdAt)
 
     companion object {
@@ -39,6 +46,7 @@ data class Profile(
             name = o.optString("name").ifBlank { "Profil" },
             kind = runCatching { ProfileKind.valueOf(o.optString("kind")) }.getOrDefault(ProfileKind.ADULT),
             pinHash = o.optString("pin"),
+            pinKind = runCatching { PinKind.valueOf(o.optString("pk")) }.getOrDefault(PinKind.DIGITS),
             avatar = o.optJSONObject("avatar")?.let { runCatching { AvatarSpec.from(it) }.getOrNull() },
             emoji = o.optString("emoji").ifBlank { "🙂" },
             color = o.optInt("color", 0xFF6B4DFF.toInt()),
@@ -152,8 +160,11 @@ object Profiles {
         return true
     }
 
-    fun setPin(ctx: Context, id: String, pin: String?) =
-        update(ctx, id) { it.copy(pinHash = if (pin.isNullOrEmpty()) "" else hash(id, pin)) }
+    fun setPin(ctx: Context, id: String, pin: String?, kind: PinKind = PinKind.DIGITS) =
+        update(ctx, id) {
+            if (pin.isNullOrEmpty()) it.copy(pinHash = "", pinKind = PinKind.DIGITS)
+            else it.copy(pinHash = hash(id, pin), pinKind = kind)
+        }
 
     fun checkPin(p: Profile, pin: String): Boolean = !p.hasPin || p.pinHash == hash(p.id, pin)
 
@@ -230,3 +241,45 @@ object ProfileTimeline {
         return out
     }
 }
+
+/**
+ * Yanlış şifre sınırı: aynı kapıda (bir profil ya da "yetişkin doğrulaması") art arda [MAX_FAILS] yanlış
+ * denemeden sonra [BLOCK_MS] boyunca giriş kapanır. Doğru şifre sayacı sıfırlar. Uygulama kapanıp açılsa da
+ * sayaç ve bekleme süresi korunur.
+ */
+object PinGuard {
+    const val MAX_FAILS = 10
+    const val BLOCK_MS = 30 * 60_000L
+    const val ADULTS = "adults"
+    private const val PREFS = "litedroid_pinguard"
+
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    /** Engel sürüyorsa kalan süre (ms), yoksa 0. */
+    fun blockedFor(ctx: Context, key: String): Long {
+        val until = prefs(ctx).getLong("until_$key", 0L)
+        val left = until - System.currentTimeMillis()
+        // Saat ileri alınıp geri getirilse bile en fazla BLOCK_MS beklenir
+        return if (left in 1..BLOCK_MS) left else 0L
+    }
+
+    fun fails(ctx: Context, key: String): Int = prefs(ctx).getInt("fails_$key", 0)
+
+    /** Yanlış deneme; sınıra ulaşıldıysa engel başlar ve true döner. */
+    @Synchronized
+    fun fail(ctx: Context, key: String): Boolean {
+        val n = fails(ctx, key) + 1
+        return if (n >= MAX_FAILS) {
+            prefs(ctx).edit().putInt("fails_$key", 0).putLong("until_$key", System.currentTimeMillis() + BLOCK_MS).apply()
+            true
+        } else {
+            prefs(ctx).edit().putInt("fails_$key", n).apply()
+            false
+        }
+    }
+
+    fun success(ctx: Context, key: String) {
+        prefs(ctx).edit().remove("fails_$key").remove("until_$key").apply()
+    }
+}
+
