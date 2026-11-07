@@ -371,7 +371,7 @@ LiteDroid yarım saatte bir GitHub Releases'e bakar. **Ayarlar → Diğer → G�
 ```bash
 git clone https://github.com/aliapaydin/litedroid_launcher.git
 cd litedroid_launcher
-./gradlew assembleRelease        # JDK 17 gerekir (macOS: export JAVA_HOME=$(/usr/libexec/java_home -v 17))
+./gradlew assembleRelease        # JDK 17-21 gerekir (macOS: export JAVA_HOME=$(/usr/libexec/java_home -v 17)); release.sh bunu kendisi seçer
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 </details>
